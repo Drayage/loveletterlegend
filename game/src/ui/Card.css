@@ -49,18 +49,45 @@
   position: absolute;
   top: 6px;
   left: 6px;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 4px;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 5px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.94);
   color: var(--card-accent);
   font-weight: 800;
-  font-size: 13px;
+  font-size: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  z-index: 1;
+}
+
+.card--sm .card__rank-badge {
+  min-width: 20px;
+  height: 20px;
+  font-size: 13px;
+}
+
+.card__count-badge {
+  position: absolute;
+  top: 37px;
+  left: 6px;
+  max-width: 60px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--card-accent);
+  font-size: 9px;
+  letter-spacing: -1px;
+  line-height: 1.4;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  z-index: 1;
+}
+
+.card--sm .card__count-badge {
+  display: none;
 }
 
 .card__name-bar {
@@ -111,6 +138,28 @@
   align-items: center;
   text-align: left;
   z-index: 2;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.1s ease;
+  /* Never intercept clicks -- both the hover preview and the tap-toggled
+     overlay are informational only; playing the card still goes through
+     the card root's own onClick. */
+  pointer-events: none;
+}
+
+.card--ability-open .card__ability-overlay {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Desktop mouse: hover the card to preview its ability, no click needed.
+   Scoped to real pointer devices so a tap on touchscreens doesn't get
+   stuck showing a "sticky hover" overlay. */
+@media (hover: hover) and (pointer: fine) {
+  .card:hover .card__ability-overlay {
+    opacity: 1;
+    visibility: visible;
+  }
 }
 
 .card--clickable {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CARD_DEFS } from "../engine/cards";
 import { CARD_ART } from "./cardArt";
 import type { CardName } from "../engine/types";
@@ -14,7 +14,23 @@ interface CardProps {
 }
 
 export function Card({ name, faceDown, size = "md", selected, disabled, onClick }: CardProps) {
+  // Explicit tap-to-toggle state, used as the primary interaction on touch
+  // devices (which have no hover). Desktop mouse users get the ability text
+  // via pure CSS :hover instead (see Card.css) so this state normally stays
+  // untouched there.
   const [showAbility, setShowAbility] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showAbility) return;
+    function handlePointerDown(e: PointerEvent) {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setShowAbility(false);
+      }
+    }
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [showAbility]);
 
   if (faceDown) {
     return <div className={`card card--${size} card--back`} aria-label="뒷면 카드" />;
@@ -28,12 +44,14 @@ export function Card({ name, faceDown, size = "md", selected, disabled, onClick 
   // <button> suppresses pointer events on all its descendants too.
   return (
     <div
+      ref={rootRef}
       className={[
         "card",
         `card--${size}`,
         selected ? "card--selected" : "",
         disabled ? "card--disabled" : "",
         clickable ? "card--clickable" : "",
+        showAbility ? "card--ability-open" : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -50,6 +68,11 @@ export function Card({ name, faceDown, size = "md", selected, disabled, onClick 
     >
       <img className="card__art" src={CARD_ART[name]} alt={def.name} draggable={false} />
       <span className="card__rank-badge">{def.rank}</span>
+      {def.count > 1 && (
+        <span className="card__count-badge" aria-label={`덱에 ${def.count}장`}>
+          {"◆".repeat(def.count)}
+        </span>
+      )}
       <span className="card__name-bar">{def.name}</span>
 
       {size !== "sm" && (
@@ -73,9 +96,7 @@ export function Card({ name, faceDown, size = "md", selected, disabled, onClick 
         </span>
       )}
 
-      {showAbility && size !== "sm" && (
-        <span className="card__ability-overlay">{def.ability}</span>
-      )}
+      {size !== "sm" && <span className="card__ability-overlay">{def.ability}</span>}
     </div>
   );
 }
