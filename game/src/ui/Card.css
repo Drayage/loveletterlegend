@@ -1,0 +1,91 @@
+.card {
+  --card-bg: #fbf7ec;
+  --card-border: #c9b98f;
+  --card-ink: #3a2e1f;
+  --card-accent: #a4402f;
+  font-family: inherit;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 128px;
+  min-height: 168px;
+  padding: 10px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  color: var(--card-ink);
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  cursor: default;
+}
+
+.card--sm {
+  width: 84px;
+  min-height: 40px;
+  padding: 6px;
+}
+
+.card--lg {
+  width: 168px;
+  min-height: 220px;
+  padding: 14px 12px;
+}
+
+.card--back {
+  background: repeating-linear-gradient(
+    45deg,
+    #6b3a30,
+    #6b3a30 6px,
+    #7c463a 6px,
+    #7c463a 12px
+  );
+  border-color: #4a271f;
+}
+
+.card__rank {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--card-accent);
+  line-height: 1;
+}
+
+.card__name {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.card__alias {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8a7a5c;
+}
+
+.card__ability {
+  margin-top: 4px;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: #52453a;
+}
+
+.card--clickable {
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.card--clickable:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
+}
+
+.card--selected {
+  outline: 3px solid var(--card-accent);
+  outline-offset: 2px;
+}
+
+.card--disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

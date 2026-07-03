@@ -1,0 +1,48 @@
+:root {
+  --bg: #f4f2ec;
+  --panel: #ffffff;
+  --border: #ddd6c7;
+  --text: #2b2620;
+  --muted: #7a7364;
+  --accent: #a4402f;
+  --accent-soft: #f1ded9;
+  color-scheme: light dark;
+  font: 16px/1.5 -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1a17;
+    --panel: #262320;
+    --border: #3c372f;
+    --text: #eee8dc;
+    --muted: #a29a89;
+    --accent: #e0806c;
+    --accent-soft: #3a2620;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+h1,
+h2,
+h3 {
+  color: var(--text);
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+}
+
+#root {
+  min-height: 100vh;
+}

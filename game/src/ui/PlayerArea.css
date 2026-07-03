@@ -1,0 +1,82 @@
+.player-area {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.player-area--eliminated {
+  opacity: 0.6;
+}
+
+.player-area__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.player-area__header h2 {
+  margin: 0;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.player-area__turn-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: white;
+}
+
+.pill {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+
+.pill--protected {
+  background: #e3f0e5;
+  color: #3f7d4f;
+  border-color: transparent;
+}
+
+.pill--eliminated {
+  background: #f6e0dc;
+  color: var(--accent);
+  border-color: transparent;
+}
+
+.player-area__row {
+  display: flex;
+  gap: 22px;
+  flex-wrap: wrap;
+}
+
+.player-area__group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.player-area__label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.player-area__cards {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-height: 60px;
+}
+
+.player-area__cards--discard {
+  min-height: 40px;
+}
