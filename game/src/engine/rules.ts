@@ -55,6 +55,8 @@ export function setupRound(playerConfigs: PlayerConfig[]): GameState {
     resolvingCard: null,
     resolvingPlayerId: null,
     deckExhaustedThisTurn: false,
+    lastPlayedCard: null,
+    lastReveal: null,
   };
   log(state, "라운드를 시작합니다.");
   state = beginTurn(state);
@@ -101,6 +103,7 @@ export function chooseCardToPlay(state: GameState, cardInstanceId: string): Game
 
   draft.resolvingCard = card;
   draft.resolvingPlayerId = playerId;
+  draft.lastPlayedCard = { playerId, card };
   log(draft, `${player.displayName}: 「${card.name}」 카드를 냅니다.`);
 
   if (needsTarget(card.name)) {

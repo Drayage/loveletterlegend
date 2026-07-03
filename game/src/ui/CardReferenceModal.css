@@ -1,0 +1,29 @@
+.card-reference {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.card-reference__row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.card-reference__text {
+  flex: 1;
+}
+
+.card-reference__title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.card-reference__ability {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}

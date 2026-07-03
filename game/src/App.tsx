@@ -9,6 +9,8 @@ import { TablePlay } from "./ui/TablePlay";
 import { DecisionPanel } from "./ui/DecisionPanel";
 import { GameLog } from "./ui/GameLog";
 import { EffectToast } from "./ui/EffectToast";
+import { EffectRevealModal } from "./ui/EffectRevealModal";
+import { CardReferenceModal } from "./ui/CardReferenceModal";
 import "./App.css";
 
 const HUMAN_ID = "human";
@@ -42,10 +44,21 @@ function safely<T>(fn: () => T): T | null {
 
 export default function App() {
   const [state, setState] = useState<GameState | null>(null);
+  const [showCardReference, setShowCardReference] = useState(false);
+  const [dismissedRevealId, setDismissedRevealId] = useState<string | null>(null);
   const handledDecisionRef = useRef<PendingDecision | null>(null);
+
+  const pendingHumanReveal =
+    state?.lastReveal && state.lastReveal.viewerPlayerId === HUMAN_ID && state.lastReveal.id !== dismissedRevealId
+      ? state.lastReveal
+      : null;
 
   useEffect(() => {
     if (!state || state.roundResult || !state.pendingDecision) return;
+    // Don't let the AI take its next turn while the human still has an
+    // unread private reveal on screen (광대/기사) -- otherwise the AI's own
+    // reveal could silently overwrite and hide it before it's been read.
+    if (pendingHumanReveal) return;
     const decision = state.pendingDecision;
     const actor = state.players.find((p) => p.id === decision.playerId);
     if (!actor?.isAI) return;
@@ -59,7 +72,7 @@ export default function App() {
       });
     }, 700);
     return () => clearTimeout(timer);
-  }, [state]);
+  }, [state, pendingHumanReveal]);
 
   function startGame() {
     handledDecisionRef.current = null;
@@ -106,16 +119,34 @@ export default function App() {
 
       <EffectToast entries={state.log} />
 
-      {state.faceUpRemovedCards.length > 0 && (
-        <div className="removed-row">
-          <span className="removed-row__label">공개 제거된 카드</span>
-          <div className="removed-row__cards">
-            {state.faceUpRemovedCards.map((c) => (
-              <Card key={c.instanceId} name={c.name} size="md" remainingCount={remaining[c.name]} />
-            ))}
-          </div>
-        </div>
-      )}
+      <div className="removed-row">
+        {state.faceUpRemovedCards.length > 0 ? (
+          <>
+            <span className="removed-row__label">공개 제거된 카드</span>
+            <div className="removed-row__cards">
+              {state.faceUpRemovedCards.map((c) => (
+                <Card key={c.instanceId} name={c.name} size="md" remainingCount={remaining[c.name]} />
+              ))}
+            </div>
+          </>
+        ) : (
+          <span className="removed-row__label">공개 제거된 카드 없음</span>
+        )}
+        <button
+          type="button"
+          className="removed-row__reference-btn"
+          onClick={() => setShowCardReference(true)}
+        >
+          이번 게임 카드 확인
+        </button>
+      </div>
+
+      {showCardReference && <CardReferenceModal onClose={() => setShowCardReference(false)} />}
+
+      <EffectRevealModal
+        reveal={pendingHumanReveal}
+        onDismiss={() => setDismissedRevealId(pendingHumanReveal?.id ?? null)}
+      />
 
       <PlayerArea
         player={ai}
@@ -124,7 +155,7 @@ export default function App() {
         remaining={remaining}
       />
 
-      <TablePlay left={human} right={ai} remaining={remaining} />
+      <TablePlay state={state} remaining={remaining} />
 
       <PlayerArea
         player={human}

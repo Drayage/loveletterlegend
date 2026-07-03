@@ -115,6 +115,15 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
         draft,
         `${actor.displayName}: 「광대」 효과로 ${target.displayName}의 손패(「${seen?.name ?? "없음"}」)를 확인했습니다.`
       );
+      if (seen) {
+        draft.lastReveal = {
+          id: nextLogId(),
+          viewerPlayerId: actingPlayerId,
+          cardName: "광대",
+          targetDisplayName: target.displayName,
+          targetCard: seen.name,
+        };
+      }
       return;
     }
     case "기사": {
@@ -129,6 +138,17 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       log(draft, `${actor.displayName}과(와) ${target.displayName}이(가) 「기사」로 카드를 비교합니다.`);
       const actorRank = cardRank(actorCard.name);
       const targetRank = cardRank(targetCard.name);
+      draft.lastReveal = {
+        id: nextLogId(),
+        viewerPlayerId: actingPlayerId,
+        cardName: "기사",
+        targetDisplayName: target.displayName,
+        compare: {
+          actorCard: actorCard.name,
+          targetCard: targetCard.name,
+          result: actorRank === targetRank ? "tie" : actorRank < targetRank ? "lose" : "win",
+        },
+      };
       if (actorRank === targetRank) {
         log(draft, "숫자가 같아 아무 일도 일어나지 않습니다.");
       } else if (actorRank < targetRank) {

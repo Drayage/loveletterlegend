@@ -120,7 +120,7 @@ export function Card({
         </span>
       )}
 
-      {size !== "sm" && <span className="card__ability-overlay">{def.ability}</span>}
+      {size !== "sm" && <span className="card__ability-overlay">{def.shortAbility}</span>}
     </div>
   );
 }

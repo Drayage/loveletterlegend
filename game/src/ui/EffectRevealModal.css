@@ -1,0 +1,31 @@
+.reveal-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  width: 100%;
+}
+
+.reveal-modal__caption {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.reveal-modal__row {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+}
+
+.reveal-modal__col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.reveal-modal__result {
+  margin: 0;
+  font-weight: 700;
+}

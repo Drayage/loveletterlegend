@@ -1,19 +1,19 @@
 .table-play {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 24px;
+  gap: 10px;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 18px;
 }
 
-.table-play__slot {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
+.table-play__label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .table-play__name {
@@ -37,6 +37,10 @@
 }
 
 .table-play__pop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
   animation: table-play-pop 0.35s cubic-bezier(0.25, 1.4, 0.4, 1);
 }
 
