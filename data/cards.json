@@ -1,0 +1,1063 @@
+{
+  "cards": [
+    {
+      "id": "001",
+      "category": "게임",
+      "subtype": null,
+      "name": "경비병",
+      "raw_ocr_text": "경비병\n: 0262 Se\n2 | LORS: Se | =\na Avie\n13 As\n플레이: 다른 플레이어를 지목한 뒤, 「경비병」을\n제입하카ㄷ이 0르으 Dhl GU\n",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 1,
+      "rank": 1,
+      "count": 5,
+      "ability": ": 0262 Se\n2 | LORS: Se | =\n13 As\n플레이: 다른 플레이어를 지목한 뒤, 「경비병」을\n제입하카ㄷ이 0르으 Dhl GU",
+      "trigger": "passive",
+      "needs_review": false
+    },
+    {
+      "id": "002",
+      "category": "게임",
+      "subtype": null,
+      "name": "경비병",
+      "raw_ocr_text": "경비병\n44440\n=| gee oe | -\n| Pre VAR Ol\n“1 )/\n3 As\n플레이: 다른 플레이어를 지목한 뒤, 「경비병」』을\n제인하카ㄷ이 JBL 314 대니 그\n",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 1,
+      "rank": 1,
+      "count": 5,
+      "ability": "44440\n“1 )/\n3 As\n플레이: 다른 플레이어를 지목한 뒤, 「경비병」』을\n제인하카ㄷ이 JBL 314 대니 그",
+      "trigger": "passive",
+      "needs_review": false
+    },
+    {
+      "id": "003",
+      "category": "게임",
+      "subtype": null,
+      "name": "경비병",
+      "raw_ocr_text": "경비병\nPier at er    PS teatctagt nis\n—  』  eS = = og  |\n{  Peg  /)] _  eee ) ay\n. ia     eae  beara   reese\nil 8 AX     iy  he\n플레이: 다른 플레이어를 지목한 뒤, 「경비병」을\n제입하카ㄷ이 oO) BL 3 나 대가\n",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 1,
+      "rank": 1,
+      "count": 5,
+      "ability": "il 8 AX     iy  he\n플레이: 다른 플레이어를 지목한 뒤, 「경비병」을\n제입하카ㄷ이 oO) BL 3 나 대가",
+      "trigger": "passive",
+      "needs_review": false
+    },
+    {
+      "id": "004",
+      "category": "게임",
+      "subtype": null,
+      "name": "경비병",
+      "raw_ocr_text": "경비병\n 44400\na 『  es\n=  oe RN  4, i =\ncole  ae\nBea    1 '\n0 A:\n플레이: 다른 플레이어를 지목한 뒤, 「경비병」』을;\n제외한 카드의 OSS 하나 FC.\n",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 1,
+      "rank": 1,
+      "count": 5,
+      "ability": "44400\n=  oe RN  4, i =\nBea    1 '\n0 A:\n플레이: 다른 플레이어를 지목한 뒤, 「경비병」』을;\n제외한 카드의 OSS 하나 FC.",
+      "trigger": "passive",
+      "needs_review": false
+    },
+    {
+      "id": "005",
+      "category": "게임",
+      "subtype": null,
+      "name": "경비병",
+      "raw_ocr_text": "Oo  | rey\n“$0000 ~\n^\n  Bag 2]   n | 전  ; + 0\n= [세     YR Im\n=      4     ; i ren            fe  :           3    =\n=   lal ast Tg =\n=   ㅣ > 00 2 « .000' 0\na A:\n플레이: 다른 플레이어를 지목한 뒤, 「경비병」』을\n제외한 카드의 OSS 하나 WUC.\n",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 1,
+      "rank": 1,
+      "count": 5,
+      "ability": "“$0000 ~\nBag 2]   n | 전  ; + 0\n= [세     YR Im\n=      4     ; i ren            fe  :           3    =\n=   ㅣ > 00 2 « .000' 0\n플레이: 다른 플레이어를 지목한 뒤, 「경비병」』을\n제외한 카드의 OSS 하나 WUC.",
+      "trigger": "passive",
+      "needs_review": false
+    },
+    {
+      "id": "006",
+      "category": "게임",
+      "subtype": null,
+      "name": "광대",
+      "raw_ocr_text": "0          pa          2\n=       rr       =\nae 33 AMS          =\nes 그 eee       =\n플레이: 다른 플레이어 한 명을 지목하여\n",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 1,
+      "rank": 2,
+      "count": 2,
+      "ability": "0          pa          2\nae 33 AMS          =\nes 그 eee       =\n플레이: 다른 플레이어 한 명을 지목하여",
+      "trigger": "passive",
+      "needs_review": false
+    },
+    {
+      "id": "007",
+      "category": "게임",
+      "subtype": null,
+      "name": "광대",
+      "raw_ocr_text": "7\n2         a          2\noO OA 인\n중,\nSOV\n=           | 2    0          <\n=            > 1 er Ty ay}           =\neo Ve ANY\n= SS        S\n“ys      Aa Weer,       =\n플레이: 다른 플레이어 한 Bg 지목하여\n그 플레이어가 손에 든 카드를 봅니다.\n",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 1,
+      "rank": 2,
+      "count": 2,
+      "ability": "7\n2         a          2\noO OA 인\n중,\n=           | 2    0          <\n=            > 1 er Ty ay}           =\n플레이: 다른 플레이어 한 Bg 지목하여\n그 플레이어가 손에 든 카드를 봅니다.",
+      "trigger": "passive",
+      "needs_review": false
+    },
+    {
+      "id": "008",
+      "category": "게임",
+      "subtype": null,
+      "name": "기사",
+      "raw_ocr_text": "3          om         3\nWy\n“A\n=| APS a =\n=|  Prt Ke 법\nPost ~\n 플레이: FAS 다른 플레이어 한 명과 Eq] =\n카드의 숫자를 서로 비밀리에 비교합니다.\n이때 숫자가 더 작은 카드를 가진\n플거이어는 금우드에서 탕랑항니다\n",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 1,
+      "rank": 3,
+      "count": 2,
+      "ability": "3          om         3\n=|  Prt Ke 법\n플레이: FAS 다른 플레이어 한 명과 Eq] =\n카드의 숫자를 서로 비밀리에 비교합니다.\n이때 숫자가 더 작은 카드를 가진\n플거이어는 금우드에서 탕랑항니다",
+      "trigger": "passive",
+      "needs_review": false
+    },
+    {
+      "id": "009",
+      "category": "게임",
+      "subtype": null,
+      "name": "기사",
+      "raw_ocr_text": "(20\n 결        |\nJan Os 3S                =\n=    loa 's E\nas            4        『   \\            글\n[ te   4 ; f   \\\nwn ee     :    :\n플레이: 당신은 다른 플레이어 한 명과 손에 =\n카드의 숫자를 서로 비밀리에 비교합니다.\n이때 숫자가 더 작은 카드를 가진\nZ2Wo]lok 그우드에서 탕란항니다\n",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 1,
+      "rank": 3,
+      "count": 2,
+      "ability": "(20\n결        |\nJan Os 3S                =\nas            4        『   \\            글\n[ te   4 ; f   \\\n플레이: 당신은 다른 플레이어 한 명과 손에 =\n카드의 숫자를 서로 비밀리에 비교합니다.\n이때 숫자가 더 작은 카드를 가진\nZ2Wo]lok 그우드에서 탕란항니다",
+      "trigger": "passive",
+      "needs_review": false
+    },
+    {
+      "id": "010",
+      "category": "게임",
+      "subtype": null,
+      "name": "승려",
+      "raw_ocr_text": "f        승려        {\nwe         P35         et\nSe                       —\n의 Swe |e\n2) 。. eA    So\neo     “”® er  0      &>\ne| A we g oe |\n 당신의 다음 차례가 올 때까지\n",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 2,
+      "rank": 4,
+      "count": 2,
+      "ability": "we         P35         et\n의 Swe |e\n2) 。. eA    So\neo     “”® er  0      &>\n당신의 다음 차례가 올 때까지",
+      "trigger": "passive",
+      "needs_review": false
+    },
+    {
+      "id": "011",
+      "category": "게임",
+      "subtype": null,
+      "name": "승려",
+      "raw_ocr_text": "|\n|          J\n      승려      f\n>                   -\n느      별 de : 니 27          -\n>| g.    o\n=| | Vases |:\n 당신의 다음 차례가 올 때까지\n",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 2,
+      "rank": 4,
+      "count": 2,
+      "ability": "승려      f\n느      별 de : 니 27          -\n당신의 다음 차례가 올 때까지",
+      "trigger": "passive",
+      "needs_review": false
+    },
+    {
+      "id": "012",
+      "category": "게임",
+      "subtype": null,
+      "name": "마술사",
+      "raw_ocr_text": "A\n5       마술사      5\nCe\n32. FF\n가   Pe 0 헨 ae  be Gis\nfs     1 Meta. 년          cami\n| 사스 eS ys       ba\nra     ELSES     =\noie Bir pi’ A\nㆍ     Aig 07  i a eat f 나  조에      ~\n=>     “p 4 art ~     Ny my       a\n플레이: 당신 SS 다른 플레이어\n자 며으 271모하1]7 ㄱㄱ Z=Aolak\n",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 2,
+      "rank": 5,
+      "count": 2,
+      "ability": "5       마술사      5\n32. FF\n가   Pe 0 헨 ae  be Gis\nfs     1 Meta. 년          cami\n| 사스 eS ys       ba\nㆍ     Aig 07  i a eat f 나  조에      ~\n=>     “p 4 art ~     Ny my       a\n플레이: 당신 SS 다른 플레이어\n자 며으 271모하1]7 ㄱㄱ Z=Aolak",
+      "trigger": "passive",
+      "needs_review": false
+    },
+    {
+      "id": "013",
+      "category": "게임",
+      "subtype": null,
+      "name": "마술사",
+      "raw_ocr_text": "A\n바술ㅅ^ +       >\n/ “>\nLS ey    m\\\nGe Ae  > Pi\nss | PAI Crete\n=| |S        =\n| 20272       a\nhi 00  Cie Ne GOEX\nra [22000 Qs    =\nㆍ      247 내 자 발기 가  A:       “\noo. a ee a\n^ 16\n플레이: 당신 혹은 다른 플레이어\n한 명을 지목합니다. 그 플레이어는\n",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 2,
+      "rank": 5,
+      "count": 2,
+      "ability": "바술ㅅ^ +       >\n| 20272       a\nhi 00  Cie Ne GOEX\nra [22000 Qs    =\nㆍ      247 내 자 발기 가  A:       “\n^ 16\n플레이: 당신 혹은 다른 플레이어\n한 명을 지목합니다. 그 플레이어는",
+      "trigger": "passive",
+      "needs_review": false
+    },
+    {
+      "id": "014",
+      "category": "게임",
+      "subtype": null,
+      "name": "장군",
+      "raw_ocr_text": "A                                                ‘Gq\nING        자구         A\nc       ou      gy\naL.                                수\n을,     7   rn        B y\n—        fe           ~\n0;\ner. ae       ue\nee  pe      eee\nㅣ        tea    a         ; 스7\n호         < <A>    =\n=| Ee ㅣ|\nCoe 0 —\n| 2220 1\nV4      OSE? £ £\n플레이: 다른 플레이어 한 명과\n",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 2,
+      "rank": 6,
+      "count": 1,
+      "ability": "ING        자구         A\naL.                                수\n을,     7   rn        B y\n0;\nㅣ        tea    a         ; 스7\n호         < <A>    =\nCoe 0 —\n| 2220 1\nV4      OSE? £ £\n플레이: 다른 플레이어 한 명과",
+      "trigger": "passive",
+      "needs_review": false
+    },
+    {
+      "id": "015",
+      "category": "게임",
+      "subtype": null,
+      "name": "대신",
+      "raw_ocr_text": "^ 4              cas | BE By             ^ 4\n14                                           a4\n|                                          | .\nfl\n구어                   &          (2               -\nfe                             =               foes\n+ om          SEN <3, 0   ae    Fes?                   favs\n수   @ on Ds 6.     a                —\n.       00\nAs     Ee) 4. Ole\n당신이 손에 = 카드 숫자의 합이\n",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 2,
+      "rank": 7,
+      "count": 1,
+      "ability": "^ 4              cas | BE By             ^ 4\n14                                           a4\n구어                   &          (2               -\n+ om          SEN <3, 0   ae    Fes?                   favs\n수   @ on Ds 6.     a                —\n.       00\nAs     Ee) 4. Ole\n당신이 손에 = 카드 숫자의 합이",
+      "trigger": "passive",
+      "needs_review": false
+    },
+    {
+      "id": "016",
+      "category": "게임",
+      "subtype": "공주 / 왕자",
+      "name": "공주",
+      "raw_ocr_text": "수,             14              ~\nop        oa 7        ‘a\n^                                                                                  > <\n| |                               | ^ |\nBa ”                       a ”\n>                                  ^\n\n6)\n&            ‘ ee           fh            -\n>>                  tae                               ~\n  이거 ay a 883\n이 카드를 버려야 하는\n상윙이 생기면, Sle 즉시\n라운드에서 탈락합니다.\n",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 2,
+      "rank": 8,
+      "count": 1,
+      "ability": "수,             14              ~\nop        oa 7        ‘a\n6)\n이거 ay a 883\n이 카드를 버려야 하는\n상윙이 생기면, Sle 즉시\n라운드에서 탈락합니다.",
+      "trigger": "passive",
+      "needs_review": false
+    },
+    {
+      "id": "017",
+      "category": null,
+      "subtype": null,
+      "name": "시간",
+      "raw_ocr_text": "시간\n\n…ㅁㄴㄴㅇㄴㄷㄴㅇㄴㄴㄴㅇㄴㄴㄴ0ㅇ0000990ㅁㅁㅁㄴㅁ000000000900000000ㄷㄴ…00009~-ㄴ\n\n시간\nAlto] SBS 누구미께나 곰평하며 무자비합니다.\n탐신은 제한된 AIJ 내머 마음메 BS 상대의\n사람을 잼취해 내머마 합니다.\n8 G17 :t0om1 a\n2 개 : (025) [026] 공개\n3 개 : [032] 공개\n6 개 : [049] 공개\n69 7 개 : [050] 공개\nDo 때 라운드가 sea, oA 위에 + @\n[에 라운드 승리: 「공주/왕자, 위에 + 9\nE <@> 카드를 손에 들고 라운드에서 승리:\n위와 동일한 「공주/왕자」 위에 추가로 +[00\n\n(017) 세비텍호 ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 2,
+      "effects": [
+        {
+          "tag": null,
+          "text": "Alto] SBS 누구미께나 곰평하며 무자비합니다. 탐신은 제한된 AIJ 내머 마음메 BS 상대의 사람을 잼취해 내머마 합니다. 8 G17 :t0om1 a 2 개 : (025) [026] 공개 3 개 : [032] 공개 6 개 : [049] 공개 69 7 개 : [050] 공개 Do 때 라운드가 sea, oA 위에 + @ [에 라운드 승리: 「공주/왕자, 위에 + 9"
+        },
+        {
+          "tag": "종료",
+          "text": "<@> 카드를 손에 들고 라운드에서 승리: 위와 동일한 「공주/왕자」 위에 추가로 +[00"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "018",
+      "category": "캐릭터",
+      "subtype": "3A) ab 에  .   '   _ ol fs",
+      "name": "aac 공",
+      "raw_ocr_text": "Az\n\naac 공\n\nTv\n\nol 7 리 Cc .고즈\n0 I\n|\n1 가    ((\n| 주\n2,   J\n>   ia\na eS        FG) 것\nDet alas\",\nwe 게니  LAS a\n~ “ents oa) | Gar ee aN\n이조 을 24\n^ ow Pe\n\n  캐릭터: 3A) ab 에  .   '   _ ol fs | ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 2,
+      "effects": [
+        {
+          "tag": null,
+          "text": "ol 7 리 Cc .고즈 0 I 1 가    (( | 주 2,   J a eS        FG) 것 we 게니  LAS a 이조 을 24"
+        }
+      ],
+      "needs_review": false
+    },
+    {
+      "id": "019",
+      "category": "캐릭터",
+      "subtype": "공추 / 왕장 7)",
+      "name": "",
+      "raw_ocr_text": "\n[월 -매라운드 시작시, 다른 @ 공주/왕자》를\n덱의 대응하는 캐릭터 카드 아래 되돌리고\n(® 공주》[016]를 덱에 추가해도 됩니다.\nE 50 10개 : 게임을 종료합니다. [051] 공개\n\n| / ㆍ '  캐릭터: 공추 / 왕장 7) ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 3,
+      "effects": [
+        {
+          "tag": null,
+          "text": "[월 -매라운드 시작시, 다른 @ 공주/왕자》를 덱의 대응하는 캐릭터 카드 아래 되돌리고 (® 공주》[016]를 덱에 추가해도 됩니다."
+        },
+        {
+          "tag": "종료",
+          "text": "50 10개 : 게임을 종료합니다. [051] 공개"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "020",
+      "category": "캐릭터",
+      "subtype": "공주 / Bt",
+      "name": "",
+      "raw_ocr_text": "\nr                 rs          :\n=  —                        %\nCl 며\n|  =                     —\n! of                      ;\n}            |\nLC  c )                        Lan |   「\no |             ak         4)\nL    =                  a, ae         ff\n| J             %   ey, \"    BY  j\n| 뇌            % % ^ ^1\n1 0                 ene        사오\n1 |             . ae . =\n| 기          ~ ~ UE aye\nI          Ret 0\n=      Soe Ve 40\neee        Ween utes | YS    gi      “a9\n#   나경     Ma is Ee Nf   ”\n            3402 ie EES, fe ee (< 이에\na       :     NRE TELE a    Pao. \\\n- 040 \"^    “Gem 4 ea\nLe  ^      eo 00.\n^            020. 8\n    가 2                pelt St    4     iy\n~ a Ma            af    a4 «#\nSOC il ar:  Past   By.      3)  ㆍ 000\n\n\"   니      | :  q  Pag  :  '캐릭터: 공주 / Bt | ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 3,
+      "effects": [
+        {
+          "tag": null,
+          "text": "Cl 며 o |             ak         4) | 뇌            % % ^ ^1 1 0                 ene        사오 1 |             . ae . = | 기          ~ ~ UE aye I          Ret 0 =      Soe Ve 40 eee        Ween utes | YS    gi      “a9 #   나경     Ma is Ee Nf   ” 3402 ie EES, fe ee (< 이에 - 040 \"^    “Gem 4 ea Le  ^      eo 00. ^            020. 8 가 2                pelt St    4     iy ~ a Ma            af    a4 «# SOC il ar:  Past   By.      3)  ㆍ 000"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "021",
+      "category": "캐릭터",
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\n|\n|S Weasels, 다른 @ 공주/왕자》를\n덱의 대응하는 캐릭터 카드 아래 되돌리고\n«® SA) (022]S So] 주가해도 됩니다.\n| 에 7 10개 : 게임을 종료합니다. 【051]】 공개\n\n| 021 ] [캐릭터 공주 /왕자 (QD ' ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 3,
+      "effects": [
+        {
+          "tag": null,
+          "text": "|S Weasels, 다른 @ 공주/왕자》를 덱의 대응하는 캐릭터 카드 아래 되돌리고 «® SA) (022]S So] 주가해도 됩니다. | 에 7 10개 : 게임을 종료합니다. 【051]】 공개"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "022",
+      "category": null,
+      "subtype": null,
+      "name": "\"슬 .",
+      "raw_ocr_text": "\"슬 .\n\n왕자\n\nfe |\n\nS         a         S\n2            ‘eo os\n=             Ni ”        =\n=                 !     +        ~\n~          티거          a> |\n이 카드를 버려야 하는\n사하] ANANZI CHAS 즈)]\n\n라운드에서 탈락합니다.    AD 8 BRI Gh ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 3,
+      "effects": [
+        {
+          "tag": null,
+          "text": "2            ‘eo os ~          티거          a> | 이 카드를 버려야 하는 사하] ANANZI CHAS 즈)]"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "023",
+      "category": null,
+      "subtype": null,
+      "name": "때 이야기의 시작 걱",
+      "raw_ocr_text": "역사 ㅣ\n\n때 이야기의 시작 걱\n\n역사 ㅣ\n담신은 섬 만의 귀민을 사람하게 되고 말았습니다.\n\nDes 담은 ae 레터는 바간는 곳메 담을 수 있을까요.\nE|  라운드 종료시, 승자가 든 카드 확인:\n\n«D 경비병》이라면, [052] 공개\n\n(® 광대》라면, (079) 공개\n\n«® 기사》라면, [103】 (104) 공개\n\n《@ 승려》라면, [119] 공개\n\n《6) 마숨사》라면, [142] 공개\n\n«© 장군》이라면, 【162】 (163) 공개\n\n«® 대신》이라면, 1172) 공개\n\n(® 공주/왕자》라면, 【[188]】 공개\n\n(각 조건은 한 번씩만 발동합니다)\n\nEa 6 7: ㄱㄷ274 다  AYE. ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 3,
+      "effects": [
+        {
+          "tag": null,
+          "text": "역사 ㅣ 담신은 섬 만의 귀민을 사람하게 되고 말았습니다. Des 담은 ae 레터는 바간는 곳메 담을 수 있을까요."
+        },
+        {
+          "tag": "종료",
+          "text": "|  라운드 종료시, 승자가 든 카드 확인: «D 경비병》이라면, [052] 공개 (® 광대》라면, (079) 공개 «® 기사》라면, [103】 (104) 공개 《@ 승려》라면, [119] 공개 《6) 마숨사》라면, [142] 공개 «© 장군》이라면, 【162】 (163) 공개 «® 대신》이라면, 1172) 공개 (® 공주/왕자》라면, 【[188]】 공개 (각 조건은 한 번씩만 발동합니다)"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "024",
+      "category": null,
+      "subtype": null,
+      "name": "점차 커지",
+      "raw_ocr_text": "역사 2\n\n점차 커지\n\nLs oO\n\n느 AT\n\n역사 2         7\n편지를 둘린싼 CHES Teco), 몬갖 Seip) 샘곽지도\n못한 사람들마저 450] 끌머들|고 만 것입니다.\n\n[에 Sacto} 보유한 WI 개수 확인:\n\n보유한 BA} 7 개 이하인 플레이어가\n\n있다면 :【028】 ~ [030] 공개\n\n보유한 G7} 3 개 이하인 플레이어가\n\n있다면 : (048) 공개\n\n(각 조건은 한 번씩만 발동합니다)\niE  이야기 보관소에 「조건」을 가진 카드가\n\n2 장 이상 있다면: [031] 공개\n\n에 6 :ㄱㆍ 카ㄷ240.  Aue. ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 3,
+      "effects": [
+        {
+          "tag": null,
+          "text": "역사 2         7 편지를 둘린싼 CHES Teco), 몬갖 Seip) 샘곽지도 못한 사람들마저 450] 끌머들|고 만 것입니다. [에 Sacto} 보유한 WI 개수 확인: 보유한 BA} 7 개 이하인 플레이어가 있다면 :【028】 ~ [030] 공개 보유한 G7} 3 개 이하인 플레이어가 있다면 : (048) 공개 (각 조건은 한 번씩만 발동합니다) iE  이야기 보관소에 「조건」을 가진 카드가 2 장 이상 있다면: [031] 공개"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "025",
+      "category": null,
+      "subtype": null,
+      "name": "rN 국왕 랜들 3A",
+      "raw_ocr_text": "rN 국왕 랜들 3A]\n\nSerr ew ree nerseererssesesessseee\n\n=\nFPN           『「무엄하도다!』\n4. 0 '\n$F KF) [026]을 덕에 추가합니다.\n\nㅣ 플레이어가 «x 왕》의 효과로 탈락했을 때\n그 플레이어가 보유한 [가 8개 이상 :\n+@\n\n개  [조건] 라운드 종료시 @가 1개 이상 :\n{027] 공개\n위의 조건을 중족한 경우 이 카드를 제거.\n\nTo te 00 705 ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 3,
+      "effects": [
+        {
+          "tag": null,
+          "text": "FPN           『「무엄하도다!』 4. 0 ' $F KF) [026]을 덕에 추가합니다. ㅣ 플레이어가 «x 왕》의 효과로 탈락했을 때 그 플레이어가 보유한 [가 8개 이상 : 개  [조건] 라운드 종료시 @가 1개 이상 : {027] 공개 위의 조건을 중족한 경우 이 카드를 제거."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "026",
+      "category": null,
+      "subtype": null,
+      "name": "와",
+      "raw_ocr_text": ">\n\n와\n\n<\n\n> ^                 re) -                  ~\n< oy i |             aa tr fv\n? wi                Te)              i we,\ni                                  all                               LY,\nnia Se                                                                        | vy\n수 A                                                   ) 4\n»                                                        (개\na’                   A\naw ey                                         af Gee\na     L 4                     ~               ~     ”\nce       ja\n시\n1             Be            By   \"hy                 ree?\nSs          _          x            oz\ngE                 pe      ' (       bre     위      >»            =m 4\nemp            - ff   ¥        eed      ; 、          foxy\n+=                    y     ‘                     x                 00\nwd        #    와 > | 개 ae oe         <\n£        ey a         <M                     2\n:    4100      wa\noe ee  ss    .   때 “개 기\n그        g   년 ‘               if\nee     AK  \"   es Us\nd   et                  때   Se,\nfh oti 45     개        제 ped\ntf L% «              Vo\n와우                0 pe\nj      ee                  6\n타지 LS    으ㄷ       탕관하\nSAS 라운드에서 탈락합니다.\n\n 페웰 | ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 3,
+      "effects": [
+        {
+          "tag": null,
+          "text": "수 A                                                   ) 4 »                                                        (개 a     L 4                     ~               ~     ” 시 1             Be            By   \"hy                 ree? gE                 pe      ' (       bre     위      >»            =m 4 +=                    y     ‘                     x                 00 wd        #    와 > | 개 ae oe         < £        ey a         <M                     2 :    4100      wa oe ee  ss    .   때 “개 기 그        g   년 ‘               if d   et                  때   Se, fh oti 45     개        제 ped 와우                0 pe j      ee                  6 타지 LS    으ㄷ       탕관하 SAS 라운드에서 탈락합니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "027",
+      "category": null,
+      "subtype": null,
+      "name": "왕비 릴리안",
+      "raw_ocr_text": "왕비 릴리안\n\nrr iy\n\n할 \\ 왕비 릴리안\net 1\n」 =  를 | CITC, 그만두시요 머보.」\n| 느 |\niA Wis WF }\n$F KB (02618 oly 제거합니다.\n라운드 종료시, 승자는 「공주/왕자」 위에\n추가로 + Was 됩니다.\n\nSay gue Coa ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 3,
+      "effects": [
+        {
+          "tag": null,
+          "text": "et 1 」 =  를 | CITC, 그만두시요 머보.」 | 느 | $F KB (02618 oly 제거합니다. 라운드 종료시, 승자는 「공주/왕자」 위에 추가로 + Was 됩니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "028",
+      "category": "캐릭터",
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "4\n\n간판 점원 미란다\nga     a\n7          longs\n\"i 775\nAl 141        (s.         ^\n기은        uy\nbal                    0.\n구위        |\na  성 0  《\n\n8 캐릭터 내 8 ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 4,
+      "effects": [
+        {
+          "tag": null,
+          "text": "간판 점원 미란다 7          longs \"i 775 Al 141        (s.         ^ 기은        uy bal                    0. 구위        | a  성 0  《"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "029",
+      "category": "캐릭터",
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\n|\nOo\n간판 점원 미란다\n리브 레터가 전해져 들떠 밌는 자도 밌고, 소식미 S101\n슬퍼하는 자도 밌습니다. 술로 Wa 싶은 자는\n섬 OHO! 민기 술집 점륭점메 다니는 HOMSLICH.\n~ ^“\nSF ong 소녀》 [080]을 덕에 추가합니다.\n(개  《6 마을 소녀》를 손에 들고 라운드 승리 :\n+ ISI)\n(개 (© 마을 소녀》가 버림 더미에 놓인 채로\n라운드 종료 : -『0/(0개 미만이 될 수 없습니다)\n07 3 개 이상 : 《6@ 마을 소녀》의 문구 변경 :\n「가운드 종료시, 이 카드의 숫자는 9가 BUCH,\n\n\"HS 들리 주세요. 보고 싶으|까요.」         캐릭터 ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 4,
+      "effects": [
+        {
+          "tag": null,
+          "text": "간판 점원 미란다 리브 레터가 전해져 들떠 밌는 자도 밌고, 소식미 S101 슬퍼하는 자도 밌습니다. 술로 Wa 싶은 자는 섬 OHO! 민기 술집 점륭점메 다니는 HOMSLICH. SF ong 소녀》 [080]을 덕에 추가합니다. (개  《6 마을 소녀》를 손에 들고 라운드 승리 : (개 (© 마을 소녀》가 버림 더미에 놓인 채로 라운드 종료 : -『0/(0개 미만이 될 수 없습니다) 07 3 개 이상 : 《6@ 마을 소녀》의 문구 변경 : 「가운드 종료시, 이 카드의 숫자는 9가 BUCH,"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "030",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\n|\n'   …   [)\nALY\n\naim      a\n\n=        Te =      =\n\nApes        제 그 py       은\n\n| (~ |e\n\n=        a .\n\nSs   ~ te A     =\n\n2       e     ㆍ Ze       =\n\n=| (2 |.        -\n\n라운드 Sm, 이 카드의 RARE /이 BYE.           se ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 4,
+      "effects": [
+        {
+          "tag": null,
+          "text": "Apes        제 그 py       은 2       e     ㆍ Ze       = =| (2 |.        -"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "031",
+      "category": null,
+      "subtype": null,
+      "name": "역사 3",
+      "raw_ocr_text": "역사 3\n\n역사 3\n문명의 며신은 편지를 보낸 미들 편민 듯합니다.\n한번 리브 레터메 연관된 자들은 알지 못할 민연으로\n그 Seo] 휘말려 갑니다.\n때 라운드에서 첫 번째로 탈락한 플레이어는\n이야기 보관소의 [AUS 가진 카드 ]장 위에\nry, si 「@」토큰 1개를 놓을 수 있습니다.\n[에 & 6ㄱ:이카드름지기합4다.\n\n(031) 세때테호 ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 4,
+      "effects": [
+        {
+          "tag": null,
+          "text": "문명의 며신은 편지를 보낸 미들 편민 듯합니다. 한번 리브 레터메 연관된 자들은 알지 못할 민연으로 그 Seo] 휘말려 갑니다. 때 라운드에서 첫 번째로 탈락한 플레이어는 이야기 보관소의 [AUS 가진 카드 ]장 위에 ry, si 「@」토큰 1개를 놓을 수 있습니다. [에 & 6ㄱ:이카드름지기합4다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "032",
+      "category": null,
+      "subtype": null,
+      "name": "러브 레터를 보내는 이들",
+      "raw_ocr_text": "역사 4\n\n러브 레터를 보내는 이들\n\n역사 4\n수많은 OAS COKE 가자, 2H 레터를 보내는\n사람들의 신상 ZZ 0ILIOF 드리납니다.\n출신도 LOE 섬별도 [jeter 그들, 그녀들은\n도대체 OE Az2tSolvene.\n|  $F [0331~[038] (카드 종류가 A: BAL\n카드 6장)을 공개하고 옆으로 치워 Such\n라운드에서 탈락한 「게임 : Bal, 카드가 없는\n플레이어는 아직 선택하지 않은 「게임 : 정체 」\n카드 1장을 선택하여 획득합니다. 그때 성별도\n결정합니다(성별에 따른 효과의 차이는 없음).\n(개 라운드 종료시, 모든 플레이어가 「게임 : 정체 」\n카드를 보유하고 있다면 : [0391 곳개.\n\n이 카드를 제거합니다.   Anja. ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 4,
+      "effects": [
+        {
+          "tag": null,
+          "text": "역사 4 수많은 OAS COKE 가자, 2H 레터를 보내는 사람들의 신상 ZZ 0ILIOF 드리납니다. 출신도 LOE 섬별도 [jeter 그들, 그녀들은 도대체 OE Az2tSolvene. |  $F [0331~[038] (카드 종류가 A: BAL 카드 6장)을 공개하고 옆으로 치워 Such 라운드에서 탈락한 「게임 : Bal, 카드가 없는 플레이어는 아직 선택하지 않은 「게임 : 정체 」 카드 1장을 선택하여 획득합니다. 그때 성별도 결정합니다(성별에 따른 효과의 차이는 없음). (개 라운드 종료시, 모든 플레이어가 「게임 : 정체 」 카드를 보유하고 있다면 : [0391 곳개."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "033",
+      "category": "게임",
+      "subtype": "정체",
+      "name": "",
+      "raw_ocr_text": "te H\n\noT\n\neH\no TT\namy  :  3  i  t         4   fe\n=                /^~    2\n을   조니     「\n3       OT ee Ge =\nnd    2        2    =\nJN - 1\nfei \\ 바기 |  A\n~, / 2\n각 라운드 중에 한 번, 자기 차례를 시작할 때\n손에 든 카드와 비공개 카드를\n\n서로 바꿀 수 있습니다.  게임 : 정체 ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 4,
+      "effects": [
+        {
+          "tag": null,
+          "text": "amy  :  3  i  t         4   fe =                /^~    2 을   조니     「 3       OT ee Ge = nd    2        2    = JN - 1 fei \\ 바기 |  A ~, / 2 각 라운드 중에 한 번, 자기 차례를 시작할 때 손에 든 카드와 비공개 카드를"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "034",
+      "category": "게임",
+      "subtype": "정체",
+      "name": "양치기",
+      "raw_ocr_text": "i\n\n양치기\n\nOFZ\nFAI 7]\n< ㅣ\nOe ee?         ~    사이버 다 ^\n=i ae      yA =\nㅋㅋ …> Sy    7 | ae\nSe ㅎㅎ '      개       a  =\nCe me     a         | \\o\n각 라운드 중에 한 번, 자기 차례를 시작할 때\n손에 는 카드와 비공개 카드를\n서로 바꿀 수 있습니다.\n\n     게임 : 정체 ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 4,
+      "effects": [
+        {
+          "tag": null,
+          "text": "FAI 7] Oe ee?         ~    사이버 다 ^ ㅋㅋ …> Sy    7 | ae Se ㅎㅎ '      개       a  = 각 라운드 중에 한 번, 자기 차례를 시작할 때 손에 는 카드와 비공개 카드를 서로 바꿀 수 있습니다."
+        }
+      ],
+      "needs_review": false
+    },
+    {
+      "id": "035",
+      "category": "게임",
+      "subtype": "정체",
+      "name": "사냥꾼",
+      "raw_ocr_text": "사냥꾼\n\nen\n냐고\n사 (own Lil\n[Wass / 1    별.\n노     = NS NY    ce 4.   J     :   :\noh mE [=\n+      WW     \\ “A       re    =\nex   Wg ss     S   >\n=       .       ic 여\n=i:      ^\n각 라운드 중에 한 번, 다른 플레이어가\n자신에게 사용한 효과를\n취소할 수 있습니다.\n\n     게임 : 정체 | ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 4,
+      "effects": [
+        {
+          "tag": null,
+          "text": "냐고 사 (own Lil [Wass / 1    별. 노     = NS NY    ce 4.   J     :   : =       .       ic 여 각 라운드 중에 한 번, 다른 플레이어가 자신에게 사용한 효과를 취소할 수 있습니다."
+        }
+      ],
+      "needs_review": false
+    },
+    {
+      "id": "036",
+      "category": "게임",
+      "subtype": "정체",
+      "name": "약초꾼",
+      "raw_ocr_text": "ee\n\n약초꾼\n\nㅣ\n\na\nOF 2 J\n. Aaa 、\n> 시녀    ar 즈\n2를      <P eS\noe     4    Pt. =\nVian    i    - . | fe |\nGe ff     01 0\n— |      - vA ee S\n“a mm 0 aN  aN | te\n각 라운드 중에 한 번, 다른 플레이어가\n자신에게 사용한 효과를\n취소할 수 있습니다.\n\n    게임: 정체 | ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 4,
+      "effects": [
+        {
+          "tag": null,
+          "text": "OF 2 J > 시녀    ar 즈 2를      <P eS oe     4    Pt. = Ge ff     01 0 “a mm 0 aN  aN | te 각 라운드 중에 한 번, 다른 플레이어가 자신에게 사용한 효과를 취소할 수 있습니다."
+        }
+      ],
+      "needs_review": false
+    },
+    {
+      "id": "037",
+      "category": "게임",
+      "subtype": "정체",
+      "name": "",
+      "raw_ocr_text": "\n견습 기사\n5 ty? FE\nSS Ce\noe ie 7 YR  0\n\nsTe— ott nn Aq] = 카드의 숫자에 2를 더합니다.          게임 : 정체 ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 5,
+      "effects": [
+        {
+          "tag": null,
+          "text": "견습 기사 5 ty? FE oe ie 7 YR  0"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "038",
+      "category": "게임",
+      "subtype": "정체",
+      "name": "",
+      "raw_ocr_text": "\n3.9]\n/ |\n4% |\nyO\n=       QV   a\n:       : \\    S\na    eo   -\n-      4\n< 65 ' ub\n카드의 숫자를 비교할 때와\n4LOr RAIN)\n\n기브 other 손에 = 카드의 슷자에 2를 덕합니다,        게임 : 정체 ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 5,
+      "effects": [
+        {
+          "tag": null,
+          "text": "3.9] 4% | -      4 < 65 ' ub 카드의 숫자를 비교할 때와 4LOr RAIN)"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "039",
+      "category": "게임",
+      "subtype": "정체",
+      "name": "",
+      "raw_ocr_text": "\n학생\nY\nAS\n5   ‘ nm E\n=                        —\n2                                                        =\n=                                                        Far\n=                                                        ^\n빼                              「                          =\noe                /         XN              =\n각 라운드 중에 한 번, 플레이한 카드의\n| 를    ry).    근 1]        nin Oo} ㄴㄴ        oO\n\n글 기기 eet TIT AA 1 「플레이:』 효과로 변경할 수 있습니다.      게임 : 정체 ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 5,
+      "effects": [
+        {
+          "tag": null,
+          "text": "학생 5   ‘ nm E 2                                                        = 빼                              「                          = 각 라운드 중에 한 번, 플레이한 카드의 | 를    ry).    근 1]        nin Oo} ㄴㄴ        oO"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "040",
+      "category": "게임",
+      "subtype": "정체",
+      "name": "여학생",
+      "raw_ocr_text": "|\n\n여학생\n\nobs\n여학생\nEN     \\\noe             ^ >      2\n=               )    /         —e\na                (            =\n=                 No          an\n—                  .\n^,   aan     fs\n각 라운드 중에 한 번, 플레이한 카드의\n「플레이:」효과를 버림 더미에 있는 카드의\n\n「플레이:」 효과로 변경할 수 있습니다.   게임 : 정체 ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 5,
+      "effects": [
+        {
+          "tag": null,
+          "text": "여학생 oe             ^ >      2 각 라운드 중에 한 번, 플레이한 카드의 「플레이:」효과를 버림 더미에 있는 카드의"
+        }
+      ],
+      "needs_review": false
+    },
+    {
+      "id": "041",
+      "category": "게임",
+      "subtype": "정체 ~                                               4",
+      "name": "여행자",
+      "raw_ocr_text": "「\n\n여행자\n\n「                       —                          >\n여행자\n—    도      ”          =\n더              VW =a 2\n=                                         ee,\n=                           te eds        >\ne   7   err\n1 ae 4\n“Ad eee TES tae     had\n전체 게임 중에 단 한 H, 차례 종료시에\n\n      게임 : 정체 ~                                               4 ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 5,
+      "effects": [
+        {
+          "tag": null,
+          "text": "여행자 —    도      ”          = 더              VW =a 2 e   7   err 1 ae 4 전체 게임 중에 단 한 H, 차례 종료시에"
+        }
+      ],
+      "needs_review": false
+    },
+    {
+      "id": "042",
+      "category": "게임",
+      "subtype": "정체",
+      "name": "순례자",
+      "raw_ocr_text": "순례자\n\n)\n\n             ^ 려\n\"제\n개스 식어\n『 fe 02 000 에\nSeach isn 28. 4000    gee Beier i\nScie reecmdeer 가   oy       를 Geiss eer\nfee 70.   ue   ON a.\nFo Le     SF 겨\n00000 버너        Nig 에\n. 결여  fe)\n0002 0 | ate    ee i605\nSoe                                 es\n. A cP.\neo sebee cade cagrny ay          all           oe\n은 oo -L. #####&-\n라는 20 —,  —@e\n=    CA | B-a\n= 이이    PWN. FS\ntome 이      ~ Biased\naN     N    :      -. 2\n000          = ~ &\n다 은20060023해          여    5             를 이스 다896\nBence &              \"                   [을 이\nTERRES) 400          기                        Bees\n임 So] te    fa] 종료시에\n전체 게임 중에 단 한 번, 차례 종료시어\n0                   Fon  rs\n\nUU ASS 7S TOW.      게임 : 정체 ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 5,
+      "effects": [
+        {
+          "tag": null,
+          "text": "^ 려 \"제 개스 식어 『 fe 02 000 에 Seach isn 28. 4000    gee Beier i Scie reecmdeer 가   oy       를 Geiss eer fee 70.   ue   ON a. Fo Le     SF 겨 00000 버너        Nig 에 . 결여  fe) 0002 0 | ate    ee i605 은 oo -L. #####&- 라는 20 —,  —@e = 이이    PWN. FS tome 이      ~ Biased aN     N    :      -. 2 000          = ~ & 다 은20060023해          여    5             를 이스 다896 Bence &              \"                   [을 이 TERRES) 400          기                        Bees 임 So] te    fa] 종료시에 전체 게임 중에 단 한 번, 차례 종료시어 0                   Fon  rs"
+        }
+      ],
+      "needs_review": false
+    },
+    {
+      "id": "043",
+      "category": "게임",
+      "subtype": "정체",
+      "name": "",
+      "raw_ocr_text": "Bee\n\n남작\n|            》\n.   i\n%       SN 에    =\n™          “a \\          =\n|      Very) ih\n4   :\n이 카드를 획득할 때, 자신의 07 ?깨를\n원하는 캐릭터 에 배치하거나\n이동시킬 수 있습니다.\n\n    게임 : 정체 ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 5,
+      "effects": [
+        {
+          "tag": null,
+          "text": "남작 %       SN 에    = 4   : 이 카드를 획득할 때, 자신의 07 ?깨를 원하는 캐릭터 에 배치하거나 이동시킬 수 있습니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "044",
+      "category": "게임",
+      "subtype": "정체",
+      "name": "여자작",
+      "raw_ocr_text": "여자작\n\ny                           _\n여자작\nee, 건  0010\n3   ^ 20 oo =\n이 카드를 획득할 때, 자신의 [09 2개를\n원하는 캐릭터에 배치하거나\n이동시킬 수 있습니다.\n\n    게임 : 정체 | ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 5,
+      "effects": [
+        {
+          "tag": null,
+          "text": "여자작 ee, 건  0010 3   ^ 20 oo = 이 카드를 획득할 때, 자신의 [09 2개를 원하는 캐릭터에 배치하거나 이동시킬 수 있습니다."
+        }
+      ],
+      "needs_review": false
+    },
+    {
+      "id": "045",
+      "category": null,
+      "subtype": null,
+      "name": "SAO] 나날들",
+      "raw_ocr_text": "역사 5\n\nSAO] 나날들\n\n역사 5\n축제의 나날들\n며름| 끝나면, 수확제를 비롯한 머리 햄사가\n왕국을 떠들썩하게 합니다.\nTAO 다른 분위기 속메서,\n사람들미 기분은 몸시 고조되1 갑니다.\n1 【040】~【047]】 (카드 종류가 「게임 : 축제」인\n카드 8장)을 공개합니다. 공개한 카드 8장을\n뒷면으로 잘 섞어 「축제 덱」을 만듭니다.\n대  매 라운드 시작시, 축제 덱에서 카드 1장을\n공개합니다.\nDD 개 라운드 종료시 사용한 축제 ice aa\n맨 아래에 넣습니다.\n\n(039) = ApS, ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 5,
+      "effects": [
+        {
+          "tag": null,
+          "text": "역사 5 축제의 나날들 며름| 끝나면, 수확제를 비롯한 머리 햄사가 왕국을 떠들썩하게 합니다. TAO 다른 분위기 속메서, 사람들미 기분은 몸시 고조되1 갑니다. 1 【040】~【047]】 (카드 종류가 「게임 : 축제」인 카드 8장)을 공개합니다. 공개한 카드 8장을 뒷면으로 잘 섞어 「축제 덱」을 만듭니다. 대  매 라운드 시작시, 축제 덱에서 카드 1장을 공개합니다. DD 개 라운드 종료시 사용한 축제 ice aa 맨 아래에 넣습니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "046",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "|\n\nAz\n|\n비\n,   여 : 이나\n기       A ies\na 2 ay , Bi\n7 begs   a  a>   zs\nee Pa   == Sys's!\nAi  WA Te nae    rors  oF\n| | 2 — =     oni. 오\n0 ps Ye     0, 0 위 af ow\nCa NAS   일    ea a\nBa   wee  @' 별      0 ~   off\naS |   0 9 64 DES\nim    WEY :  of\n특이사항 없음(원래대로 게임을 플레이합니다).\n프그이어 Ajo) 도의하다며 0] 카ㄷ르\n\n축제 덱 아래에 넣고, 새 카드를 Se 됩니다.       As Sa] ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 6,
+      "effects": [
+        {
+          "tag": null,
+          "text": "비 ,   여 : 이나 기       A ies a 2 ay , Bi 7 begs   a  a>   zs | | 2 — =     oni. 오 0 ps Ye     0, 0 위 af ow Ca NAS   일    ea a Ba   wee  @' 별      0 ~   off aS |   0 9 64 DES 특이사항 없음(원래대로 게임을 플레이합니다). 프그이어 Ajo) 도의하다며 0] 카ㄷ르"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "047",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\nA\n수\n확\nㅅ\n0600\n|                v\n0 、_\n\n홀수 카드의 숫자에 8을 더합니다.       AG 3 Sx) ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 6,
+      "effects": [
+        {
+          "tag": null,
+          "text": "수 확 0600 0 、_"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "048",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\n€ ,\nF €     co\n46220077)\n\n짝수 카드의 숫자에 8을 더합니다.        AIG: Se] ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 6,
+      "effects": [
+        {
+          "tag": null,
+          "text": "46220077)"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "049",
+      "category": null,
+      "subtype": null,
+      "name": "_ 알",
+      "raw_ocr_text": "_ 알\n\nws               oO  -\na        )          ㆍ) 4\nba\nAl          |           1 Coe A\n|      :    we 4-@-a-F-\n들         머그 — ~  =  =\nj E    =~ =e ~\n=\n|                  =\nae  i \"av  Ed y\n7 es ‘ae.   * 4  <  맨\n~       、\nei oy ay\noo) 08    { ¥        시\n. . US    본 TA\n\nTt UAE 숫사가 큰 즐레이어가 SUG.      AG s Se) ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 6,
+      "effects": [
+        {
+          "tag": null,
+          "text": "a        )          ㆍ) 4 Al          |           1 Coe A |      :    we 4-@-a-F- 들         머그 — ~  =  = 7 es ‘ae.   * 4  <  맨 oo) 08    { ¥        시 . . US    본 TA"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "050",
+      "category": null,
+      "subtype": null,
+      "name": "이",
+      "raw_ocr_text": "Ce)\n\nㄴㄴ\n\n이\n\n원\n타\n“I\n회\n의\n'      A\n프            스   합니다.\n숫자가 가장 작은 플레이어가 승리 uw\n° (동률인 플레이어가 여러 명일 경우,\n\n다음으로 숫자가 작은 플레이어가 승리합니다.)   ag 3450 ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 6,
+      "effects": [
+        {
+          "tag": null,
+          "text": "원 타 회 의 프            스   합니다. 숫자가 가장 작은 플레이어가 승리 uw ° (동률인 플레이어가 여러 명일 경우,"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "051",
+      "category": null,
+      "subtype": null,
+      "name": "건",
+      "raw_ocr_text": "건\n\n건\n\nK                   때\n을                ㆍ\n| _            _\n 버린카드숫자의합이가장큰 시\n\n플레이어가 승리합니다.    ig 3650 ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 6,
+      "effects": [
+        {
+          "tag": null,
+          "text": "K                   때 을                ㆍ 버린카드숫자의합이가장큰 시"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "052",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "f iN @\n\nkr,\n.         ㆍ 을                              me        Pail WN\n,  …     ab        4405\n47S    A Ay frie\new Ne Ae\nwes + 09005.   feo as A Bas     :\nee Me hae  이  Pager tS\n> 5, °Wre- area, “oa - 0  ce\nWee @ 118        Fe oh\nf 1s Fe        본       +9, of +]\n©  Ws      <     “on @“\n+ Vp             or ㅎㅎ\nWa     ©            off\n:            ©   .\n다른 플레이어를 전부 탈락시켜야\n승리할 수 있습니다. (덱이 다 떨어졌을 경우,\n승자가 없는 것으로 취급합니다.)\n\n   피엘 3 ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 6,
+      "effects": [
+        {
+          "tag": null,
+          "text": ".         ㆍ 을                              me        Pail WN ,  …     ab        4405 47S    A Ay frie wes + 09005.   feo as A Bas     : ee Me hae  이  Pager tS > 5, °Wre- area, “oa - 0  ce Wee @ 118        Fe oh f 1s Fe        본       +9, of +] 다른 플레이어를 전부 탈락시켜야 승리할 수 있습니다. (덱이 다 떨어졌을 경우, 승자가 없는 것으로 취급합니다.)"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "053",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "Al\n\nzl                       |\noO\no                        :\n, 열      챙\n1         @       Lp eF\n> % 자         ya      ;    : 제 aoe ~\n「   』\n\nCee 기지 죽기 개\nRerun ceciattN NN\n라운드 종료시, 승자를 결정할 때 비공개 카드와\n\n숫자의 크기를 비교합니다.\n(비공개 카드의 숫자가 가장 클 경우,\n승자가 없는 것으로 취급합니다.)\n\n   a 380 | ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 6,
+      "effects": [
+        {
+          "tag": null,
+          "text": ", 열      챙 1         @       Lp eF > % 자         ya      ;    : 제 aoe ~ Cee 기지 죽기 개 라운드 종료시, 승자를 결정할 때 비공개 카드와 숫자의 크기를 비교합니다. (비공개 카드의 숫자가 가장 클 경우, 승자가 없는 것으로 취급합니다.)"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "054",
+      "category": null,
+      "subtype": null,
+      "name": "천재일우의 기회 -",
+      "raw_ocr_text": "역사 6\n\n천재일우의 기회 -\n\n역사 6\n열렬한 러브 WAL 공주들과 ASS AOIOIA 삼담한\n화세가 된 것 같슴니타. 지금미라면, 미제까지 전할 수\n없던 상대메게도 HAS 전할 4 밌들지 모릅니다.\n\n선택\n\n아래의 선택지 중에서 지금까지 등장하지 SS\n캐릭터를 1명 선택합니다.\n\n차분한 둘째 공주 루나 : 【[189】~[【191]】 공개\n\n활기찬 셋째 공주 마가렛 : [192】~【194] 공개\n\n마차를 타고 외출하는 요염한 귀부인 :\n\n【196】~【197] 공개\n\n쇼핑할 AZo] SS 수행원을 거느린 소녀 :\n{200)~{201] 공개\n\n선택을 마친 후에 이 카드를 제거합니다.\n\n(048) = Auf, ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 6,
+      "effects": [
+        {
+          "tag": null,
+          "text": "역사 6 열렬한 러브 WAL 공주들과 ASS AOIOIA 삼담한 화세가 된 것 같슴니타. 지금미라면, 미제까지 전할 수 없던 상대메게도 HAS 전할 4 밌들지 모릅니다. 선택 아래의 선택지 중에서 지금까지 등장하지 SS 캐릭터를 1명 선택합니다. 차분한 둘째 공주 루나 : 【[189】~[【191]】 공개 활기찬 셋째 공주 마가렛 : [192】~【194] 공개 마차를 타고 외출하는 요염한 귀부인 : 【196】~【197] 공개 쇼핑할 AZo] SS 수행원을 거느린 소녀 : {200)~{201] 공개 선택을 마친 후에 이 카드를 제거합니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "055",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "3 2 |. 7\n\n역사 7\n가열되는 사랑 싸움\nHi deo) 끝, 리브 레턴를 둘러싼 싸움은 멸기를\n터해 갑니다. 세련된 문잠과 Yet Ss 담은\nWSs 그 편지를 받은 자의 OHSS 크게 SASS LIC.\n캐릭터 카드에 [“@/]를 놓을 때, 추가로\n+ WIS 할 수 있습니다.\n\n(049) 계띠테호 (040) ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 7,
+      "effects": [
+        {
+          "tag": null,
+          "text": "역사 7 가열되는 사랑 싸움 Hi deo) 끝, 리브 레턴를 둘러싼 싸움은 멸기를 터해 갑니다. 세련된 문잠과 Yet Ss 담은 WSs 그 편지를 받은 자의 OHSS 크게 SASS LIC. 캐릭터 카드에 [“@/]를 놓을 때, 추가로 + WIS 할 수 있습니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "056",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "oyZ2Ln\n\n역사 8\n\n타맘한 무면과 WAS 통해, HAS 보낸 OSS\n새해를 SOO 의레메 참석합니다.\n\n| 기적과도 같은 SMO AMO) Sat 마주하고\n\n진실한 HS RS 수 MST.\n라운드 종료시, SAE 「공주/왕자」에 추가로\n+ [907를 할 수 있습니다.\n(®)S 손에 들고 라운드에서 승리했을 때,\n대응하는 캐릭터에 추가로 + ofS\n할 수 있습니다.\n) 개  「《(8)》을 손에 들고 라운드에서 승리」하고, 또\n\n[ㅇㅇ 1 ㄴ 10 3] ㅠㄷ 1 43] wo KAO a ^. 71\n\nee ee es el eed 17 1! 플레이어들 중에서 가장 BA, : [051] 공개        AUPE, ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 7,
+      "effects": [
+        {
+          "tag": null,
+          "text": "역사 8 타맘한 무면과 WAS 통해, HAS 보낸 OSS 새해를 SOO 의레메 참석합니다. | 기적과도 같은 SMO AMO) Sat 마주하고 진실한 HS RS 수 MST. 라운드 종료시, SAE 「공주/왕자」에 추가로 + [907를 할 수 있습니다. (®)S 손에 들고 라운드에서 승리했을 때, 대응하는 캐릭터에 추가로 + ofS 할 수 있습니다. ) 개  「《(8)》을 손에 들고 라운드에서 승리」하고, 또 [ㅇㅇ 1 ㄴ 10 3] ㅠㄷ 1 43] wo KAO a ^. 71"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "057",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\n역사 9\n\n러브 WAS 주고받은 Zo, 각망각색미 민물들의\n\n노력으로 BAIS TAME 섬내의 햄사미 조대받게\nEIMSLICL HS 속메서 진행되는 SAAB 편지를\nHS 보내던 SOT 담신메게 살며시 다가와 SAl SE\n\n고곽의 Ye 불러들입Ｌ|다. 문명의 잠난밀까요.\n\n탐신과 SHE OSC 달 마래, 권물로 미떠지는\n게단메서 EEO! 미마기할 AME 얻었슴Ｌ|다. Best\n분위기 SOA, SHE 담신의 손을 잡고 AAG] WES\n\n오릅니다. 하지만 뒤돌마 미마기미 열중한 나때시,\nHS SIG 비틀거리고 밥니다. 크게 자세를 무너프러\n\n버린 삼대메게 담신은 서둘리 손을 WELIC. 마지\n시관| HZ 듯한 Ol 순관, SUE US 수 밌을까요우\n\n스토리북의 21쪽으로 갑니다, =          -… Cosi] 씨띠테호 ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 7,
+      "effects": [
+        {
+          "tag": null,
+          "text": "역사 9 러브 WAS 주고받은 Zo, 각망각색미 민물들의 노력으로 BAIS TAME 섬내의 햄사미 조대받게 EIMSLICL HS 속메서 진행되는 SAAB 편지를 HS 보내던 SOT 담신메게 살며시 다가와 SAl SE 고곽의 Ye 불러들입Ｌ|다. 문명의 잠난밀까요. 탐신과 SHE OSC 달 마래, 권물로 미떠지는 게단메서 EEO! 미마기할 AME 얻었슴Ｌ|다. Best 분위기 SOA, SHE 담신의 손을 잡고 AAG] WES 오릅니다. 하지만 뒤돌마 미마기미 열중한 나때시, HS SIG 비틀거리고 밥니다. 크게 자세를 무너프러 버린 삼대메게 담신은 서둘리 손을 WELIC. 마지 시관| HZ 듯한 Ol 순관, SUE US 수 밌을까요우"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "058",
+      "category": null,
+      "subtype": null,
+      "name": "성문 앞에서",
+      "raw_ocr_text": "…~ㄴㄴㄴ ㅇ…ㄴㄴㄴㄴ…ㄴㅇㅇㅁ…009ㄴㅅㄴㅁㄴㅁㅁㅁ…ㄴㄴㄴ000000000007009ㅣ…000009ㄴㄴ…\n\n성문 앞에서\n\nnon\n성문 앞에서\n미런저런 사점므로 Aol 들머갈 수 없는 담신미\n편지를 맡거마 한다면, 역시 섬문 OHO) 있는\n병사들미겠지요.\n선택\n\n낮익은 남자 병사에게 건네줍니다 : 1053) [054] 공개\n낮선 여자 병사에게 건네줍니다 :【057】~[059] 공개\n선택을 마친 후에 이 카드를 제거합니다.\n\n(052) 세띠텍호 ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 7,
+      "effects": [
+        {
+          "tag": null,
+          "text": "성문 앞에서 미런저런 사점므로 Aol 들머갈 수 없는 담신미 편지를 맡거마 한다면, 역시 섬문 OHO) 있는 병사들미겠지요. 선택 낮익은 남자 병사에게 건네줍니다 : 1053) [054] 공개 낮선 여자 병사에게 건네줍니다 :【057】~[059] 공개 선택을 마친 후에 이 카드를 제거합니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "059",
+      "category": null,
+      "subtype": null,
+      "name": "르이 ee ee ee",
+      "raw_ocr_text": "르이 ee ee ee\n\n고지식한 병사 1\n\n2 고지식한 병사 1\n&        담신은 섬문 ot        AHL\nfe      성실한 Ee | ail\nrH     달라고 부탁합Ｌ|. 그는 무뚝뚝한\n때에 NAM 얻굳로그편지를 받습니다.\nToke 수 없근. 해 보지. 너무 CHE 하지 마시모.」\nPD comps sol gxaec a+\nㅣ co 경비병》으로 다른 플레이어를\n탈락시킴니다 :+ (별\n| © Busy 손에 들고 탈락합니다: +)\n| Res      |\n\n| 탈락시키는 데 실패합니다 +@             |   apie ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 7,
+      "effects": [
+        {
+          "tag": null,
+          "text": "2 고지식한 병사 1 &        담신은 섬문 ot        AHL fe      성실한 Ee | ail rH     달라고 부탁합Ｌ|. 그는 무뚝뚝한 때에 NAM 얻굳로그편지를 받습니다. Toke 수 없근. 해 보지. 너무 CHE 하지 마시모.」 ㅣ co 경비병》으로 다른 플레이어를 탈락시킴니다 :+ (별 | © Busy 손에 들고 탈락합니다: +)"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "060",
+      "category": null,
+      "subtype": null,
+      "name": "고지식한 병사 1",
+      "raw_ocr_text": "고지식한 병사 1\n\n(es        고지식한 병사 T\nAD)\nEY S. 4]\n더  [조건] 라운드 종료시 Bol 2 개 이상\n(우선 적용) : [055] [056] 공개\n[조건] 라운드 종료시 @ 가 4 개 이상 :\n[062] 공개\n위의 조건 중 하나를 충족했다면,\n「고지식한 병사 ｌＬ」 과 이 카드를 제거합니다.\n\n(0547 시딱텍흐 ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 7,
+      "effects": [
+        {
+          "tag": null,
+          "text": "(es        고지식한 병사 T EY S. 4] 더  [조건] 라운드 종료시 Bol 2 개 이상 (우선 적용) : [055] [056] 공개 [조건] 라운드 종료시 @ 가 4 개 이상 : [062] 공개 위의 조건 중 하나를 충족했다면, 「고지식한 병사 ｌＬ」 과 이 카드를 제거합니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "061",
+      "category": null,
+      "subtype": null,
+      "name": "-   경비병 알리오스",
+      "raw_ocr_text": "-   경비병 알리오스\n\n도\n[=]\n=r           fies\n.           Ra sea\na 너          fe\n있도          |        rd\n는\n= i          et\n일 하         로\n=            ee\n트는          AX:\n=i        CE Me ees 4\n도 fees\n= =   3    ~\n글 fm»            ates\na 08\nAl      “ ,\n4    pa\nP=                 ,\nSy           \\             é\nBese                      \\\n이 Cee\ni git   ah        is     4\n, <M 별 '       Bs       q\n\nap 000 0: , vay ADA ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 7,
+      "effects": [
+        {
+          "tag": null,
+          "text": "도 a 너          fe 있도          |        rd 는 일 하         로 트는          AX: =i        CE Me ees 4 도 fees = =   3    ~ 글 fm»            ates a 08 4    pa 이 Cee i git   ah        is     4 , <M 별 '       Bs       q"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "062",
+      "category": null,
+      "subtype": null,
+      "name": "경비병 알리오스",
+      "raw_ocr_text": "경비병 알리오스\n\nE  (O 경비병》을 손에 들고 라운드 승리 :\n+ [01007\n\nㅣ ㅣ 《0경비병》으로 다른 플레이어를\neazy: +\n\nis  | 667 3 개 이상 : 《0 경비병》의 문구 변경 :\n\nOy S99): 다른 플레이어를 지목한 뒤, US\n제외한 숫자를 두 개 PUCH 만약 지목된\n플레이어가 그 숫자 중 하나를 가진 카드를\n갖고 있다면 라운드에서 탈락합니다.」\n한테는 두 손 들었다. 나도 AMS 다하도록\n하지.\n\n| ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 7,
+      "effects": [
+        {
+          "tag": "종료",
+          "text": "(O 경비병》을 손에 들고 라운드 승리 : + [01007 ㅣ ㅣ 《0경비병》으로 다른 플레이어를 is  | 667 3 개 이상 : 《0 경비병》의 문구 변경 : Oy S99): 다른 플레이어를 지목한 뒤, US 제외한 숫자를 두 개 PUCH 만약 지목된 플레이어가 그 숫자 중 하나를 가진 카드를 갖고 있다면 라운드에서 탈락합니다.」 한테는 두 손 들었다. 나도 AMS 다하도록 하지."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "063",
+      "category": null,
+      "subtype": null,
+      "name": "풋풋한 신병 1",
+      "raw_ocr_text": "~,\n\nㅠ…ㅠ06740ㅠㅜㅠㅠㅠ ㅠㅠㅠ 00 ㅠㅠ_\n\n풋풋한 신병 1\n\nA    풋풋한 신병 1\n62    | Ese 처음 보는 젖은 며자 병사\nay    OW 편지를 부탁합니다. 그녀는\nWirt] Baio 미소로 Pele 받마줌니다.\n| ew    rOMSLICH dH 볼게요!』\n\n| % cow [059]를 Fo) 추가합니다.\n[에 fone an:\n| ae o8 다른 플레이어를 탈락시킴 :+(별\n| ㅣ 《@ 신병》을 손에 들고 탈락합니다 :+@\n\"| ㅣ <@신병)으로 다른 플레이어를\n탈락시키는 데 실패합니다 :+@\n\n| Csr) apa | ",
+      "source_file": "LLS_cards_part_1.pdf",
+      "source_page": 7,
+      "effects": [
+        {
+          "tag": null,
+          "text": "62    | Ese 처음 보는 젖은 며자 병사 ay    OW 편지를 부탁합니다. 그녀는 Wirt] Baio 미소로 Pele 받마줌니다. | ew    rOMSLICH dH 볼게요!』 | % cow [059]를 Fo) 추가합니다. [에 fone an: | ae o8 다른 플레이어를 탈락시킴 :+(별 | ㅣ 《@ 신병》을 손에 들고 탈락합니다 :+@ \"| ㅣ <@신병)으로 다른 플레이어를 탈락시키는 데 실패합니다 :+@"
+        }
+      ],
+      "needs_review": true
+    }
+  ],
+  "by_category": {
+    "게임": [
+      "001",
+      "002",
+      "003",
+      "004",
+      "005",
+      "006",
+      "007",
+      "008",
+      "009",
+      "010",
+      "011",
+      "012",
+      "013",
+      "014",
+      "015",
+      "016",
+      "033",
+      "034",
+      "035",
+      "036",
+      "037",
+      "038",
+      "039",
+      "040",
+      "041",
+      "042",
+      "043",
+      "044"
+    ],
+    "미분류": [
+      "017",
+      "022",
+      "023",
+      "024",
+      "025",
+      "026",
+      "027",
+      "030",
+      "031",
+      "032",
+      "045",
+      "046",
+      "047",
+      "048",
+      "049",
+      "050",
+      "051",
+      "052",
+      "053",
+      "054",
+      "055",
+      "056",
+      "057",
+      "058",
+      "059",
+      "060",
+      "061",
+      "062",
+      "063"
+    ],
+    "캐릭터": [
+      "018",
+      "019",
+      "020",
+      "021",
+      "028",
+      "029"
+    ]
+  }
+}
