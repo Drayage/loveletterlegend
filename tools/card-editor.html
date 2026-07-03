@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>LLS 카드 데이터베이스 편집기</title>
+<style>
+  :root {
+    --bg: #f4f2ec;
+    --panel: #ffffff;
+    --border: #ddd6c7;
+    --text: #2b2620;
+    --muted: #7a7364;
+    --accent: #a4402f;
+    --accent-soft: #f1ded9;
+    --ok: #3f7d4f;
+    --ok-soft: #e3f0e5;
+    --warn: #b8860b;
+    --warn-soft: #faf0d9;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1a17;
+      --panel: #262320;
+      --border: #3c372f;
+      --text: #eee8dc;
+      --muted: #a29a89;
+      --accent: #e0806c;
+      --accent-soft: #3a2620;
+      --ok: #7bc492;
+      --ok-soft: #1e2e22;
+      --warn: #e0b24a;
+      --warn-soft: #332a12;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  header h1 { font-size: 15px; margin: 0 12px 0 0; white-space: nowrap; }
+  button {
+    font-family: inherit;
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    cursor: pointer;
+  }
+  button.primary { background: var(--accent); color: white; border-color: var(--accent); }
+  button.primary:disabled { opacity: .4; cursor: default; }
+  button:not(:disabled):hover { filter: brightness(0.96); }
+  @media (prefers-color-scheme: dark) {
+    button:not(:disabled):hover { filter: brightness(1.15); }
+  }
+  #status { font-size: 12px; color: var(--muted); margin-left: auto; white-space: nowrap; }
+  #dirty-dot {
+    display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--warn); margin-right: 5px; visibility: hidden;
+  }
+  main { flex: 1; display: flex; min-height: 0; }
+  #sidebar {
+    width: 340px; flex-shrink: 0; display: flex; flex-direction: column;
+    border-right: 1px solid var(--border); background: var(--panel);
+  }
+  #filters { padding: 10px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
+  #filters input[type=search] {
+    font-family: inherit; font-size: 13px; padding: 6px 8px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text);
+  }
+  .filter-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+  .filter-row select {
+    font-family: inherit; font-size: 12px; padding: 3px 5px; border-radius: 5px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text);
+  }
+  .filter-row label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+  #card-list { flex: 1; overflow-y: auto; }
+  .card-row {
+    display: flex; align-items: center; gap: 8px; padding: 7px 12px;
+    border-bottom: 1px solid var(--border); cursor: pointer; font-size: 13px;
+  }
+  .card-row:hover { background: var(--accent-soft); }
+  .card-row.selected { background: var(--accent); color: white; }
+  .card-row .id { font-family: var(--mono); font-size: 11px; color: var(--muted); width: 30px; flex-shrink: 0; }
+  .card-row.selected .id { color: rgba(255,255,255,.8); }
+  .card-row .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card-row .name.empty { color: var(--muted); font-style: italic; }
+  .badge {
+    font-size: 10px; padding: 1px 6px; border-radius: 999px; flex-shrink: 0;
+    background: var(--bg); color: var(--muted); border: 1px solid var(--border);
+  }
+  .badge.review { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+  .badge.ok { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
+  #editor { flex: 1; overflow-y: auto; padding: 22px 30px 60px; }
+  #empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 14px; }
+  .field-grid { display: grid; grid-template-columns: 110px 1fr; gap: 10px 14px; align-items: start; margin-bottom: 18px; }
+  .field-grid label { font-size: 12px; color: var(--muted); padding-top: 7px; }
+  .field-grid input[type=text], .field-grid input[type=number], .field-grid select, .field-grid textarea {
+    font-family: inherit; font-size: 14px; padding: 6px 9px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--panel); color: var(--text); width: 100%;
+  }
+  .field-grid textarea { font-family: var(--mono); font-size: 13px; resize: vertical; min-height: 70px; line-height: 1.5; }
+  .card-title-row { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .card-title-row h2 { margin: 0; font-size: 20px; }
+  .card-title-row .id-tag { font-family: var(--mono); color: var(--muted); font-size: 14px; }
+  .review-toggle { display: flex; align-items: center; gap: 6px; margin-left: auto; font-size: 13px; }
+  section.block { margin-bottom: 26px; }
+  section.block > h3 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted);
+    margin: 0 0 10px; border-bottom: 1px solid var(--border); padding-bottom: 6px;
+  }
+  .effect-row {
+    display: flex; gap: 8px; margin-bottom: 8px; align-items: flex-start;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px;
+  }
+  .effect-row select { width: 90px; flex-shrink: 0; font-family: inherit; font-size: 12px; padding: 5px; border-radius: 5px; border: 1px solid var(--border); background: var(--panel); color: var(--text); }
+  .effect-row textarea { flex: 1; font-family: var(--mono); font-size: 13px; min-height: 44px; padding: 6px 8px; border-radius: 5px; border: 1px solid var(--border); background: var(--panel); color: var(--text); }
+  .effect-row button { flex-shrink: 0; padding: 4px 8px; font-size: 12px; }
+  #raw-ocr {
+    font-family: var(--mono); font-size: 12px; white-space: pre-wrap; word-break: break-word;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px;
+    max-height: 260px; overflow-y: auto; color: var(--muted); line-height: 1.6;
+  }
+  .meta-line { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .nav-buttons { display: flex; gap: 6px; }
+  a.link { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎴 LLS 카드 데이터베이스 편집기</h1>
+  <button id="btn-open">cards.json 열기</button>
+  <button id="btn-save" class="primary" disabled>저장</button>
+  <span id="status"><span id="dirty-dot"></span><span id="status-text">파일을 열어주세요</span></span>
+</header>
+
+<main>
+  <div id="sidebar" style="display:none">
+    <div id="filters">
+      <input type="search" id="search" placeholder="ID·이름·본문 검색...">
+      <div class="filter-row">
+        <select id="filter-category">
+          <option value="">카테고리: 전체</option>
+          <option value="게임">게임</option>
+          <option value="시나리오">시나리오</option>
+          <option value="캐릭터">캐릭터</option>
+          <option value="__none__">미분류</option>
+        </select>
+        <label><input type="checkbox" id="filter-review"> 검수 필요만</label>
+      </div>
+      <div class="filter-row" id="count-line"></div>
+    </div>
+    <div id="card-list"></div>
+  </div>
+  <div id="empty-state">왼쪽 위 "cards.json 열기" 버튼으로 데이터를 불러오세요.<br>(scripts/pdf_to_db.py로 생성한 파일)</div>
+  <div id="editor" style="display:none"></div>
+</main>
+
+<script>
+"use strict";
+
+let fileHandle = null;      // FileSystemFileHandle when opened via native picker
+let rawData = null;         // { cards: [...], by_category: {...} }
+let cardsById = new Map();
+let selectedId = null;
+let dirty = false;
+let orderedIds = [];        // insertion order for stable listing
+
+const TAGS = [null, "등장", "시작", "도중", "중요", "지속", "종료"];
+const TAG_LABELS = { "null": "(없음)", "등장": "등장", "시작": "시작", "도중": "도중", "중요": "중요", "지속": "지속", "종료": "종료" };
+
+const el = (sel) => document.querySelector(sel);
+const sidebar = el("#sidebar");
+const emptyState = el("#empty-state");
+const editorEl = el("#editor");
+const cardListEl = el("#card-list");
+const statusText = el("#status-text");
+const dirtyDot = el("#dirty-dot");
+const btnSave = el("#btn-save");
+
+function setDirty(v) {
+  dirty = v;
+  dirtyDot.style.visibility = v ? "visible" : "hidden";
+  btnSave.disabled = !v;
+}
+
+function setStatus(msg) { statusText.textContent = msg; }
+
+// ---------- File I/O ----------
+
+el("#btn-open").addEventListener("click", async () => {
+  try {
+    if (window.showOpenFilePicker) {
+      const [handle] = await window.showOpenFilePicker({
+        types: [{ description: "JSON", accept: { "application/json": [".json"] } }],
+      });
+      fileHandle = handle;
+      const file = await handle.getFile();
+      loadFromText(await file.text(), file.name);
+    } else {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".json";
+      input.style.display = "none";
+      input.onchange = () => {
+        const file = input.files[0];
+        input.remove();
+        if (!file) return;
+        fileHandle = null;
+        const reader = new FileReader();
+        reader.onload = () => loadFromText(reader.result, file.name);
+        reader.readAsText(file);
+      };
+      document.body.appendChild(input);
+      input.click();
+    }
+  } catch (err) {
+    if (err.name !== "AbortError") console.error(err);
+  }
+});
+
+function loadFromText(text, name) {
+  try {
+    rawData = JSON.parse(text);
+  } catch (e) {
+    alert("JSON 파싱에 실패했습니다: " + e.message);
+    return;
+  }
+  if (!Array.isArray(rawData.cards)) {
+    alert("cards 배열이 없는 파일입니다.");
+    return;
+  }
+  cardsById = new Map(rawData.cards.map((c) => [c.id, c]));
+  orderedIds = rawData.cards.map((c) => c.id);
+  selectedId = null;
+  setDirty(false);
+  setStatus(`${name} 불러옴 (${rawData.cards.length}장)`);
+  sidebar.style.display = "flex";
+  emptyState.style.display = "none";
+  renderList();
+  if (orderedIds.length) selectCard(orderedIds[0]);
+}
+
+btnSave.addEventListener("click", saveFile);
+
+async function saveFile() {
+  const text = serialize();
+  if (fileHandle) {
+    try {
+      const writable = await fileHandle.createWritable();
+      await writable.write(text);
+      await writable.close();
+      setDirty(false);
+      setStatus("저장 완료: " + fileHandle.name);
+      return;
+    } catch (err) {
+      console.error(err);
+      alert("직접 저장에 실패했습니다. 다운로드로 대체합니다.\n" + err.message);
+    }
+  }
+  // Fallback: download
+  const blob = new Blob([text], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "cards.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  setDirty(false);
+  setStatus("cards.json 다운로드됨 (원본 파일을 직접 교체해주세요)");
+}
+
+function serialize() {
+  const cards = orderedIds.map((id) => cardsById.get(id));
+  const by_category = {};
+  for (const c of cards) {
+    const key = c.category || "미분류";
+    (by_category[key] = by_category[key] || []).push(c.id);
+  }
+  for (const k in by_category) by_category[k].sort();
+  return JSON.stringify({ cards, by_category }, null, 2);
+}
+
+window.addEventListener("beforeunload", (e) => {
+  if (dirty) { e.preventDefault(); e.returnValue = ""; }
+});
+
+// ---------- List rendering ----------
+
+el("#search").addEventListener("input", renderList);
+el("#filter-category").addEventListener("change", renderList);
+el("#filter-review").addEventListener("change", renderList);
+
+function matchesFilters(c) {
+  const q = el("#search").value.trim().toLowerCase();
+  const cat = el("#filter-category").value;
+  const reviewOnly = el("#filter-review").checked;
+  if (reviewOnly && !c.needs_review) return false;
+  if (cat === "__none__" && c.category) return false;
+  if (cat && cat !== "__none__" && c.category !== cat) return false;
+  if (q) {
+    const hay = [c.id, c.name, c.subtype, c.ability, c.raw_ocr_text,
+      ...(c.effects || []).map((e) => e.text)].filter(Boolean).join(" ").toLowerCase();
+    if (!hay.includes(q)) return false;
+  }
+  return true;
+}
+
+function renderList() {
+  const items = orderedIds.map((id) => cardsById.get(id)).filter(matchesFilters);
+  cardListEl.innerHTML = "";
+  const frag = document.createDocumentFragment();
+  for (const c of items) {
+    const row = document.createElement("div");
+    row.className = "card-row" + (c.id === selectedId ? " selected" : "");
+    row.dataset.id = c.id;
+    row.innerHTML = `
+      <span class="id">${c.id}</span>
+      <span class="name${c.name ? "" : " empty"}">${escapeHtml(c.name || "(이름 없음)")}</span>
+      <span class="badge${c.needs_review ? " review" : " ok"}">${c.needs_review ? "검수" : "OK"}</span>
+    `;
+    row.addEventListener("click", () => selectCard(c.id));
+    frag.appendChild(row);
+  }
+  cardListEl.appendChild(frag);
+  const total = rawData ? rawData.cards.length : 0;
+  const reviewCount = rawData ? rawData.cards.filter((c) => c.needs_review).length : 0;
+  el("#count-line").textContent = `${items.length}/${total}건 표시 · 검수 필요 ${reviewCount}건`;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+}
+
+// ---------- Editor ----------
+
+function selectCard(id) {
+  selectedId = id;
+  renderList();
+  renderEditor();
+  const row = cardListEl.querySelector(`.card-row[data-id="${CSS.escape(id)}"]`);
+  if (row) row.scrollIntoView({ block: "nearest" });
+}
+
+function currentIndexInList() {
+  const items = orderedIds.map((id) => cardsById.get(id)).filter(matchesFilters);
+  return items.findIndex((c) => c.id === selectedId);
+}
+
+function navigate(delta) {
+  const items = orderedIds.map((id) => cardsById.get(id)).filter(matchesFilters);
+  if (!items.length) return;
+  let idx = currentIndexInList();
+  idx = idx === -1 ? 0 : Math.max(0, Math.min(items.length - 1, idx + delta));
+  selectCard(items[idx].id);
+}
+
+function updateCard(id, patch) {
+  const c = cardsById.get(id);
+  Object.assign(c, patch);
+  setDirty(true);
+}
+
+function renderEditor() {
+  const c = cardsById.get(selectedId);
+  if (!c) { editorEl.style.display = "none"; emptyState.style.display = "flex"; return; }
+  editorEl.style.display = "block";
+  emptyState.style.display = "none";
+
+  const isGame = c.category === "게임";
+  editorEl.innerHTML = `
+    <div class="card-title-row">
+      <span class="id-tag">#${c.id}</span>
+      <h2>${escapeHtml(c.name || "(이름 없음)")}</h2>
+      <div class="nav-buttons">
+        <button id="nav-prev">◀ 이전</button>
+        <button id="nav-next">다음 ▶</button>
+      </div>
+      <label class="review-toggle"><input type="checkbox" id="f-review" ${c.needs_review ? "checked" : ""}> 검수 필요</label>
+    </div>
+    <div class="meta-line">출처: ${escapeHtml(c.source_file || "-")} p.${c.source_page ?? "-"}</div>
+
+    <section class="block">
+      <h3>기본 정보</h3>
+      <div class="field-grid">
+        <label for="f-name">이름</label>
+        <input type="text" id="f-name" value="${escapeHtml(c.name || "")}">
+
+        <label for="f-category">카테고리</label>
+        <select id="f-category">
+          ${["", "게임", "시나리오", "캐릭터"].map((v) =>
+            `<option value="${v}" ${((c.category || "") === v) ? "selected" : ""}>${v || "(미분류)"}</option>`
+          ).join("")}
+        </select>
+
+        <label for="f-subtype">서브타입</label>
+        <input type="text" id="f-subtype" list="subtype-list" value="${escapeHtml(c.subtype || "")}">
+        <datalist id="subtype-list">
+          <option value="정체"><option value="축제"><option value="공주 / 왕자">
+        </datalist>
+
+        ${isGame ? `
+        <label for="f-rank">강함(랭크)</label>
+        <input type="number" id="f-rank" min="0" max="8" value="${c.rank ?? ""}">
+
+        <label for="f-count">장수</label>
+        <input type="number" id="f-count" min="0" value="${c.count ?? ""}">
+
+        <label for="f-trigger">발동</label>
+        <select id="f-trigger">
+          <option value="play" ${c.trigger === "play" ? "selected" : ""}>play (플레이:)</option>
+          <option value="passive" ${c.trigger === "passive" ? "selected" : ""}>passive (상시)</option>
+        </select>
+        ` : ""}
+      </div>
+    </section>
+
+    ${isGame ? `
+    <section class="block">
+      <h3>능력 (ability)</h3>
+      <textarea id="f-ability" style="width:100%;min-height:110px">${escapeHtml(c.ability || "")}</textarea>
+    </section>
+    ` : `
+    <section class="block">
+      <h3>효과 (effects)</h3>
+      <div id="effects-list"></div>
+      <button id="add-effect">+ 효과 추가</button>
+    </section>
+    `}
+
+    <section class="block">
+      <h3>원본 OCR 텍스트 (참고용, 읽기 전용)</h3>
+      <div id="raw-ocr">${escapeHtml(c.raw_ocr_text || "(없음)")}</div>
+    </section>
+  `;
+
+  el("#nav-prev").addEventListener("click", () => navigate(-1));
+  el("#nav-next").addEventListener("click", () => navigate(1));
+  el("#f-review").addEventListener("change", (e) => updateCard(c.id, { needs_review: e.target.checked }));
+  el("#f-name").addEventListener("input", (e) => { updateCard(c.id, { name: e.target.value }); refreshListRowLabel(c.id); });
+  el("#f-category").addEventListener("change", (e) => { updateCard(c.id, { category: e.target.value || null }); renderEditor(); renderList(); });
+  el("#f-subtype").addEventListener("input", (e) => updateCard(c.id, { subtype: e.target.value || null }));
+
+  if (isGame) {
+    el("#f-rank").addEventListener("input", (e) => updateCard(c.id, { rank: e.target.value === "" ? null : Number(e.target.value) }));
+    el("#f-count").addEventListener("input", (e) => updateCard(c.id, { count: e.target.value === "" ? null : Number(e.target.value) }));
+    el("#f-trigger").addEventListener("change", (e) => updateCard(c.id, { trigger: e.target.value }));
+    el("#f-ability").addEventListener("input", (e) => updateCard(c.id, { ability: e.target.value }));
+  } else {
+    renderEffects(c);
+    el("#add-effect").addEventListener("click", () => {
+      c.effects = c.effects || [];
+      c.effects.push({ tag: null, text: "" });
+      setDirty(true);
+      renderEffects(c);
+    });
+  }
+}
+
+function renderEffects(c) {
+  const list = el("#effects-list");
+  if (!list) return;
+  list.innerHTML = "";
+  (c.effects || []).forEach((eff, i) => {
+    const row = document.createElement("div");
+    row.className = "effect-row";
+    row.innerHTML = `
+      <select>${TAGS.map((t) => `<option value="${t ?? ""}" ${eff.tag === t ? "selected" : ""}>${TAG_LABELS[String(t)]}</option>`).join("")}</select>
+      <textarea>${escapeHtml(eff.text || "")}</textarea>
+      <button title="삭제">✕</button>
+    `;
+    const [sel, ta, del] = row.children;
+    sel.addEventListener("change", () => { eff.tag = sel.value || null; setDirty(true); });
+    ta.addEventListener("input", () => { eff.text = ta.value; setDirty(true); });
+    del.addEventListener("click", () => { c.effects.splice(i, 1); setDirty(true); renderEffects(c); });
+    list.appendChild(row);
+  });
+}
+
+function refreshListRowLabel(id) {
+  const row = cardListEl.querySelector(`.card-row[data-id="${CSS.escape(id)}"] .name`);
+  const c = cardsById.get(id);
+  if (row) {
+    row.textContent = c.name || "(이름 없음)";
+    row.classList.toggle("empty", !c.name);
+  }
+}
+
+// ---------- Keyboard shortcuts ----------
+
+document.addEventListener("keydown", (e) => {
+  if (!rawData) return;
+  const tag = (e.target.tagName || "").toLowerCase();
+  if (tag === "input" || tag === "textarea" || tag === "select") return;
+  if (e.key === "ArrowDown" || e.key === "j") { e.preventDefault(); navigate(1); }
+  if (e.key === "ArrowUp" || e.key === "k") { e.preventDefault(); navigate(-1); }
+  if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); saveFile(); }
+});
+</script>
+</body>
+</html>

@@ -6,12 +6,32 @@
 ## 구성
 
 ```
-pdfs/                    원본 카드 시트 PDF(part1, part2, ...), 룰북 PDF
+pdfs/                    원본 카드 시트 PDF(part1~3), 룰북 PDF
 scripts/pdf_to_db.py     PDF -> data/cards.json 변환 스크립트
 scripts/requirements.txt Python 의존성
 scripts/SETUP.md         설치 및 실행 방법
-data/cards.json          변환 결과 (카드 데이터베이스, 현재 part1+part2 처리됨: id 001~129)
+data/cards.json          변환 결과 (카드 데이터베이스, part1+2+3 전체 처리 완료: id 001~203)
+tools/card-editor.html   카드 데이터베이스를 보면서 직접 수정·저장하는 편집기 (브라우저에서 열기만 하면 됨)
 ```
+
+## 카드 편집기로 검수하기
+
+OCR 결과에는 오류가 많아서(아래 "알려진 한계" 참고), `data/cards.json`을 직접 보면서 틀린 부분을
+고치고 빠진 항목을 채워 넣을 수 있는 편집기를 만들어 뒀습니다. 서버 설치 없이 브라우저에서
+`tools/card-editor.html` 파일을 더블클릭(또는 파일 탐색기에서 열기)하면 바로 사용할 수 있습니다.
+
+1. `tools/card-editor.html`을 **Chrome/Edge**로 엽니다 (파일에 바로 저장하는 기능이 이 두
+   브라우저에서만 지원됩니다. Firefox/Safari는 다운로드 방식으로 대체됩니다).
+2. 상단 "cards.json 열기" 버튼으로 `data/cards.json`을 선택합니다.
+3. 왼쪽 목록에서 카드를 고르면 오른쪽에 편집 화면이 나옵니다. 이름/카테고리/서브타입/능력·효과
+   텍스트를 고치고, 맨 아래 "원본 OCR 텍스트"를 참고해 빠지거나 틀린 내용을 채워 넣으세요.
+   화면 오른쪽 위 "검수 필요" 체크박스로 검수 완료 표시를 할 수 있습니다.
+4. 왼쪽 위 필터(카테고리, "검수 필요만", 검색창)로 고칠 카드를 좁혀서 순서대로 처리하면 편합니다.
+   `↑`/`↓`(또는 `j`/`k`) 키로 목록을 넘기고, `Ctrl/Cmd+S`로 저장할 수 있습니다.
+5. 상단 "저장" 버튼을 누르면 **Chrome/Edge에서는 열었던 `data/cards.json` 파일에 바로 덮어씁니다**
+   (다른 브라우저에서는 `cards.json`이 다운로드되니 기존 파일을 수동으로 교체하세요).
+
+편집기는 순수 HTML/JS 파일이라 인터넷 연결이나 별도 서버 없이 로컬에서 그대로 동작합니다.
 
 ## 사용법
 
@@ -20,7 +40,7 @@ data/cards.json          변환 결과 (카드 데이터베이스, 현재 part1+
 ```bash
 sudo apt-get install -y tesseract-ocr tesseract-ocr-kor
 pip install -r scripts/requirements.txt
-python scripts/pdf_to_db.py pdfs/LLS_cards_part_1.pdf pdfs/LLS_cards_part_2.pdf -o data/cards.json
+python scripts/pdf_to_db.py pdfs/LLS_cards_part_1.pdf pdfs/LLS_cards_part_2.pdf pdfs/LLS_cards_part_3.pdf -o data/cards.json
 ```
 
 **중요**: part 파일들은 항상 `part_1`부터 순서대로 함께 넘겨야 합니다 (`part_1 part_2 part_3` 순). id 계산과
@@ -101,7 +121,6 @@ python scripts/pdf_to_db.py pdfs/LLS_cards_part_1.pdf pdfs/LLS_cards_part_2.pdf 
   (현재 part1+part2 기준 약 70%). 이름/효과 텍스트는 있는데 카테고리만 없는 경우가 많으니,
   `raw_ocr_text`나 원본 PDF를 참고해 수동으로 채우는 걸 권장합니다.
 - id 페어링 보정에 대해서는 위 "카드 id는..." 단락을 참고하세요.
-- 진행 현황: part1(63장 분량 시트, 실제 고유 id 001~057) + part2(id 058~129) 처리 완료.
-  `pdfs/LLS_cards_part_3.pdf`가 준비되면 `python scripts/pdf_to_db.py pdfs/LLS_cards_part_1.pdf
-  pdfs/LLS_cards_part_2.pdf pdfs/LLS_cards_part_3.pdf -o data/cards.json`으로 이어서 처리하고,
-  전체 카드 수가 룰북에 명시된 203장에 가까운지 확인하세요.
+- 진행 현황: part1+part2+part3 전체 처리 완료. id 001~203, 총 203장으로 룰북에 명시된
+  카드 총수(203장)와 정확히 일치합니다 (id 누락/중복 없음, part3까지 추가 페어링 드리프트는
+  발견되지 않음).
