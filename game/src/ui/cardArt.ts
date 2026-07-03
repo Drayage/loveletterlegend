@@ -8,8 +8,8 @@ import minister from "../assets/cards/minister.jpg";
 import princess from "../assets/cards/princess.jpg";
 import type { CardName } from "../engine/types";
 
-// Cropped straight from the original printed card sheet (pdfs/LLS_cards_part_1.pdf)
-// via scripts/extract_card_art.py -- same illustration used on the physical cards.
+// Custom illustrations (replacing the earlier PDF-cropped art) provided by
+// the user; resized/compressed for the web bundle but otherwise unedited.
 export const CARD_ART: Record<CardName, string> = {
   경비병: guard,
   광대: clown,
