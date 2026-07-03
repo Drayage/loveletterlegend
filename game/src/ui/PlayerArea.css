@@ -9,6 +9,21 @@
   opacity: 0.6;
 }
 
+.player-area--flash {
+  animation: player-area-flash 1.2s ease;
+}
+
+@keyframes player-area-flash {
+  0% {
+    box-shadow: 0 0 0 3px rgba(164, 64, 47, 0.9);
+    background: rgba(164, 64, 47, 0.12);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(164, 64, 47, 0);
+    background: var(--panel);
+  }
+}
+
 .player-area__header {
   display: flex;
   align-items: center;
@@ -79,4 +94,27 @@
 
 .player-area__cards--discard {
   min-height: 40px;
+}
+
+.player-area__discard-btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.player-area__discard-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.player-area__discard-empty {
+  font-size: 13px;
+  color: var(--muted);
 }

@@ -1,5 +1,7 @@
-import type { PlayerState } from "../engine/types";
+import { useEffect, useRef, useState } from "react";
+import type { CardName, PlayerState } from "../engine/types";
 import { Card } from "./Card";
+import { Modal } from "./Modal";
 import "./PlayerArea.css";
 
 interface PlayerAreaProps {
@@ -8,6 +10,7 @@ interface PlayerAreaProps {
   revealHand: boolean;
   selectableCardIds?: string[];
   onSelectCard?: (instanceId: string) => void;
+  remaining: Record<CardName, number>;
 }
 
 export function PlayerArea({
@@ -16,9 +19,32 @@ export function PlayerArea({
   revealHand,
   selectableCardIds,
   onSelectCard,
+  remaining,
 }: PlayerAreaProps) {
+  const [showDiscards, setShowDiscards] = useState(false);
+  const [justEliminated, setJustEliminated] = useState(false);
+  const wasEliminated = useRef(player.eliminated);
+
+  useEffect(() => {
+    if (player.eliminated && !wasEliminated.current) {
+      setJustEliminated(true);
+      const timer = setTimeout(() => setJustEliminated(false), 1200);
+      wasEliminated.current = true;
+      return () => clearTimeout(timer);
+    }
+    wasEliminated.current = player.eliminated;
+  }, [player.eliminated]);
+
   return (
-    <section className={`player-area ${player.eliminated ? "player-area--eliminated" : ""}`}>
+    <section
+      className={[
+        "player-area",
+        player.eliminated ? "player-area--eliminated" : "",
+        justEliminated ? "player-area--flash" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <header className="player-area__header">
         <h2>
           {player.displayName}
@@ -40,6 +66,7 @@ export function PlayerArea({
                   key={c.instanceId}
                   name={c.name}
                   size="md"
+                  remainingCount={remaining[c.name]}
                   onClick={
                     selectableCardIds?.includes(c.instanceId)
                       ? () => onSelectCard?.(c.instanceId)
@@ -54,14 +81,28 @@ export function PlayerArea({
         </div>
 
         <div className="player-area__group">
-          <span className="player-area__label">버린 카드 ({player.discardPile.length})</span>
-          <div className="player-area__cards player-area__cards--discard">
-            {player.discardPile.map((c) => (
-              <Card key={c.instanceId} name={c.name} size="sm" />
-            ))}
-          </div>
+          <span className="player-area__label">버린 카드</span>
+          {player.discardPile.length === 0 ? (
+            <span className="player-area__discard-empty">없음</span>
+          ) : (
+            <button
+              type="button"
+              className="player-area__discard-btn"
+              onClick={() => setShowDiscards(true)}
+            >
+              {player.discardPile.length}장 보기
+            </button>
+          )}
         </div>
       </div>
+
+      {showDiscards && (
+        <Modal title={`${player.displayName}의 버린 카드`} onClose={() => setShowDiscards(false)}>
+          {player.discardPile.map((c) => (
+            <Card key={c.instanceId} name={c.name} size="sm" />
+          ))}
+        </Modal>
+      )}
     </section>
   );
 }

@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import type { GameState, PendingDecision, PlayerConfig } from "./engine/types";
 import { setupRound, chooseCardToPlay, chooseTarget, chooseGuess } from "./engine/rules";
 import { chooseCardToPlayAI, chooseGuessAI, chooseTargetAI } from "./engine/ai";
+import { computeRemainingCounts } from "./engine/remaining";
 import { Card } from "./ui/Card";
 import { PlayerArea } from "./ui/PlayerArea";
 import { TablePlay } from "./ui/TablePlay";
 import { DecisionPanel } from "./ui/DecisionPanel";
 import { GameLog } from "./ui/GameLog";
+import { EffectToast } from "./ui/EffectToast";
 import "./App.css";
 
 const HUMAN_ID = "human";
@@ -90,6 +92,7 @@ export default function App() {
   const ai = state.players.find((p) => p.id === AI_ID)!;
   const decision = state.pendingDecision;
   const isHumanDecision = decision?.playerId === HUMAN_ID;
+  const remaining = computeRemainingCounts(state);
 
   return (
     <div className="app-layout">
@@ -101,12 +104,14 @@ export default function App() {
         </div>
       </header>
 
+      <EffectToast entries={state.log} />
+
       {state.faceUpRemovedCards.length > 0 && (
         <div className="removed-row">
           <span className="removed-row__label">공개 제거된 카드</span>
           <div className="removed-row__cards">
             {state.faceUpRemovedCards.map((c) => (
-              <Card key={c.instanceId} name={c.name} size="sm" />
+              <Card key={c.instanceId} name={c.name} size="md" remainingCount={remaining[c.name]} />
             ))}
           </div>
         </div>
@@ -116,9 +121,10 @@ export default function App() {
         player={ai}
         isCurrentTurn={state.pendingDecision?.playerId === AI_ID}
         revealHand={Boolean(state.roundResult)}
+        remaining={remaining}
       />
 
-      <TablePlay left={human} right={ai} />
+      <TablePlay left={human} right={ai} remaining={remaining} />
 
       <PlayerArea
         player={human}
@@ -130,6 +136,7 @@ export default function App() {
             : undefined
         }
         onSelectCard={handleSelectCard}
+        remaining={remaining}
       />
 
       {isHumanDecision && decision && decision.kind !== "playCard" && (

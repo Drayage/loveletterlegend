@@ -36,9 +36,22 @@
   padding: 10px;
 }
 
-.table-play__vs {
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--accent);
-  letter-spacing: 0.08em;
+.table-play__pop {
+  animation: table-play-pop 0.35s cubic-bezier(0.25, 1.4, 0.4, 1);
+}
+
+@keyframes table-play-pop {
+  0% {
+    transform: scale(0.55) translateY(14px);
+    opacity: 0;
+    filter: drop-shadow(0 0 0 rgba(164, 64, 47, 0));
+  }
+  60% {
+    transform: scale(1.06) translateY(-2px);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    filter: drop-shadow(0 0 10px rgba(164, 64, 47, 0.35));
+  }
 }

@@ -11,9 +11,21 @@ interface CardProps {
   selected?: boolean;
   disabled?: boolean;
   onClick?: () => void;
+  /** How many copies of this card name are still unaccounted-for (not yet
+   * discarded or publicly removed). Defaults to the full deck count, i.e.
+   * "none used up yet", when the caller doesn't track this. */
+  remainingCount?: number;
 }
 
-export function Card({ name, faceDown, size = "md", selected, disabled, onClick }: CardProps) {
+export function Card({
+  name,
+  faceDown,
+  size = "md",
+  selected,
+  disabled,
+  onClick,
+  remainingCount,
+}: CardProps) {
   // Explicit tap-to-toggle state, used as the primary interaction on touch
   // devices (which have no hover). Desktop mouse users get the ability text
   // via pure CSS :hover instead (see Card.css) so this state normally stays
@@ -69,8 +81,20 @@ export function Card({ name, faceDown, size = "md", selected, disabled, onClick 
       <img className="card__art" src={CARD_ART[name]} alt={def.name} draggable={false} />
       <span className="card__rank-badge">{def.rank}</span>
       {def.count > 1 && (
-        <span className="card__count-badge" aria-label={`덱에 ${def.count}장`}>
-          {"◆".repeat(def.count)}
+        <span
+          className="card__count-badge"
+          aria-label={`총 ${def.count}장 중 ${remainingCount ?? def.count}장 남음`}
+        >
+          {Array.from({ length: def.count }, (_, i) => (
+            <span
+              key={i}
+              className={
+                i < (remainingCount ?? def.count) ? "diamond diamond--active" : "diamond diamond--used"
+              }
+            >
+              ◆
+            </span>
+          ))}
         </span>
       )}
       <span className="card__name-bar">{def.name}</span>
