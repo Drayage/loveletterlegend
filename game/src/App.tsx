@@ -4,6 +4,7 @@ import { setupRound, chooseCardToPlay, chooseTarget, chooseGuess } from "./engin
 import { chooseCardToPlayAI, chooseGuessAI, chooseTargetAI } from "./engine/ai";
 import { Card } from "./ui/Card";
 import { PlayerArea } from "./ui/PlayerArea";
+import { TablePlay } from "./ui/TablePlay";
 import { DecisionPanel } from "./ui/DecisionPanel";
 import { GameLog } from "./ui/GameLog";
 import "./App.css";
@@ -116,6 +117,8 @@ export default function App() {
         isCurrentTurn={state.pendingDecision?.playerId === AI_ID}
         revealHand={Boolean(state.roundResult)}
       />
+
+      <TablePlay left={human} right={ai} />
 
       <PlayerArea
         player={human}
