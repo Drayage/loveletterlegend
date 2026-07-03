@@ -6,11 +6,11 @@
 ## 구성
 
 ```
-pdfs/                    원본 카드 시트 PDF, 룰북 PDF
+pdfs/                    원본 카드 시트 PDF(part1, part2, ...), 룰북 PDF
 scripts/pdf_to_db.py     PDF -> data/cards.json 변환 스크립트
 scripts/requirements.txt Python 의존성
 scripts/SETUP.md         설치 및 실행 방법
-data/cards.json          변환 결과 (카드 데이터베이스)
+data/cards.json          변환 결과 (카드 데이터베이스, 현재 part1+part2 처리됨: id 001~129)
 ```
 
 ## 사용법
@@ -20,8 +20,11 @@ data/cards.json          변환 결과 (카드 데이터베이스)
 ```bash
 sudo apt-get install -y tesseract-ocr tesseract-ocr-kor
 pip install -r scripts/requirements.txt
-python scripts/pdf_to_db.py pdfs/LLS_cards_part_1.pdf -o data/cards.json
+python scripts/pdf_to_db.py pdfs/LLS_cards_part_1.pdf pdfs/LLS_cards_part_2.pdf -o data/cards.json
 ```
+
+**중요**: part 파일들은 항상 `part_1`부터 순서대로 함께 넘겨야 합니다 (`part_1 part_2 part_3` 순). id 계산과
+페어링 보정(아래 참고)이 이 순서를 전제로 하드코딩되어 있어, part2/3만 단독으로 실행하면 id가 틀어집니다.
 
 ## 카드 시트 PDF에 대해
 
@@ -68,8 +71,17 @@ python scripts/pdf_to_db.py pdfs/LLS_cards_part_1.pdf -o data/cards.json
 ```
 
 카드 id는 시트 상의 위치(페이지당 9장, 왼쪽→오른쪽·위→아래 순서)로 계산합니다.
-인쇄된 번호 자체를 OCR하는 것보다 이 방식이 훨씬 안정적이었습니다. 단, "게임 : 정체"
-모듈처럼 카드 한 쌍(남/여 버전)이 번호를 공유하는 경우는 정확히 구분되지 않을 수 있습니다.
+인쇄된 번호 자체를 OCR하는 것보다 이 방식이 훨씬 안정적이었습니다.
+
+**"게임 : 정체" 모듈 카드는 번호를 공유합니다.** 예: 농부/양치기가 둘 다 033번, 사냥꾼/약초꾼이
+둘 다 034번입니다(성별 변형이라 능력은 동일, 이름/그림만 다름 — 룰북에 "성별에 따른 효과의 차이는
+없음"이라고 명시됨). 이 페어링은 순수 위치 기반 계산으로는 감지할 수 없어서, `LLS_cards_part_1.pdf`
+4~5페이지를 직접 읽어 확인한 페어링을 `scripts/pdf_to_db.py`의 `ID_OVERRIDES`에 하드코딩하고,
+그 이후 모든 카드 id에 상수 보정값(`ID_DRIFT_CORRECTION = 6`, `LLS_cards_part_2.pdf` 1페이지의
+실제 인쇄 번호 058과 대조해 검증함)을 적용했습니다. 페어링된 카드는 이름을 `"농부 / 양치기"`
+처럼 합쳐서 하나의 레코드로 저장합니다. **part2/3에 아직 확인하지 못한 추가 페어링이 있다면
+그 지점부터 다시 id가 밀릴 수 있습니다** — 이름이 비정상적으로 겹치거나 `category`가
+`게임 : 정체`류인 카드는 원본 PDF와 대조해보세요.
 
 ## 알려진 한계 (중요 — 결과물은 검수가 필요한 초안입니다)
 
@@ -84,6 +96,12 @@ python scripts/pdf_to_db.py pdfs/LLS_cards_part_1.pdf -o data/cards.json
   본문 텍스트만 보존됩니다.
 - 카드 효과 안의 토큰 아이콘(편지 ✉ / 시계 🕐 / 성공 / 실패 💧)도 그래픽이라
   텍스트로 변환되지 않고 원본 OCR 텍스트에서 누락될 수 있습니다.
-- `pdfs/LLS_cards_part_2.pdf`, `pdfs/LLS_cards_part_3.pdf`가 준비되면 같은 방식으로
-  실행해 `data/cards.json`에 이어서 합칠 수 있습니다 (스크립트에 파일을 여러 개
-  나열하면 됩니다).
+- **카드 하단 카테고리 라벨(게임/시나리오/캐릭터) 인식률이 특히 낮습니다** — 장식체 폰트를
+  Tesseract가 잘 읽지 못해 `category: null`("미분류")로 남는 카드가 많습니다
+  (현재 part1+part2 기준 약 70%). 이름/효과 텍스트는 있는데 카테고리만 없는 경우가 많으니,
+  `raw_ocr_text`나 원본 PDF를 참고해 수동으로 채우는 걸 권장합니다.
+- id 페어링 보정에 대해서는 위 "카드 id는..." 단락을 참고하세요.
+- 진행 현황: part1(63장 분량 시트, 실제 고유 id 001~057) + part2(id 058~129) 처리 완료.
+  `pdfs/LLS_cards_part_3.pdf`가 준비되면 `python scripts/pdf_to_db.py pdfs/LLS_cards_part_1.pdf
+  pdfs/LLS_cards_part_2.pdf pdfs/LLS_cards_part_3.pdf -o data/cards.json`으로 이어서 처리하고,
+  전체 카드 수가 룰북에 명시된 203장에 가까운지 확인하세요.

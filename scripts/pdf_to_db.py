@@ -8,11 +8,14 @@ is narrower than the outer ones on this print sheet) -> OCR each cell region
 schema defined in the official rulebook (LLS_Rules415.pdf).
 
 OCR is not perfect, especially for the decorative title/category font.
-Card IDs are cross-checked against the expected sequential position (9 cards
-per page, row-major) since that turned out to be far more reliable than
-OCR'ing the ticket-box digits directly; a mismatch is flagged for review
-rather than silently trusted either way. Cards that fail to parse cleanly
-are kept with needs_review=True and their raw OCR text preserved, instead of
+Card IDs are computed from sheet position (9 cards per page, row-major)
+rather than OCR'd from the ticket-box digits, which turned out to be far
+less reliable. A handful of "게임 : 정체" cards intentionally share one id
+across two grid cells (male/female variants); those are hardcoded in
+ID_OVERRIDES from a manual read, with a verified constant offset
+(ID_DRIFT_CORRECTION) applied to every card after that zone. See README.md
+for the full explanation and caveats. Cards that fail to parse cleanly are
+kept with needs_review=True and their raw OCR text preserved, instead of
 being dropped silently.
 """
 import argparse
@@ -57,6 +60,40 @@ for _name, _rank, _count in _base_order:
         _next_id += 1
 # The last 공주 card also carries the 공주/왕자 module subtype per the sample sheet.
 BASE_GAME_LAST_SUBTYPE = ("016", "공주 / 왕자")
+
+# Some "게임 : 정체" (identity) cards are printed as male/female variant
+# PAIRS that intentionally share one printed id across two grid cells (see
+# rulebook: "성별도 결정합니다... 성별에 따른 효과의 차이는 없음"). That
+# breaks the pure sequential-position id formula below for every card from
+# here on. Confirmed by directly reading LLS_cards_part_1.pdf pages 4-5 at
+# high resolution: page 4's last row and all of page 5 pair up, so the
+# affected 12 cells are hardcoded from that manual read, and a constant
+# offset (verified against the true first id printed on
+# LLS_cards_part_2.pdf page 1, which is 058, not the formula's 064) corrects
+# every card after. This assumes part1 is processed before any later part in
+# the same run, matching the documented usage (all parts passed together in
+# order) -- running part2/part3 alone would need this recalibrated.
+# CAVEAT: if further identity-style pairing occurs later in part2/part3
+# that we haven't manually inspected, drift could reappear from that point
+# on -- cross-check raw_ocr_text against the source PDF for any card whose
+# id looks suspicious (e.g. duplicate names, category "게임 : 정체").
+ID_OVERRIDES = {
+    ("LLS_cards_part_1.pdf", 4, 2, 0): "033",
+    ("LLS_cards_part_1.pdf", 4, 2, 1): "034",
+    ("LLS_cards_part_1.pdf", 4, 2, 2): "034",
+    ("LLS_cards_part_1.pdf", 5, 0, 0): "035",
+    ("LLS_cards_part_1.pdf", 5, 0, 1): "035",
+    ("LLS_cards_part_1.pdf", 5, 0, 2): "036",
+    ("LLS_cards_part_1.pdf", 5, 1, 0): "036",
+    ("LLS_cards_part_1.pdf", 5, 1, 1): "037",
+    ("LLS_cards_part_1.pdf", 5, 1, 2): "037",
+    ("LLS_cards_part_1.pdf", 5, 2, 0): "038",
+    ("LLS_cards_part_1.pdf", 5, 2, 1): "038",
+    ("LLS_cards_part_1.pdf", 5, 2, 2): "039",
+}
+ID_DRIFT_CORRECTION = 6          # net id count "lost" to pairing in the override zone
+ID_DRIFT_STARTS_AT_GLOBAL_PAGE = 6  # part1 page 6 onward (and all later parts)
+PAIRED_IDS = set(ID_OVERRIDES.values())
 
 TAG_LINE_RE = re.compile(r"^(S|E|!)\b\s*:?\s*")
 TAG_NAMES = {"S": "시작", "E": "종료", "!": "중요"}
@@ -169,13 +206,24 @@ def split_effects(lines):
     return effects
 
 
-def process_cell(cell_img, source_file, source_page, row, col):
+def resolve_card_id(source_file, source_page, global_page, row, col):
     # Position-based id (9 cards/page, row-major) turned out far more
     # reliable than OCR'ing the decorative ticket-box digits, which is
-    # inconsistent even between visually-similar cells. It breaks only for
-    # cards that intentionally share an id (male/female variant pairs in
-    # the "정체" module) -- a known, rare limitation (see README).
-    card_id = f"{(source_page - 1) * CARDS_PER_PAGE + row * GRID_COLS + col + 1:03d}"
+    # inconsistent even between visually-similar cells. global_page
+    # accumulates across input files so ids stay sequential when multiple
+    # part PDFs are merged (source_page resets per file and is kept only
+    # for human-readable "where in this PDF" bookkeeping).
+    override = ID_OVERRIDES.get((source_file, source_page, row, col))
+    if override is not None:
+        return override
+    raw = (global_page - 1) * CARDS_PER_PAGE + row * GRID_COLS + col + 1
+    if global_page >= ID_DRIFT_STARTS_AT_GLOBAL_PAGE:
+        raw -= ID_DRIFT_CORRECTION
+    return f"{raw:03d}"
+
+
+def process_cell(cell_img, source_file, source_page, global_page, row, col):
+    card_id = resolve_card_id(source_file, source_page, global_page, row, col)
     base_info = BASE_GAME_CARDS.get(card_id)
 
     if base_info is not None:
@@ -233,6 +281,7 @@ def process_cell(cell_img, source_file, source_page, row, col):
 def convert(pdf_paths, resolution, verbose=True):
     cards = {}
     warnings = []
+    page_offset = 0
     for pdf_path in pdf_paths:
         pdf_path = Path(pdf_path)
         if verbose:
@@ -241,19 +290,33 @@ def convert(pdf_paths, resolution, verbose=True):
             for page_num, page in enumerate(pdf.pages, start=1):
                 if verbose:
                     print(f"  page {page_num}/{len(pdf.pages)}", file=sys.stderr)
+                global_page = page_offset + page_num
                 img = page.to_image(resolution=resolution).original
                 for row, col, cell_img in iter_grid_cells(img):
-                    card = process_cell(cell_img, pdf_path.name, page_num, row, col)
+                    card = process_cell(cell_img, pdf_path.name, page_num, global_page, row, col)
                     if card is None:
                         continue
                     card_id = card["id"]
                     if card_id in cards:
-                        warnings.append(
-                            f"Duplicate id {card_id}: {cards[card_id]['source_file']}"
-                            f" p{cards[card_id]['source_page']} overwritten by"
-                            f" {pdf_path.name} p{page_num}"
-                        )
+                        if card_id in PAIRED_IDS:
+                            # Known male/female variant pair sharing one id
+                            # (see ID_OVERRIDES) -- merge names instead of
+                            # dropping one; effects/ability are identical
+                            # per the rulebook so the rest of the record is
+                            # kept as-is.
+                            prev_name = cards[card_id]["name"]
+                            if prev_name and card["name"] and prev_name != card["name"]:
+                                card["name"] = f"{prev_name} / {card['name']}"
+                            elif not card["name"]:
+                                card["name"] = prev_name
+                        else:
+                            warnings.append(
+                                f"Duplicate id {card_id}: {cards[card_id]['source_file']}"
+                                f" p{cards[card_id]['source_page']} overwritten by"
+                                f" {pdf_path.name} p{page_num}"
+                            )
                     cards[card_id] = card
+            page_offset += len(pdf.pages)
     return cards, warnings
 
 

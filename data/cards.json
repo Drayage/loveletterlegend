@@ -496,22 +496,6 @@
       "id": "033",
       "category": "게임",
       "subtype": "정체",
-      "name": "",
-      "raw_ocr_text": "te H\n\noT\n\neH\no TT\namy  :  3  i  t         4   fe\n=                /^~    2\n을   조니     「\n3       OT ee Ge =\nnd    2        2    =\nJN - 1\nfei \\ 바기 |  A\n~, / 2\n각 라운드 중에 한 번, 자기 차례를 시작할 때\n손에 든 카드와 비공개 카드를\n\n서로 바꿀 수 있습니다.  게임 : 정체 ",
-      "source_file": "LLS_cards_part_1.pdf",
-      "source_page": 4,
-      "effects": [
-        {
-          "tag": null,
-          "text": "amy  :  3  i  t         4   fe =                /^~    2 을   조니     「 3       OT ee Ge = nd    2        2    = JN - 1 fei \\ 바기 |  A ~, / 2 각 라운드 중에 한 번, 자기 차례를 시작할 때 손에 든 카드와 비공개 카드를"
-        }
-      ],
-      "needs_review": true
-    },
-    {
-      "id": "034",
-      "category": "게임",
-      "subtype": "정체",
       "name": "양치기",
       "raw_ocr_text": "i\n\n양치기\n\nOFZ\nFAI 7]\n< ㅣ\nOe ee?         ~    사이버 다 ^\n=i ae      yA =\nㅋㅋ …> Sy    7 | ae\nSe ㅎㅎ '      개       a  =\nCe me     a         | \\o\n각 라운드 중에 한 번, 자기 차례를 시작할 때\n손에 는 카드와 비공개 카드를\n서로 바꿀 수 있습니다.\n\n     게임 : 정체 ",
       "source_file": "LLS_cards_part_1.pdf",
@@ -525,26 +509,10 @@
       "needs_review": false
     },
     {
-      "id": "035",
+      "id": "034",
       "category": "게임",
       "subtype": "정체",
-      "name": "사냥꾼",
-      "raw_ocr_text": "사냥꾼\n\nen\n냐고\n사 (own Lil\n[Wass / 1    별.\n노     = NS NY    ce 4.   J     :   :\noh mE [=\n+      WW     \\ “A       re    =\nex   Wg ss     S   >\n=       .       ic 여\n=i:      ^\n각 라운드 중에 한 번, 다른 플레이어가\n자신에게 사용한 효과를\n취소할 수 있습니다.\n\n     게임 : 정체 | ",
-      "source_file": "LLS_cards_part_1.pdf",
-      "source_page": 4,
-      "effects": [
-        {
-          "tag": null,
-          "text": "냐고 사 (own Lil [Wass / 1    별. 노     = NS NY    ce 4.   J     :   : =       .       ic 여 각 라운드 중에 한 번, 다른 플레이어가 자신에게 사용한 효과를 취소할 수 있습니다."
-        }
-      ],
-      "needs_review": false
-    },
-    {
-      "id": "036",
-      "category": "게임",
-      "subtype": "정체",
-      "name": "약초꾼",
+      "name": "사냥꾼 / 약초꾼",
       "raw_ocr_text": "ee\n\n약초꾼\n\nㅣ\n\na\nOF 2 J\n. Aaa 、\n> 시녀    ar 즈\n2를      <P eS\noe     4    Pt. =\nVian    i    - . | fe |\nGe ff     01 0\n— |      - vA ee S\n“a mm 0 aN  aN | te\n각 라운드 중에 한 번, 다른 플레이어가\n자신에게 사용한 효과를\n취소할 수 있습니다.\n\n    게임: 정체 | ",
       "source_file": "LLS_cards_part_1.pdf",
       "source_page": 4,
@@ -557,23 +525,7 @@
       "needs_review": false
     },
     {
-      "id": "037",
-      "category": "게임",
-      "subtype": "정체",
-      "name": "",
-      "raw_ocr_text": "\n견습 기사\n5 ty? FE\nSS Ce\noe ie 7 YR  0\n\nsTe— ott nn Aq] = 카드의 숫자에 2를 더합니다.          게임 : 정체 ",
-      "source_file": "LLS_cards_part_1.pdf",
-      "source_page": 5,
-      "effects": [
-        {
-          "tag": null,
-          "text": "견습 기사 5 ty? FE oe ie 7 YR  0"
-        }
-      ],
-      "needs_review": true
-    },
-    {
-      "id": "038",
+      "id": "035",
       "category": "게임",
       "subtype": "정체",
       "name": "",
@@ -589,23 +541,7 @@
       "needs_review": true
     },
     {
-      "id": "039",
-      "category": "게임",
-      "subtype": "정체",
-      "name": "",
-      "raw_ocr_text": "\n학생\nY\nAS\n5   ‘ nm E\n=                        —\n2                                                        =\n=                                                        Far\n=                                                        ^\n빼                              「                          =\noe                /         XN              =\n각 라운드 중에 한 번, 플레이한 카드의\n| 를    ry).    근 1]        nin Oo} ㄴㄴ        oO\n\n글 기기 eet TIT AA 1 「플레이:』 효과로 변경할 수 있습니다.      게임 : 정체 ",
-      "source_file": "LLS_cards_part_1.pdf",
-      "source_page": 5,
-      "effects": [
-        {
-          "tag": null,
-          "text": "학생 5   ‘ nm E 2                                                        = 빼                              「                          = 각 라운드 중에 한 번, 플레이한 카드의 | 를    ry).    근 1]        nin Oo} ㄴㄴ        oO"
-        }
-      ],
-      "needs_review": true
-    },
-    {
-      "id": "040",
+      "id": "036",
       "category": "게임",
       "subtype": "정체",
       "name": "여학생",
@@ -621,26 +557,10 @@
       "needs_review": false
     },
     {
-      "id": "041",
-      "category": "게임",
-      "subtype": "정체 ~                                               4",
-      "name": "여행자",
-      "raw_ocr_text": "「\n\n여행자\n\n「                       —                          >\n여행자\n—    도      ”          =\n더              VW =a 2\n=                                         ee,\n=                           te eds        >\ne   7   err\n1 ae 4\n“Ad eee TES tae     had\n전체 게임 중에 단 한 H, 차례 종료시에\n\n      게임 : 정체 ~                                               4 ",
-      "source_file": "LLS_cards_part_1.pdf",
-      "source_page": 5,
-      "effects": [
-        {
-          "tag": null,
-          "text": "여행자 —    도      ”          = 더              VW =a 2 e   7   err 1 ae 4 전체 게임 중에 단 한 H, 차례 종료시에"
-        }
-      ],
-      "needs_review": false
-    },
-    {
-      "id": "042",
+      "id": "037",
       "category": "게임",
       "subtype": "정체",
-      "name": "순례자",
+      "name": "여행자 / 순례자",
       "raw_ocr_text": "순례자\n\n)\n\n             ^ 려\n\"제\n개스 식어\n『 fe 02 000 에\nSeach isn 28. 4000    gee Beier i\nScie reecmdeer 가   oy       를 Geiss eer\nfee 70.   ue   ON a.\nFo Le     SF 겨\n00000 버너        Nig 에\n. 결여  fe)\n0002 0 | ate    ee i605\nSoe                                 es\n. A cP.\neo sebee cade cagrny ay          all           oe\n은 oo -L. #####&-\n라는 20 —,  —@e\n=    CA | B-a\n= 이이    PWN. FS\ntome 이      ~ Biased\naN     N    :      -. 2\n000          = ~ &\n다 은20060023해          여    5             를 이스 다896\nBence &              \"                   [을 이\nTERRES) 400          기                        Bees\n임 So] te    fa] 종료시에\n전체 게임 중에 단 한 번, 차례 종료시어\n0                   Fon  rs\n\nUU ASS 7S TOW.      게임 : 정체 ",
       "source_file": "LLS_cards_part_1.pdf",
       "source_page": 5,
@@ -653,23 +573,7 @@
       "needs_review": false
     },
     {
-      "id": "043",
-      "category": "게임",
-      "subtype": "정체",
-      "name": "",
-      "raw_ocr_text": "Bee\n\n남작\n|            》\n.   i\n%       SN 에    =\n™          “a \\          =\n|      Very) ih\n4   :\n이 카드를 획득할 때, 자신의 07 ?깨를\n원하는 캐릭터 에 배치하거나\n이동시킬 수 있습니다.\n\n    게임 : 정체 ",
-      "source_file": "LLS_cards_part_1.pdf",
-      "source_page": 5,
-      "effects": [
-        {
-          "tag": null,
-          "text": "남작 %       SN 에    = 4   : 이 카드를 획득할 때, 자신의 07 ?깨를 원하는 캐릭터 에 배치하거나 이동시킬 수 있습니다."
-        }
-      ],
-      "needs_review": true
-    },
-    {
-      "id": "044",
+      "id": "038",
       "category": "게임",
       "subtype": "정체",
       "name": "여자작",
@@ -685,7 +589,7 @@
       "needs_review": false
     },
     {
-      "id": "045",
+      "id": "039",
       "category": null,
       "subtype": null,
       "name": "SAO] 나날들",
@@ -701,7 +605,7 @@
       "needs_review": true
     },
     {
-      "id": "046",
+      "id": "040",
       "category": null,
       "subtype": null,
       "name": "",
@@ -717,7 +621,7 @@
       "needs_review": true
     },
     {
-      "id": "047",
+      "id": "041",
       "category": null,
       "subtype": null,
       "name": "",
@@ -733,7 +637,7 @@
       "needs_review": true
     },
     {
-      "id": "048",
+      "id": "042",
       "category": null,
       "subtype": null,
       "name": "",
@@ -749,7 +653,7 @@
       "needs_review": true
     },
     {
-      "id": "049",
+      "id": "043",
       "category": null,
       "subtype": null,
       "name": "_ 알",
@@ -765,7 +669,7 @@
       "needs_review": true
     },
     {
-      "id": "050",
+      "id": "044",
       "category": null,
       "subtype": null,
       "name": "이",
@@ -781,7 +685,7 @@
       "needs_review": true
     },
     {
-      "id": "051",
+      "id": "045",
       "category": null,
       "subtype": null,
       "name": "건",
@@ -797,7 +701,7 @@
       "needs_review": true
     },
     {
-      "id": "052",
+      "id": "046",
       "category": null,
       "subtype": null,
       "name": "",
@@ -813,7 +717,7 @@
       "needs_review": true
     },
     {
-      "id": "053",
+      "id": "047",
       "category": null,
       "subtype": null,
       "name": "",
@@ -829,7 +733,7 @@
       "needs_review": true
     },
     {
-      "id": "054",
+      "id": "048",
       "category": null,
       "subtype": null,
       "name": "천재일우의 기회 -",
@@ -845,7 +749,7 @@
       "needs_review": true
     },
     {
-      "id": "055",
+      "id": "049",
       "category": null,
       "subtype": null,
       "name": "",
@@ -861,7 +765,7 @@
       "needs_review": true
     },
     {
-      "id": "056",
+      "id": "050",
       "category": null,
       "subtype": null,
       "name": "",
@@ -877,7 +781,7 @@
       "needs_review": true
     },
     {
-      "id": "057",
+      "id": "051",
       "category": null,
       "subtype": null,
       "name": "",
@@ -893,7 +797,7 @@
       "needs_review": true
     },
     {
-      "id": "058",
+      "id": "052",
       "category": null,
       "subtype": null,
       "name": "성문 앞에서",
@@ -909,7 +813,7 @@
       "needs_review": true
     },
     {
-      "id": "059",
+      "id": "053",
       "category": null,
       "subtype": null,
       "name": "르이 ee ee ee",
@@ -925,7 +829,7 @@
       "needs_review": true
     },
     {
-      "id": "060",
+      "id": "054",
       "category": null,
       "subtype": null,
       "name": "고지식한 병사 1",
@@ -941,7 +845,7 @@
       "needs_review": true
     },
     {
-      "id": "061",
+      "id": "055",
       "category": null,
       "subtype": null,
       "name": "-   경비병 알리오스",
@@ -957,7 +861,7 @@
       "needs_review": true
     },
     {
-      "id": "062",
+      "id": "056",
       "category": null,
       "subtype": null,
       "name": "경비병 알리오스",
@@ -973,7 +877,7 @@
       "needs_review": true
     },
     {
-      "id": "063",
+      "id": "057",
       "category": null,
       "subtype": null,
       "name": "풋풋한 신병 1",
@@ -984,6 +888,1178 @@
         {
           "tag": null,
           "text": "62    | Ese 처음 보는 젖은 며자 병사 ay    OW 편지를 부탁합니다. 그녀는 Wirt] Baio 미소로 Pele 받마줌니다. | ew    rOMSLICH dH 볼게요!』 | % cow [059]를 Fo) 추가합니다. [에 fone an: | ae o8 다른 플레이어를 탈락시킴 :+(별 | ㅣ 《@ 신병》을 손에 들고 탈락합니다 :+@ \"| ㅣ <@신병)으로 다른 플레이어를 탈락시키는 데 실패합니다 :+@"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "058",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\n>           w=\n=         풋풋한 ANY T\n EZ\n더  [조건] 라운드 종료시 (별 이 1 개 이상\n(우선 적용) : [060] 【061] 공개\n[조건] 라운드 종료시 @ 가 2 개 이상 :\n【062] 공개\n위의 조건 중 하나를 충족했다면,\n「풋풋한 신병 ㅣ, 과 이 카드를 제거합니다.\n\n(058) 세띠텍호 ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 1,
+      "effects": [
+        {
+          "tag": null,
+          "text": "=         풋풋한 ANY T 더  [조건] 라운드 종료시 (별 이 1 개 이상 (우선 적용) : [060] 【061] 공개 [조건] 라운드 종료시 @ 가 2 개 이상 : 【062] 공개 위의 조건 중 하나를 충족했다면, 「풋풋한 신병 ㅣ, 과 이 카드를 제거합니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "059",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\n^] =\nJ      시 @\n”-〉^ }  po)\nSs (Ws oe\nfas \\    ~ |\n플레이: 다른 플레이어를 지목한 뒤, 「1을 제외한\n 이 오는 ee 271 기 이오 er ee) a ee, een ae\n\n고] 조근 이들 이니 att. Ua 지목된 플레이어가 그 숫자 카드를 갖고 있다면 . .라운드에서 탈락합니다. a,      페웰 ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 1,
+      "effects": [
+        {
+          "tag": null,
+          "text": "J      시 @ 플레이: 다른 플레이어를 지목한 뒤, 「1을 제외한 이 오는 ee 271 기 이오 er ee) a ee, een ae"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "060",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\ni>\n— ~~ =)\n~~         r\n= ~      Al\nray   그  N =o       도 느\n0 -/‥.    a\n<. '-| 두\n0 1S     Li Ol\nPA S\\. 2     as\nNS WC: gf 쓰.     2\n- \\~ on 때  개  | =\n{ See Me    고\nes   wy    ©. Gea\npy        a       i ™@\nWf                ' y,   1°\nLo. @Gheeaa £\n\nb| Jol ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 1,
+      "effects": [
+        {
+          "tag": null,
+          "text": "ray   그  N =o       도 느 0 -/‥.    a <. '-| 두 0 1S     Li Ol PA S\\. 2     as NS WC: gf 쓰.     2 - \\~ on 때  개  | = { See Me    고 Wf                ' y,   1°"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "061",
+      "category": "캐릭터",
+      "subtype": null,
+      "name": "신병 아니스",
+      "raw_ocr_text": " 신병 아니스\n\n| 에 (ABS 손에 들고 라운드 승리 :\n+MMM\nLJ) @ AD Le 다른 플레이어를\n| 탈락시킴니다 : 탈락시킨 1인당 + OS\nSeay IS 개 이상 : OS 문구 번경 :\nPy 「플레이: 다른 플레이어를 지목한 뒤, 「1을\n제외한 홀수」또는 「짝수 」를 두 개 BUch. 만약\n지목된 플레이어가 그 숫자 중 하나를 가진\n카드를 갖고 있다면 라운드에서 탈락합니다. 」\n'                                            '\n|    Geo 5 개 이상 : KO 신병》의 문구를 무시.\n8 ZI) ON Ae BE HEA... AIM O ,\n\nee \\       캐릭터 해                      5 ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 1,
+      "effects": [
+        {
+          "tag": null,
+          "text": "| 에 (ABS 손에 들고 라운드 승리 : LJ) @ AD Le 다른 플레이어를 | 탈락시킴니다 : 탈락시킨 1인당 + OS Seay IS 개 이상 : OS 문구 번경 : Py 「플레이: 다른 플레이어를 지목한 뒤, 「1을 제외한 홀수」또는 「짝수 」를 두 개 BUch. 만약 지목된 플레이어가 그 숫자 중 하나를 가진 카드를 갖고 있다면 라운드에서 탈락합니다. 」 |    Geo 5 개 이상 : KO 신병》의 문구를 무시. 8 ZI) ON Ae BE HEA... AIM O ,"
+        }
+      ],
+      "needs_review": false
+    },
+    {
+      "id": "062",
+      "category": null,
+      "subtype": null,
+      "name": "왕의 불호령",
+      "raw_ocr_text": "PERC cere ees rere w ease see rereseeesenserseseenrnessseanres\n\n왕의 불호령\n\n  Lo\n왕의 불호령\n병사들0| 편지미 전괄을 맡고 있는 것미 Sto\n말런지고 LOL IC}, 그들은 oN MSS 듣고,\nAMS 해 주지 않게 되머 버렸습니다.\n다른 Are 샘곽하지 많으면…-.\n\n선택\n그러고 보니, 지인의 아들이 성에서 일하고 있다고\noe + [063] ~ [068] 공개\n그러고 보니, 친구의 친구가 성에서 일하고 있다고\n하던데……: [071] ~ [076] 공개\n선택을 마친 후에 이 카드를 제거합니다.\n\n Au, ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 1,
+      "effects": [
+        {
+          "tag": null,
+          "text": "왕의 불호령 병사들0| 편지미 전괄을 맡고 있는 것미 Sto 말런지고 LOL IC}, 그들은 oN MSS 듣고, AMS 해 주지 않게 되머 버렸습니다. 다른 Are 샘곽하지 많으면…-. 선택 그러고 보니, 지인의 아들이 성에서 일하고 있다고 oe + [063] ~ [068] 공개 그러고 보니, 친구의 친구가 성에서 일하고 있다고 하던데……: [071] ~ [076] 공개 선택을 마친 후에 이 카드를 제거합니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "063",
+      "category": null,
+      "subtype": null,
+      "name": "(Pe - 의욕없는시종:",
+      "raw_ocr_text": "때\n\n(Pe - 의욕없는시종:\n\n2, 의욕 없는 시종\n: 대 | 「아 실관없는더묘. FAH,\n6 Ay) 그렇게 근무 태도가 ZOt 보미지는\na,  | 않는데 괜잖을바요……,\nSF (0 경비병》《0 신병》 [059)를 전부 믹에서\n제거하고, 《0) 시종》【064】 ~[【068]을\n덱에 추가합니다.\nE| 《0 시종》이 버림 더미에 있는 채로 라운드 승리 :\n【069】 【070] 공개\n위의 상황 중 하나가 발생하면\n이 카드를 제거합니다.\n\n068) 세딱텍호 ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 1,
+      "effects": [
+        {
+          "tag": null,
+          "text": "2, 의욕 없는 시종 : 대 | 「아 실관없는더묘. FAH, 6 Ay) 그렇게 근무 태도가 ZOt 보미지는 a,  | 않는데 괜잖을바요……, SF (0 경비병》《0 신병》 [059)를 전부 믹에서 제거하고, 《0) 시종》【064】 ~[【068]을 덱에 추가합니다."
+        },
+        {
+          "tag": "종료",
+          "text": "| 《0 시종》이 버림 더미에 있는 채로 라운드 승리 : 【069】 【070] 공개 위의 상황 중 하나가 발생하면 이 카드를 제거합니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "064",
+      "category": null,
+      "subtype": null,
+      "name": "시종",
+      "raw_ocr_text": "|\n\n시종\n\n|\n\n]             시종             ]\nA   bik\nQe,\nfs                ve           >\n=            12, ^ >        S\nta               win ob               2\n플레이: 플레이어 = BS 선택합니다.\n(자기 자신을 포함해도 됩니다.)\n그 플레이어들은 손에 든 카드를 서로 바꿈니다.\n\n(oe) ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 1,
+      "effects": [
+        {
+          "tag": null,
+          "text": "=            12, ^ >        S ta               win ob               2 플레이: 플레이어 = BS 선택합니다. (자기 자신을 포함해도 됩니다.) 그 플레이어들은 손에 든 카드를 서로 바꿈니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "065",
+      "category": null,
+      "subtype": null,
+      "name": "시종",
+      "raw_ocr_text": "q\n\n시종\n\n|\n\nJ            시종            ]\n‘A   ae\n7                v ~    ~           2h\n=                  1              &\naad         Ait, (be        >\na 해              =\n“  ype    ㆍ\n플레이: 플레이어 두 BS 선택합니다.\n(자기 자신을 포함해도 됩니다.)\n그 플레이어들은 손에 든 카드를 서로 바꿈니다.\n\n(065) 페일 0 (06 | ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 1,
+      "effects": [
+        {
+          "tag": null,
+          "text": "7                v ~    ~           2h =                  1              & a 해              = 플레이: 플레이어 두 BS 선택합니다. (자기 자신을 포함해도 됩니다.) 그 플레이어들은 손에 든 카드를 서로 바꿈니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "066",
+      "category": null,
+      "subtype": null,
+      "name": "시종",
+      "raw_ocr_text": "|\n\n시종\n\n4\n\n]             시종             ]\nA   ek\n고구:\n=                  Te 0            >\n=                  ,  A              ^\n은              12 / 주 ib              =\n2              _ a ae              ioe\n5          wk             :\n플레이: 플레이어 두 명을 선택합니다.\n(자기 자신을 포함해도 됩니다.)\n그 플레이어들은 손에 = 카드를 서로 BRS UC.\n\n       zie ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 1,
+      "effects": [
+        {
+          "tag": null,
+          "text": "고구: =                  Te 0            > 은              12 / 주 ib              = 2              _ a ae              ioe 5          wk             : 플레이: 플레이어 두 명을 선택합니다. (자기 자신을 포함해도 됩니다.) 그 플레이어들은 손에 = 카드를 서로 BRS UC."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "067",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\nJ        시종        J\n7 hay\n\n>           ~ BS           =\n\n‘ton            ie,    ri             =\n\n2         20          &\n\nve    ype        =\n\n플레이: 플레이어 두 명을 선택합니다. ㆍ\n\n(자기 자신을 포함해도 됩니다.) 그 플레이어들은 손에 든 카드를 서로 바꿈니다.              98 ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 2,
+      "effects": [
+        {
+          "tag": null,
+          "text": "J        시종        J 7 hay 2         20          & 플레이: 플레이어 두 명을 선택합니다. ㆍ"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "068",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\nJ       시종       |\n‘A  Ak\niD.\n:         ele\n=       ne      :\nf       eset 1h      an\n플레이: 플레이어 두 명을 선택합니다.\n\n(자기 자신을 포함해도 됩니다.) 그 플레이어들은 손에 든 카드를 서로 바꿈니다.             피워 ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 2,
+      "effects": [
+        {
+          "tag": null,
+          "text": "J       시종       | f       eset 1h      an 플레이: 플레이어 두 명을 선택합니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "069",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\n|\n\n시              sae\n\nx          Sa\n\n풀          /       \\A\\\nol         ae\n로 「      i ae :\not Ol               7      a\n는 볼              oy    4\nHH          A ^\nol        를\n\nOils ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 2,
+      "effects": [
+        {
+          "tag": null,
+          "text": "시              sae 풀          /       \\A\\ 로 「      i ae : ot Ol               7      a 는 볼              oy    4 ol        를"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "070",
+      "category": null,
+      "subtype": null,
+      "name": "AS 트래비스",
+      "raw_ocr_text": "|\n\nAS 트래비스\n\n(개 《0 시종》이 버림 더미에 있는 채로\n라운드 승리 :+ [07\n사용합니다: + [07\n\n07 3 개 이상 : 《0 시종》의 문구 변경 :\n「플레이: 다른 플레이어 한 명을 지목하여\n그 플레이어가 손에 든 카드를 봅니다. 그 후\n다른 플레이어 두 명을 선택합니다. (자기\n자신을 포함해도 됩니다.) 그 플레이어들은\n손에 든 카드를 서로 eee,\nTOMS, 꽤 잘했지요?」\n\n",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 2,
+      "effects": [
+        {
+          "tag": null,
+          "text": "(개 《0 시종》이 버림 더미에 있는 채로 라운드 승리 :+ [07 사용합니다: + [07 07 3 개 이상 : 《0 시종》의 문구 변경 : 「플레이: 다른 플레이어 한 명을 지목하여 그 플레이어가 손에 든 카드를 봅니다. 그 후 다른 플레이어 두 명을 선택합니다. (자기 자신을 포함해도 됩니다.) 그 플레이어들은 손에 든 카드를 서로 eee, TOMS, 꽤 잘했지요?」"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "071",
+      "category": null,
+      "subtype": null,
+      "name": "를 으으 고 tn he SS > = 으으",
+      "raw_ocr_text": "이\n\nCex\n\n“SN .\n\n=\n\n를 으으 고 tn he SS > = 으으\n\n퉁명스러운 시녀\n\nar ㆍ 퉁명스러운 시녀\nif    0 ;     Lcanelaevalarsiwtcketersteraterekerteteversieterersiy terete\nee        =          es\nos. y | 「하, ASH 하지 많으면 SHH,\n1g         미 사람메게 편지를 맡거도\nZe \\ | 괜찮은 Hal,\n|\nFS OB OAD [05918 전부 덱에서\n제거하고, <M AU) [072] ~ [076] S\n덱에 추가합니다.\n‘E  (DO 시녀》가 버림 더미에 있는 채로 라운드 승리 :\n【077】 [078] 공개\n위의 상황 중 하나가 발생하면\n이 카드를 제거합니다.\n\n(071) = Auf] ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 2,
+      "effects": [
+        {
+          "tag": null,
+          "text": "ar ㆍ 퉁명스러운 시녀 if    0 ;     Lcanelaevalarsiwtcketersteraterekerteteversieterersiy terete os. y | 「하, ASH 하지 많으면 SHH, 1g         미 사람메게 편지를 맡거도 Ze \\ | 괜찮은 Hal, FS OB OAD [05918 전부 덱에서 제거하고, <M AU) [072] ~ [076] S 덱에 추가합니다. ‘E  (DO 시녀》가 버림 더미에 있는 채로 라운드 승리 : 【077】 [078] 공개 위의 상황 중 하나가 발생하면 이 카드를 제거합니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "072",
+      "category": null,
+      "subtype": null,
+      "name": "시녀",
+      "raw_ocr_text": "t\n\n시녀  |\n\nt\n\nJ             - 3             ]\nlar | < 시\n(         Sy)\nnfs\n=<               < 7 ee        =\nso                        \"          2\n74          ==\n=                  2           =.\nfl,      pam\n4          x\nY         ay\n( 75         es\n플레이: 플레이어 두 BS 선택합니다.\n/-1-7] 7121 존다]; 71\n\nAO |) et SO 년 777 그 플레이어들은 20] = 카드를 서로 바꿈니다.    sed ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 2,
+      "effects": [
+        {
+          "tag": null,
+          "text": "J             - 3             ] lar | < 시 =<               < 7 ee        = so                        \"          2 74          == =                  2           =. 4          x ( 75         es 플레이: 플레이어 두 BS 선택합니다. /-1-7] 7121 존다]; 71"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "073",
+      "category": null,
+      "subtype": null,
+      "name": "시녀",
+      "raw_ocr_text": "t\n\n시녀\n\nt\n\nJ             시 녀             J\n= 본\n=                   Z          =.\nCA\nOPE 2:\n 돌레이: 플레이어 두 명을 선택합니다.\n(자기 ANS 포함해도 됩니다.)\n그 플레이어들은 손에 든 카드를 서로 BRS UC.\n\n079) cD ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 2,
+      "effects": [
+        {
+          "tag": null,
+          "text": "= 본 OPE 2: 돌레이: 플레이어 두 명을 선택합니다. (자기 ANS 포함해도 됩니다.) 그 플레이어들은 손에 든 카드를 서로 BRS UC."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "074",
+      "category": null,
+      "subtype": null,
+      "name": "시녀",
+      "raw_ocr_text": "|\n\n시녀\n\n |\n\nJ            - 티            J\n‘s                                   is               all\n7     ^ |\nAk            >\n ㅣ 폴리이: 플레이어 두 명을 선택합니다. ㆍ\n(자기 자신을 포함해도 됩니다.)\n그 플레이어들은 Ho] = 카드를 서로 바꿈니다.\n\n A ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 2,
+      "effects": [
+        {
+          "tag": null,
+          "text": "J            - 티            J 7     ^ | ㅣ 폴리이: 플레이어 두 명을 선택합니다. ㆍ (자기 자신을 포함해도 됩니다.) 그 플레이어들은 Ho] = 카드를 서로 바꿈니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "075",
+      "category": null,
+      "subtype": null,
+      "name": "시녀",
+      "raw_ocr_text": "1\n\n시녀\n\nq\n\n]     시녀     ]\nㆍ     2“\nAN         ae a\nae\n(자기 자신을 포함해도 됩니다.)\n\n그 플레이어들은 손에 = 카드를 서로 BUC.\n\n Ag ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 2,
+      "effects": [
+        {
+          "tag": null,
+          "text": "ㆍ     2“ (자기 자신을 포함해도 됩니다.) 그 플레이어들은 손에 = 카드를 서로 BUC."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "076",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\nJ       ‘ 7       J\nee 1)\n\n=               iS      ae\n\n=          i     =\nCA\n\nen\n\n(자기 자신을 포함해도 됩니다.) 그 플레이어들은 손에 든 카드를 서로 SUCH.              x98 ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 3,
+      "effects": [
+        {
+          "tag": null,
+          "text": "J       ‘ 7       J ee 1)"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "077",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\n|\n|          ae  re :\n뭐         7        개\n가          nts\nou            들       \\  |\n림              |  re  cag   4 2\n2            Saad 077,\nOl v                Ya ‘ mone\n런                   Va\ns           ^\n지          , ~         ：  \\\n않                  Gy\nAl     2  (        bes\n4         =   ea     a\n\n077          : Zi, ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 3,
+      "effects": [
+        {
+          "tag": null,
+          "text": "뭐         7        개 가          nts ou            들       \\  | 림              |  re  cag   4 2 2            Saad 077, 런                   Va 지          , ~         ：  \\ 않                  Gy Al     2  (        bes 4         =   ea     a"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "078",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\n|\n(개 《00 시녀》가 버림 더미에 있는 채로\n\n라운드 승리 :+ [07\n사용합니다 :+ [90]\n07 3 개 이상 : (OA) 문구 변경 :\n플레이: 플레이어 두 명을 선택합니다. (자기\n자신을 포함해도 됩니다.) 그 플레이어들은\n손에 = 카드를 서로 wey 그 후\n다른 플레이어 한 명을 지목하여\n그 플레이어가 손에 = FES 봅니다.」\n\"OU, 미꾸관편 틀림없이 잘 될 Hobs\n\n~ 4   이 War 078 yi  | a      때 ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 3,
+      "effects": [
+        {
+          "tag": null,
+          "text": "(개 《00 시녀》가 버림 더미에 있는 채로 라운드 승리 :+ [07 사용합니다 :+ [90] 07 3 개 이상 : (OA) 문구 변경 : 플레이: 플레이어 두 명을 선택합니다. (자기 자신을 포함해도 됩니다.) 그 플레이어들은 손에 = 카드를 서로 wey 그 후 다른 플레이어 한 명을 지목하여 그 플레이어가 손에 = FES 봅니다.」 \"OU, 미꾸관편 틀림없이 잘 될 Hobs"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "079",
+      "category": null,
+      "subtype": null,
+      "name": "했을 을 오드 때 으으으 이이 을 으은이 이이 으으",
+      "raw_ocr_text": "했을 을 오드 때 으으으 이이 을 으은이 이이 으으\n\n광대의 초대\n\n뽀      _\netn SES] 초대\nvay Eats     ee 기이\nCy        편지의 N22 부탁하는 Sul\n78       BHO! 씬해진 담신은 그와 함께\n      섬 만의 햄사를 구경하리 왔습니다.\nRSet airy0) 말미 [르면 4 만으로\n사주 조때되는 지인들| 있다고 합니다.\n선택\n광대의 제자를 소개받습니다 : [080] [081] 공개\n점집 텐트에 가 봅니다 : [089] [090] 공개\n가장 붐비는 무대로 갑니다 : [093] 공개\n서탱을 마치 Solo) 카드를 제거항니다\n\n(079) 시띠텍흐 ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 3,
+      "effects": [
+        {
+          "tag": null,
+          "text": "뽀      _ etn SES] 초대 vay Eats     ee 기이 Cy        편지의 N22 부탁하는 Sul 78       BHO! 씬해진 담신은 그와 함께 섬 만의 햄사를 구경하리 왔습니다. RSet airy0) 말미 [르면 4 만으로 사주 조때되는 지인들| 있다고 합니다. 선택 광대의 제자를 소개받습니다 : [080] [081] 공개 점집 텐트에 가 봅니다 : [089] [090] 공개 가장 붐비는 무대로 갑니다 : [093] 공개 서탱을 마치 Solo) 카드를 제거항니다"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "080",
+      "category": null,
+      "subtype": null,
+      "name": "이 일 이 임이 비오 지오토 이 은이 은 은은 이이 을 은 을 인 은 이 2 의",
+      "raw_ocr_text": "이 일 이 임이 비오 지오토 이 은이 은 은은 이이 을 은 을 인 은 이 2 의\n\n광대의 제자\n\nBy 39의계자\nKe’. ㅣ 20 50) 광대저럼 제대로 분장한\nhis 쓸 | 21201 E401 민사합니다.\nFy        | 마무관도 StS DIZ 채 팬터마임\n<             og 줌인 것 같슴니다.\n|S ep ee 떡에서 제거하고,\n《6 광대의 제자》[【081]를 덱에 추가합니다.\niE)  (® 광대》 또는 《6 광대의 제자》가 버림 더미에\n있는 채로 라운드 승리 : (082) 공개\n위의 상황 중 하나가 발생하면\n이 카드를 제거합니다.\n\n(oso) 세띠텍흐 ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 3,
+      "effects": [
+        {
+          "tag": null,
+          "text": "By 39의계자 Ke’. ㅣ 20 50) 광대저럼 제대로 분장한 his 쓸 | 21201 E401 민사합니다. Fy        | 마무관도 StS DIZ 채 팬터마임 <             og 줌인 것 같슴니다. |S ep ee 떡에서 제거하고, 《6 광대의 제자》[【081]를 덱에 추가합니다. iE)  (® 광대》 또는 《6 광대의 제자》가 버림 더미에 있는 채로 라운드 승리 : (082) 공개 위의 상황 중 하나가 발생하면 이 카드를 제거합니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "081",
+      "category": null,
+      "subtype": null,
+      "name": "수 교대의제기 ^",
+      "raw_ocr_text": " 수 교대의제기 ^\n\nㅇ\n가 개의 %\n2 - : ~\" 2\nAO\nAt\n<\n0\n등  Ca   ~\n=    oN     >\n—   ae {A Ms  \\   >\n=   ae\n    JE\n2     ;    은\n<5   J    ~    =:\nNG\n플레이: 다른 플레이어 한 명을 지목하여\n\n그 플레이어가 손에 든 카드를 봅니다.    피엘 ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 3,
+      "effects": [
+        {
+          "tag": null,
+          "text": "가 개의 % 2 - : ~\" 2 0 등  Ca   ~ 2     ;    은 <5   J    ~    =: 플레이: 다른 플레이어 한 명을 지목하여"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "082",
+      "category": null,
+      "subtype": null,
+      "name": "‥…+ㄴㄴㄴㅁㄴㄴ…ㄴㅁㄴㄴㄴㄴㄴㄴㄴ…ㄴ…ㅇㄴㅜㄴ…ㄴㄴㄴㄴㅇㅇ ㄷㄷ…ㅠㄴㅠㄴㄴㄴ40000199090-ㅋㄴ……9ㄴ0기키시기키1기이",
+      "raw_ocr_text": "분장 속\n\n소 맨얼굴\n\n‥…+ㄴㄴㄴㅁㄴㄴ…ㄴㅁㄴㄴㄴㄴㄴㄴㄴ…ㄴ…ㅇㄴㅜㄴ…ㄴㄴㄴㄴㅇㅇ ㄷㄷ…ㅠㄴㅠㄴㄴㄴ40000199090-ㅋㄴ……9ㄴ0기키시기키1기이\n\n=)        eS\n분장 속 Was\nOL 날, 낮선 사람0| 담신머께 2S 겉머옵니다.\n얼굴을 유심히 EOE 기먹을 FSO 보Ｌ, 얼마 전미\n만났던 ZHHO| 제자가 마니겠습니까!\n몰라봤던 그 모습은…….,\n선택\n정말 개구쟁이 같은 소년입니다 : [083] ~ [085] 공개\n얼마 전의 모습에서는 전혀 상상할 수 없었던\nopaiet 소녀입니다 : [086] ~ [088] 공개\n선택을 마친 후에 이 카드를 제거합니다.\n\n0823) 시띠텍흐 ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 3,
+      "effects": [
+        {
+          "tag": null,
+          "text": "분장 속 Was OL 날, 낮선 사람0| 담신머께 2S 겉머옵니다. 얼굴을 유심히 EOE 기먹을 FSO 보Ｌ, 얼마 전미 만났던 ZHHO| 제자가 마니겠습니까! 몰라봤던 그 모습은……., 선택 정말 개구쟁이 같은 소년입니다 : [083] ~ [085] 공개 얼마 전의 모습에서는 전혀 상상할 수 없었던 opaiet 소녀입니다 : [086] ~ [088] 공개 선택을 마친 후에 이 카드를 제거합니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "083",
+      "category": null,
+      "subtype": null,
+      "name": "광대의 제자 리카드",
+      "raw_ocr_text": ">,\n\n| 광대의 제자 리카드\n\n1 자 리카드\n\n\" 000 te ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 3,
+      "effects": [
+        {
+          "tag": null,
+          "text": "1 자 리카드"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "084",
+      "category": null,
+      "subtype": null,
+      "name": "광대의 제자 리카드",
+      "raw_ocr_text": "광대의 제자 리카드  |\n\n광대의 제자 리카드\nHF 광대의 제자》 【[081]를 멕에서 제거하고,\n«@ BAI 제자 (남)》【085]을 덱에 주가합니다.\n| pm SO 광대》 또는 @ 광대의 제자 Cayo] 버림\n더미에 있는 채로 라운드 승리 : + Le]\n| 0렬 < 광대의 제자 (남)》을 손에 들고\n라운드 승리 +h)\napy 97 2 개 이상 : <@ 광대의 제자 (남)》의 문구\n변경 : '틀레이 다른 플레이어 한 명을 지목\n하여 그 플레이어가 손에 든 카드를 봅니다.\n그 후, 차례를 한 번 더 가집니다.」\n『모윌라한테 걸리면 | 점도는 마무것도 OH,\n\n52 = 6       v | ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 3,
+      "effects": [
+        {
+          "tag": null,
+          "text": "HF 광대의 제자》 【[081]를 멕에서 제거하고, «@ BAI 제자 (남)》【085]을 덱에 주가합니다. | pm SO 광대》 또는 @ 광대의 제자 Cayo] 버림 더미에 있는 채로 라운드 승리 : + Le] | 0렬 < 광대의 제자 (남)》을 손에 들고 라운드 승리 +h) apy 97 2 개 이상 : <@ 광대의 제자 (남)》의 문구 변경 : '틀레이 다른 플레이어 한 명을 지목 하여 그 플레이어가 손에 든 카드를 봅니다. 그 후, 차례를 한 번 더 가집니다.」 『모윌라한테 걸리면 | 점도는 마무것도 OH,"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "085",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\n의 제자\n—       a.\nOa oa   59)\n~ af   Ne  ^\nc=  \"SG (를\n:    …… 말려\n오니 rls 고입 swe 71 도그\n\n글 77711 고 — Se | 171 2 © ee 7) 그 플레이어가 손에 든 카드를 봅니다.        sey ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 4,
+      "effects": [
+        {
+          "tag": null,
+          "text": "의 제자 Oa oa   59) c=  \"SG (를 :    …… 말려 오니 rls 고입 swe 71 도그"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "086",
+      "category": "캐릭터",
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\n|\n가\n기저           개\n말 머                       \\\n2:          3     :\n걸지      ay fo\nOs | /     는 /\n110\nAo  y k YN\n『         4\ni         ~\n\nlt 캐릭터 a ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 4,
+      "effects": [
+        {
+          "tag": null,
+          "text": "가 기저           개 말 머                       \\ 2:          3     : 걸지      ay fo Os | /     는 / 110 『         4"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "087",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\n광대의 제자 피오\n| BA AA) (08S 덱에서 제거하고,\n《6@광대의 제자 (여)》[088]를 Sol 추가합니다.\nPp < 광대》 또는 <@광대의 제자 (여)》가 버림\n더미에 있는 채로 라운드 승리: +l\n| 0 SO 광대의 제자 (여)》를 So] 들고\n라운드 승리 + WI)\nage Co) 2 개 이상 : (@ 광대의 제자 (여)》의 문구\n변경 : 「플레이: 비공개 카드를 봅니다. 당신은\n비공개 카드와 So] 든 카드를 바꿀 수\n있습니다. 」\n\"A, 자, SOIL 주세묘! 밀샘일대미 곡메랍니다』\n\nap ㄱ  oo | . b 6 ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 4,
+      "effects": [
+        {
+          "tag": null,
+          "text": "광대의 제자 피오 | BA AA) (08S 덱에서 제거하고, 《6@광대의 제자 (여)》[088]를 Sol 추가합니다. Pp < 광대》 또는 <@광대의 제자 (여)》가 버림 더미에 있는 채로 라운드 승리: +l | 0 SO 광대의 제자 (여)》를 So] 들고 라운드 승리 + WI) age Co) 2 개 이상 : (@ 광대의 제자 (여)》의 문구 변경 : 「플레이: 비공개 카드를 봅니다. 당신은 비공개 카드와 So] 든 카드를 바꿀 수 있습니다. 」 \"A, 자, SOIL 주세묘! 밀샘일대미 곡메랍니다』"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "088",
+      "category": null,
+      "subtype": null,
+      "name": "<& are  제 자  Cay. <",
+      "raw_ocr_text": "—\n\n<& are  제 자  Cay. <\n\n0   의 제\nAIS. 본\nVi 4 :\n\nSere h 기 6시지을 eT.      sey ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 4,
+      "effects": [
+        {
+          "tag": null,
+          "text": "0   의 제 AIS. 본 Vi 4 :"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "089",
+      "category": "시나리오",
+      "subtype": null,
+      "name": "를 으으 고 지어으으 을 으으으 이 은이 으으으 으으",
+      "raw_ocr_text": "를 으으 고 지어으으 을 으으으 이 은이 으으으 으으\n\n수께끼의    점술사;\n\n:         AA                  A»\n7     수수께끼의 점술사\n총      He 치는 텐트는 머든고, 알 수\nSp):      없는 SF 냄사미 SIMIC! 밌습니다.\nFez AY      미국적인 OS SE 미녀가\nLAER 수전구슬들 Op] 두고 신비로운\n미소를 짓고 밌습니다. 『무슨 일미신가요?」\nFs 《6 광대》1장을 덱에서 제거하고,\n(@ 점술사》[090]를 Bo] 추가합니다.\n( 점술사》를 손에 들고 라운드 승리 또는\n더  《점술사》로 승자를 지목해 맞힙니다 :\n【091】 (092] 공개\n위의 상황이 발생하면\n\n이 7 Se 시1겁나     AUB. ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 4,
+      "effects": [
+        {
+          "tag": null,
+          "text": "7     수수께끼의 점술사 총      He 치는 텐트는 머든고, 알 수 Sp):      없는 SF 냄사미 SIMIC! 밌습니다. Fez AY      미국적인 OS SE 미녀가 LAER 수전구슬들 Op] 두고 신비로운 미소를 짓고 밌습니다. 『무슨 일미신가요?」 Fs 《6 광대》1장을 덱에서 제거하고, (@ 점술사》[090]를 Bo] 추가합니다. ( 점술사》를 손에 들고 라운드 승리 또는 더  《점술사》로 승자를 지목해 맞힙니다 : 【091】 (092] 공개 위의 상황이 발생하면"
+        }
+      ],
+      "needs_review": false
+    },
+    {
+      "id": "090",
+      "category": null,
+      "subtype": null,
+      "name": "때",
+      "raw_ocr_text": "때\n\n“&\n\nAAA.\n\n<4\n\nAA\n\n2     =    a     2\n| et || ~     a     of\nfamed      y,          AA ~     _\n06 ge“:\n~ =\n^ 2 ' SAE\n\n 아래에서 하나를 선택합니다.\nㆍ덱 맨 위 카드를 봅니다. 당신은 손에 든 카드와\n\n그 카드를 바꿀 수 있습니다.\n\nㆍ 나는 BUSS CoS ASB. 그 클데비어가 라운드에서 승리하면 당신도 같이 승리합니다.          a ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 4,
+      "effects": [
+        {
+          "tag": null,
+          "text": "2     =    a     2 06 ge“: ^ 2 ' SAE 아래에서 하나를 선택합니다. ㆍ덱 맨 위 카드를 봅니다. 당신은 손에 든 카드와 그 카드를 바꿀 수 있습니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "091",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\n점술사 그리셀다\n\n- GV\n\noa G\n\nAl a      A)  . Gaal aA\neG)\nDl 2  =  /)\n\noN    |). &\nim ws ae. mm Oo\n, fg a 개 —\n\n",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 4,
+      "effects": [
+        {
+          "tag": null,
+          "text": "점술사 그리셀다 Dl 2  =  /) , fg a 개 —"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "092",
+      "category": "캐릭터",
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\n점술사 그리셀다\nE < 점숲사>를 손에 들고 라운드 승리 :\n+ I)\nPy <점술사>로 승자를 지목해 맞힙니다 :\n+I\nRe (2) 2 개 이상 : (OAS ST 변경 :\n「플레이: 다음의 효과를 원하는 순서대로\nㅣ 사용할 수 있습니다. OF 맨 위 카드를 봅니다.\n당신은 손에 든 카드와 그 카드를 바꿀 수\n있습니다. OTS 플레이어 한 명을 지목합니다.\n\"ㅣ | 그 플레이어가 라운드에서 승리하면 당신도\n같이 승리합니다.」\nOJ es, 장7ㅁ한 ve a ane.\n을 | eto B02.\n\n'   2    가   1 』     캐릭터 1 j          o  ‘  | ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 4,
+      "effects": [
+        {
+          "tag": null,
+          "text": "점술사 그리셀다"
+        },
+        {
+          "tag": "종료",
+          "text": "< 점숲사>를 손에 들고 라운드 승리 : Py <점술사>로 승자를 지목해 맞힙니다 : Re (2) 2 개 이상 : (OAS ST 변경 : 「플레이: 다음의 효과를 원하는 순서대로 ㅣ 사용할 수 있습니다. OF 맨 위 카드를 봅니다. 당신은 손에 든 카드와 그 카드를 바꿀 수 있습니다. OTS 플레이어 한 명을 지목합니다. \"ㅣ | 그 플레이어가 라운드에서 승리하면 당신도 같이 승리합니다.」 OJ es, 장7ㅁ한 ve a ane. 을 | eto B02."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "093",
+      "category": null,
+      "subtype": null,
+      "name": "…×ㅁㄴㄴㄴㅁ…ㅁㄴㄴㄴ…ㄴㄴㅜㄴㄴㄴㄴ…ㅠㄴ…ㅜㄴㅠㄴㄴㄴㄴ…ㄴ…ㄴㅠㄴ…ㅜㄴㅠㅁ…ㄴㄴㄴ…ㄴㄴ00ㅋㄴ…ㄴㄴㅠㅜㄴ…000이기0기디기기이이기기 이",
+      "raw_ocr_text": "…×ㅁㄴㄴㄴㅁ…ㅁㄴㄴㄴ…ㄴㄴㅜㄴㄴㄴㄴ…ㅠㄴ…ㅜㄴㅠㄴㄴㄴㄴ…ㄴ…ㄴㅠㄴ…ㅜㄴㅠㅁ…ㄴㄴㄴ…ㄴㄴ00ㅋㄴ…ㄴㄴㅠㅜㄴ…000이기0기디기기이이기기 이\n\n무대에 빠져들다\n\nDn                       드\n무대에 빠져들다\nCit 환성메 미끌런, 햄사미 한가문더 있는 무다를\n밤문합니다. 담신은 거기01서 공연 Bol 연극의\nAGH] EHS 배맛김Ｌ니다. 마, 점말 멋진 Sal,\n배머난 외모입니대\n선택\n저 남자 배우의 WASTES! 완벽합니다! 그리고\n아름답습니다…-.: 1094] [095] 공개\n아름다워, 그 무희의 SS 언제까지나 보고\n있었습니다…-….: 1098] [099] 공개\n선택을 마친 후에 이 카드를 제거합니다.\n|\n\nfom | ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 4,
+      "effects": [
+        {
+          "tag": null,
+          "text": "Dn                       드 무대에 빠져들다 Cit 환성메 미끌런, 햄사미 한가문더 있는 무다를 밤문합니다. 담신은 거기01서 공연 Bol 연극의 AGH] EHS 배맛김Ｌ니다. 마, 점말 멋진 Sal, 배머난 외모입니대 선택 저 남자 배우의 WASTES! 완벽합니다! 그리고 아름답습니다…-.: 1094] [095] 공개 아름다워, 그 무희의 SS 언제까지나 보고 있었습니다…-….: 1098] [099] 공개 선택을 마친 후에 이 카드를 제거합니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "094",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\nCee               ㅇ\nGS 잘생긴 간판배우\nq 나  ut  | 0ㅁ…ㄴㄴ0ㅠㅁ~…ㄴㄴㅁ……ㄴ…0000-900000000000000\n^.  | \"see MEQ] SOIL\n> 3 see\n4 ay ]  만 것 같구나.」\n, \\\\ NG\nie   “Ak AR}\n| F <@바우> [095]를딕에 추가합니다.\n[에 <ㅇ나우>를 슨이들고 라운드 승리:+ (8\n“WY (@배우)를 손에 들고 라운드에서 탈락합니다 :\n+O\n더   [조건] 라운드 종료시 (별 1 개 이상 (우선 ag):\n【096】 【097] 공개\n[조건] 라운드 종료시 O17 이상 : [102] 공개\n\n위의 KAS 중족하면 이 FES 제거합니다.         세니테호 ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 5,
+      "effects": [
+        {
+          "tag": null,
+          "text": "GS 잘생긴 간판배우 q 나  ut  | 0ㅁ…ㄴㄴ0ㅠㅁ~…ㄴㄴㅁ……ㄴ…0000-900000000000000 > 3 see 4 ay ]  만 것 같구나.」 | F <@바우> [095]를딕에 추가합니다. [에 <ㅇ나우>를 슨이들고 라운드 승리:+ (8 “WY (@배우)를 손에 들고 라운드에서 탈락합니다 : 더   [조건] 라운드 종료시 (별 1 개 이상 (우선 ag): 【096】 【097] 공개 [조건] 라운드 종료시 O17 이상 : [102] 공개"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "095",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\n|\nY      _     y\neines\n(들\n= a . - Vig     vat\npr      4 WG     =\n=    11 해   ('     그\n| Re (Y\n\n라운드 종료시, 이 카드의 숫자는 0이 됩니다.    Ag ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 5,
+      "effects": [
+        {
+          "tag": null,
+          "text": "(들 pr      4 WG     = =    11 해   ('     그"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "096",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\n     oO 파비오\n배우 파비오\n\n1 시.  ss\n\n「 wy i\naa We\nHeo    Nab\n을치        Wy\n캐고   Z| 도  IA\nr} ol   ^: \\   (\nuf rf, bes\n는 가    Vas     '\n머리  1, (“63 $'\n떨 기   | \\\\  :   Ns \\\nAl 이    (1X        yn\n5 ‘i      (Ne       홈 i: \\\\\n1 0   i’  yal\n\nYP\n\n|  _\"\" 1) (096 7 Ss ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 5,
+      "effects": [
+        {
+          "tag": null,
+          "text": "oO 파비오 배우 파비오 1 시.  ss 을치        Wy 캐고   Z| 도  IA 는 가    Vas     ' 머리  1, (“63 $' 떨 기   | \\\\  :   Ns \\ Al 이    (1X        yn 5 ‘i      (Ne       홈 i: \\\\ 1 0   i’  yal"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "097",
+      "category": null,
+      "subtype": null,
+      "name": "Oe 기저 가시지 제수 이이 여겨 피그이 ey ae gs eee eR",
+      "raw_ocr_text": "Oe 기저 가시지 제수 이이 여겨 피그이 ey ae gs eee eR\n\n배우 파비오\n\nㅇ\n배우 파비오\n(개  《@배우》를 손에 들고 라운드 승리 :\n+ [04603\nUae 0) 2 개 이상 : OND) 문구 변경 :\nmy AE 종료시, 이 카드의 숫자는 5가 됩니다 」\n대 SOA! 한는 파는 H 금물미마.」\n내\n\"\n\n",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 5,
+      "effects": [
+        {
+          "tag": null,
+          "text": "배우 파비오 (개  《@배우》를 손에 들고 라운드 승리 : + [04603 Uae 0) 2 개 이상 : OND) 문구 변경 : my AE 종료시, 이 카드의 숫자는 5가 됩니다 」 대 SOA! 한는 파는 H 금물미마.」 내"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "098",
+      "category": null,
+      "subtype": null,
+      "name": "GD 매혹적인 무희",
+      "raw_ocr_text": "GD 매혹적인 무희\n\n3                ns\n매혹적인 무희\n1\" Sy he   Seer cern reer erase rer esteesseees\naf 5    「루후. 원하는 만큼 보시고\nP| 14\n$F <@ 무회》 100918 34 주가합니다\n[에 <ㅇㅜ9>를 슨이 들고 라운드승리 :+ (8\n들 <@무희>를 손에 들고 라운드에서 탈락합니다 :\n+O\n더  [조건] 라운드 종료시 (별 1개 이상 (우선 ag):\n(100) 【101]】 공개\n[조건] 라운드 종료시 (6) 2 개 이상 : [102] 공개\n0] 601] AA 즈 > 11근 ※조3\n\n이 카드를 제거합니다.       AYAL, ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 5,
+      "effects": [
+        {
+          "tag": null,
+          "text": "3                ns 매혹적인 무희 1\" Sy he   Seer cern reer erase rer esteesseees af 5    「루후. 원하는 만큼 보시고 P| 14 $F <@ 무회》 100918 34 주가합니다 [에 <ㅇㅜ9>를 슨이 들고 라운드승리 :+ (8 들 <@무희>를 손에 들고 라운드에서 탈락합니다 : 더  [조건] 라운드 종료시 (별 1개 이상 (우선 ag): (100) 【101]】 공개 [조건] 라운드 종료시 (6) 2 개 이상 : [102] 공개 0] 601] AA 즈 > 11근 ※조3"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "099",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "~\n\n+r 2\n\nvs\n\n<<»\n\n그  = 해\n\n\\ 1 (os 6)\n“ANS <\n009 ㆍ\n\nTES OTE, I 기어 체스 21 더 7     zie 121 ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 5,
+      "effects": [
+        {
+          "tag": null,
+          "text": "그  = 해 \\ 1 (os 6) 009 ㆍ"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "100",
+      "category": null,
+      "subtype": null,
+      "name": "= 고희 미나",
+      "raw_ocr_text": "= 고희 미나\n\n무희 미나\n- > |   ;\n「  ^ 바\nSy ^      미음\nVET Be\nCal ee\na “a” }  KS       서\n>\n는 NE\n(> -왜        0 이\n Bere \\\n\n",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 5,
+      "effects": [
+        {
+          "tag": null,
+          "text": "무희 미나 「  ^ 바 Sy ^      미음 a “a” }  KS       서 는 NE (> -왜        0 이"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "101",
+      "category": "캐릭터",
+      "subtype": null,
+      "name": "무희 미나",
+      "raw_ocr_text": "5\n\n무희 미나\n\n표 | (© 무희》를 손에 들고 라운드 승리 :\n+ Re) fe\nGo 3719/4: F389 숫자를\n52 취급합니다.\n『곰주님보다는 MS 제대로 BAO\n-      삐\n『「\n\n0, ~  J   ty\n//TS     ,\n'/』\\     ~~\n~\n\n«      >\n\n|        캐릭터 | ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 5,
+      "effects": [
+        {
+          "tag": null,
+          "text": "표 | (© 무희》를 손에 들고 라운드 승리 : Go 3719/4: F389 숫자를 52 취급합니다. 『곰주님보다는 MS 제대로 BAO -      삐 0, ~  J   ty"
+        }
+      ],
+      "needs_review": false
+    },
+    {
+      "id": "102",
+      "category": null,
+      "subtype": null,
+      "name": "‥…ㅣ+~9이이기시이이시기이시기시시시새기기예0이의시04000909ㅋ06ㄴ0~…ㅋㄴ9ㄴㄴ…ㄴㅋㅁㅋㄴㅋㅁㅋ…ㅋㄴㄷㅜ",
+      "raw_ocr_text": "극단의 출발\n\n‥…ㅣ+~9이이기시이이시기이시기시시시새기기예0이의시04000909ㅋ06ㄴ0~…ㅋㄴ9ㄴㄴ…ㄴㅋㅁㅋㄴㅋㅁㅋ…ㅋㄴㄷㅜ\n\n극단의 출발\n인기를 SH Arle 갑작스리문 햄사 의뢰가\nSHS 탓메 Ol OES 떠나 \\렸습니다…….\n$F He 무희》를 덱에서 제거하고,\n[080] 【081] 공개\n이 카드를 제거합니다.\n\nCo) uate | ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 5,
+      "effects": [
+        {
+          "tag": null,
+          "text": "극단의 출발 인기를 SH Arle 갑작스리문 햄사 의뢰가 SHS 탓메 Ol OES 떠나 \\렸습니다……. $F He 무희》를 덱에서 제거하고, [080] 【081] 공개 이 카드를 제거합니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "103",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\nEe       성실한 기사 1\n  kn   담신은 전부터 SEO] 있던\nCIN      기사 한 사람머께 편지를\n(haze  맡기기로 했습니다.\n[개 《6@ 기사》를 So] 들고 라운드 승리 :\n+\n삐     였 기사》로 다른 플레이어를 탈락시킴니다 :\n+\n| | 《@ 기사》를 손에 들고 라운드에서 탈락합니다 :\n+O\n\nBoy:  0  _  …‥ ㅋㅋ  2 -  ㅜㅜ (108) . Ae, (108) ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 6,
+      "effects": [
+        {
+          "tag": null,
+          "text": "Ee       성실한 기사 1 kn   담신은 전부터 SEO] 있던 CIN      기사 한 사람머께 편지를 (haze  맡기기로 했습니다. [개 《6@ 기사》를 So] 들고 라운드 승리 : 삐     였 기사》로 다른 플레이어를 탈락시킴니다 : | | 《@ 기사》를 손에 들고 라운드에서 탈락합니다 :"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "104",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\nAa 성실한기사므\nal\n1\nlt ads obs\n CROSS\n16 Va. iN\nE| [조건] 라운드 종료시 (B27 이상 (선택 적용) :\n【105]】 공개\n[조건] 라운드 종료시 (》 2 개 이상 (선택 ag:\n【113】 공개\n위의 조건 중 하나를 충족하면 IAS 기사 ｌ,」\n과 이 카드를 제거합니다.\n\n(ion) Angas ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 6,
+      "effects": [
+        {
+          "tag": null,
+          "text": "Aa 성실한기사므 1 16 Va. iN"
+        },
+        {
+          "tag": "종료",
+          "text": "| [조건] 라운드 종료시 (B27 이상 (선택 적용) : 【105]】 공개 [조건] 라운드 종료시 (》 2 개 이상 (선택 ag: 【113】 공개 위의 조건 중 하나를 충족하면 IAS 기사 ｌ,」 과 이 카드를 제거합니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "105",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\n|\n자리를 비운 기사\n탐신은 오늘 기사메게 다시 편지를 맡기기로\n악속했지만, ALTO] 되었는데도 나타나지 많습니다.\n잠소를 잘못 찾은 Be.\n선택\nQFAIS] 기사 라이언을 기다립니다. : [106] [107] 공개\n지나가는 기사에게 BS 겁니다 : 【108】 [109] 공개\n선택을 마친 후에 이 카드를 제거합니다.\n\nios) Aue, = (105) ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 6,
+      "effects": [
+        {
+          "tag": null,
+          "text": "자리를 비운 기사 탐신은 오늘 기사메게 다시 편지를 맡기기로 악속했지만, ALTO] 되었는데도 나타나지 많습니다. 잠소를 잘못 찾은 Be. 선택 QFAIS] 기사 라이언을 기다립니다. : [106] [107] 공개 지나가는 기사에게 BS 겁니다 : 【108】 [109] 공개 선택을 마친 후에 이 카드를 제거합니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "106",
+      "category": null,
+      "subtype": null,
+      "name": "기사 라이언",
+      "raw_ocr_text": " 기사 라이언\n\nAy        Ol\n^ /     편 「\n< 는        Al 말\na). \\.        반다\n로 0     4     c*\n¢      기\n>      \\ 0\n}      a4         : 4    전미\n    | Og =   oy\n를 포란 1 14     2 메\nlz   6\nDie     al\nsee ae:\n\n|   Sa ses gt | | gait     car 0 1. pe   .》       a 4. oe ‘2 ee:   ae  .  \" 740 소 MB ee”  ~*~     ey 00   나    . ee ale   6) ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 6,
+      "effects": [
+        {
+          "tag": null,
+          "text": "^ /     편 「 < 는        Al 말 a). \\.        반다 로 0     4     c* ¢      기 >      \\ 0 }      a4         : 4    전미 를 포란 1 14     2 메 lz   6"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "107",
+      "category": null,
+      "subtype": null,
+      "name": "0. 을 [해률|. | 611 을 00008 8 | 811.",
+      "raw_ocr_text": "0. 을 [해률|. | 611 을 00008 8 | 811.\n\n기사 라이언\n\n기사 라이언\nE|  (@ 기사》를 손에 들고 라운드 승리 :\n+ SI)\ni) 《@ 기사》로 다른 플레이어를 Beaded:\n+[@7)[0)\n  를 [0] ×개 : @ 기사》를 플레이했을 때, 손에\n해 = ES] 수자에 +X S 합니다.\n(『@]가 4 개 놓였다면 +4 가 됩니다.)\n단 ※가 5 이상일 경우 이 효과를 적용하지\n않습니다.\n「요즘 도무지 SHS 하지 못해서 말미마…….」\n\n…- | f     q |          Hele A      | |\"                   ~  |' BP                ㆍ ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 6,
+      "effects": [
+        {
+          "tag": null,
+          "text": "기사 라이언"
+        },
+        {
+          "tag": "종료",
+          "text": "|  (@ 기사》를 손에 들고 라운드 승리 : i) 《@ 기사》로 다른 플레이어를 Beaded: +[@7)[0) 를 [0] ×개 : @ 기사》를 플레이했을 때, 손에 해 = ES] 수자에 +X S 합니다. (『@]가 4 개 놓였다면 +4 가 됩니다.) 단 ※가 5 이상일 경우 이 효과를 적용하지 않습니다. 「요즘 도무지 SHS 하지 못해서 말미마…….」"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "108",
+      "category": null,
+      "subtype": null,
+      "name": "/  전신 갑옷 기사",
+      "raw_ocr_text": " /  전신 갑옷 기사\n\n벼    전신 갑옷 기사\n         담신은 지나가던 중잠갑못미\nair         기사0|께 라미먼메 다해 20}\n6  VELA   봅니다. 투구 떠문민지 무물다는\nMENS ALM ene 한 그 alge 란미먼017\n편지를 Hy 달라는 부탁을 들 주었습니다.\nki (® 기사》 1장을 덱에서 제거하고,\n(@ 복면 기사》[109]를 덱에 추가합니다.\n에 cova 기사)를 손에 들고 라운드 승리 +(8\nㅣ  《@ 복면 기사)로 다른 플레이어를\n탈락시킴니다 :+(별\n더 [조건] 라운드 종료시 (Bi 개 이상 :\n[110】 ~ [112] 공개\n\n위의 조건을 충족하면 이 카드를 제거합니다.   씨떼텍흐 ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 6,
+      "effects": [
+        {
+          "tag": null,
+          "text": "벼    전신 갑옷 기사 담신은 지나가던 중잠갑못미 air         기사0|께 라미먼메 다해 20} 6  VELA   봅니다. 투구 떠문민지 무물다는 MENS ALM ene 한 그 alge 란미먼017 편지를 Hy 달라는 부탁을 들 주었습니다. ki (® 기사》 1장을 덱에서 제거하고, (@ 복면 기사》[109]를 덱에 추가합니다. 에 cova 기사)를 손에 들고 라운드 승리 +(8 ㅣ  《@ 복면 기사)로 다른 플레이어를 탈락시킴니다 :+(별 더 [조건] 라운드 종료시 (Bi 개 이상 : [110】 ~ [112] 공개"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "109",
+      "category": null,
+      "subtype": null,
+      "name": "- 복면 기시 <",
+      "raw_ocr_text": "- 복면 기시 <\n\n3    =  aa   3\n2.\n=\n=        ae              =\nae            i]             he\n버거\n=             ~        ^\n€  본        ~       fa\n| 400 -\n~     =.=      2 TAP      =\n4  \\ 3            ¥     pa\n팀 < 0 |:\n= | AORN         y     =\n=  \\ / NILE      -\nSeo]: 당신은 다른 플레이어 한 명과 손에 =\nFES RAS 서로 비밀리에 비교합니다.\n이때 숫자가 더 큰 카드를 가진\n프레이어는 감우드에서 탈랑항니다\n\n109) 페일 00 (109) ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 6,
+      "effects": [
+        {
+          "tag": null,
+          "text": "3    =  aa   3 2. 버거 €  본        ~       fa | 400 - ~     =.=      2 TAP      = 4  \\ 3            ¥     pa 팀 < 0 |: Seo]: 당신은 다른 플레이어 한 명과 손에 = FES RAS 서로 비밀리에 비교합니다. 이때 숫자가 더 큰 카드를 가진 프레이어는 감우드에서 탈랑항니다"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "110",
+      "category": "게임",
+      "subtype": null,
+      "name": "ㅣ 여기사 캐리",
+      "raw_ocr_text": "ㅣ 여기사 캐리\n\niy        \\            「\n(59 FF\n\\  a                ol.\n\nWw                  신제\n\nNSS           {| 고가\nAEE:\n\n개  \" Nee\n\ne A \\  -\n\n' pena pawns ream             ‘  '  개세 토로 토게 eeeeaee       1-1 ge ee ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 6,
+      "effects": [
+        {
+          "tag": null,
+          "text": "(59 FF Ww                  신제 NSS           {| 고가 개  \" Nee"
+        }
+      ],
+      "needs_review": false
+    },
+    {
+      "id": "111",
+      "category": "캐릭터",
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\n|  @ 복면 기사》[109]를 덱에서 제거하고,\n@ 여기사》[112]를 Bo] 추가합니다.\n\n(개  @ 여기사》를 손에 들고 라운드 승리 :\n+ fo)\n\n|. ㅣ ㅣ (@여기사)로 다른 seopig 탈락시킴니다:\n+[07[07\n\nBe fe) X71: @ 여기사》를 플레이했을 때,\n\n손에 = 카드의 숫자에 「-※%」를 합니다.\n([『007가 4 개 놓였다면 -4 가 됩니다.)\n『보세요. 미 ZS! OE 시집 E20) Sa\n\nCit             캐릭터           「 111 J | ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 6,
+      "effects": [
+        {
+          "tag": null,
+          "text": "|  @ 복면 기사》[109]를 덱에서 제거하고, @ 여기사》[112]를 Bo] 추가합니다. (개  @ 여기사》를 손에 들고 라운드 승리 : |. ㅣ ㅣ (@여기사)로 다른 seopig 탈락시킴니다: +[07[07 Be fe) X71: @ 여기사》를 플레이했을 때, 손에 = 카드의 숫자에 「-※%」를 합니다. ([『007가 4 개 놓였다면 -4 가 됩니다.) 『보세요. 미 ZS! OE 시집 E20) Sa"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "112",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\nㅎㅋ 1    WS 를 이이\n=  Pee     See    “_\n“| 개관    Wee “|  {| +\n-| AIT OND |=\n=| <M ON |e\n‘=| @€ OW ETA he   2\nwe! 2g ae\nZ  는 뱀부 > ee\n플레이: 당신은 다른 플레이어 한 명과 손에 =\nZC oO) 스자르 AB \\]믹기어 4]규항니다\n\n 이때숫자가더큰카드를가진 oo 플레이어는 라문드에서 탈락합니다.      피워 ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 7,
+      "effects": [
+        {
+          "tag": null,
+          "text": "ㅎㅋ 1    WS 를 이이 “| 개관    Wee “|  {| + ‘=| @€ OW ETA he   2 we! 2g ae Z  는 뱀부 > ee 플레이: 당신은 다른 플레이어 한 명과 손에 = ZC oO) 스자르 AB \\]믹기어 4]규항니다"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "113",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\n|\n혹독한 훈련\nTAH 러브 레터를 WAS Fol 왕의 귀메 S01\n\n버렸고, Sul 수 없을 점도로 혹독한 Bee\n\n받게 된 것 같습니다. AS 수 SO 다른 사람을\n찾마볼 수밖메…….\n\nFs  (114] ~ (116) 공개\n이 FES 제거합니다.\n\n(118 ) 씨띠텍호 ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 7,
+      "effects": [
+        {
+          "tag": null,
+          "text": "혹독한 훈련 TAH 러브 레터를 WAS Fol 왕의 귀메 S01 버렸고, Sul 수 없을 점도로 혹독한 Bee 받게 된 것 같습니다. AS 수 SO 다른 사람을 찾마볼 수밖메……. Fs  (114] ~ (116) 공개 이 FES 제거합니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "114",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\n|\n—     A       ㅇ\n, rit 좋은 여상인\nAY’ ^   24   Gi sire siniala’ se class elarsie tle (sreleisia'sier ela sia) se\n~       「머고! SETH 민자 나한테\n  /      맡기란.」 지밤 사투리가 심한\n글 bs 0자상민 2Ke1 exo)\n| % 600 bio} Bp} 주었습니다.\n| <@ 기사 를 ae ols Asta,\n«® 상인》[115】 【116]을 덱에 추가합니다.\nDI 6 상인>을 슨이 들고 라운드 승리 +\n| | 《@상인》으로 다른 플레이어를\n탈락시킴니다 :+(열\n더 [조건] 라운드 종료시 (별 2 개 이상 :\n[1171 118) 고개\n\n위의 조건을 충족하면 이 카드를 제거합니다.         지니텍오 ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 7,
+      "effects": [
+        {
+          "tag": null,
+          "text": ", rit 좋은 여상인 AY’ ^   24   Gi sire siniala’ se class elarsie tle (sreleisia'sier ela sia) se ~       「머고! SETH 민자 나한테 /      맡기란.」 지밤 사투리가 심한 글 bs 0자상민 2Ke1 exo) | % 600 bio} Bp} 주었습니다. | <@ 기사 를 ae ols Asta, «® 상인》[115】 【116]을 덱에 추가합니다. DI 6 상인>을 슨이 들고 라운드 승리 + | | 《@상인》으로 다른 플레이어를 탈락시킴니다 :+(열 더 [조건] 라운드 종료시 (별 2 개 이상 : [1171 118) 고개"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "115",
+      "category": null,
+      "subtype": null,
+      "name": "상인",
+      "raw_ocr_text": "\"~\"\n\n상인\n\n* '\n\n 1 ;  >  is :          .\nS                    i        —                ~\n——                   ㅣ     『      기       ^\n때                                 x\n4                 -_\n      ‘hy\n플레이: 다른 플레이어 한 명을\nsz) Mesh 1ㅠ1 oT 5=ㅋ1<,]<그1. AW) 대 1 Oo)\n\n\"기변 77 금 7171711^ | 9220 도 1 LAT 3 이하라면 라운드에서 탈락합니다.            AD ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 7,
+      "effects": [
+        {
+          "tag": null,
+          "text": "1 ;  >  is :          . ——                   ㅣ     『      기       ^ 때                                 x 4                 -_ 플레이: 다른 플레이어 한 명을 sz) Mesh 1ㅠ1 oT 5=ㅋ1<,]<그1. AW) 대 1 Oo)"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "116",
+      "category": null,
+      "subtype": null,
+      "name": "상인",
+      "raw_ocr_text": "sy\n\n상인\n\n수\"\n\nA hy VS 13 =A\n\n=                   NZ                       =\n4        we              ^\nos                 e     」                   Ce\n17     YE\n—                                    j=\n\n—  >\n\n    i /\n\n플레이: 다른 플레이어 한 명을\n3)O Sb rl OO 35111 1 AN) 으 -71 1\n\n\"72 770 폴기71711 기 고 11 숫자가 3 이하라면 라운드에서 탈락합니다.               케엘 ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 7,
+      "effects": [
+        {
+          "tag": null,
+          "text": "A hy VS 13 =A 4        we              ^ 17     YE 플레이: 다른 플레이어 한 명을 3)O Sb rl OO 35111 1 AN) 으 -71 1"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "117",
+      "category": null,
+      "subtype": null,
+      "name": "여상인 수잔나 =O",
+      "raw_ocr_text": "| 여상인 수잔나 =O\n\n여상인 수잔나\n\n 2\noa        hg\n1h       <g\n\na ao a7   .   Ne),\n\nay Ml GAw 1 4:\nry         ee     4 |\n기 00 |.\nai ltt oe  / fq 10\"\n=i i )\n+H                      |\n\n매매, 에어  | ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 7,
+      "effects": [
+        {
+          "tag": null,
+          "text": "2 1h       <g a ao a7   .   Ne), ay Ml GAw 1 4: ry         ee     4 | 기 00 |. ai ltt oe  / fq 10\""
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "118",
+      "category": "캐릭터",
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\nA\n여상인 수잔나\nPe <6상인>을 So] 들고 라운드 승리 :\n+ WIM\nJ) 《@상인》으로 다른 플레이어를 Sage :\n+ Wile)\nFra 02) 3 개 이상 : @ BI 문구 번경 :\nee 플레이: 다른 플레이어 한 명을 지목합니다. 【\n그 플레이어가 손에 든 카드의 숫자가           |\n5 이하라면, 라운드에서 탈락합니다.             |\n『봐라, 미 SO) 장사 실력 대빠미제!」                 |\n\n       캐릭터 ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 7,
+      "effects": [
+        {
+          "tag": null,
+          "text": "여상인 수잔나 Pe <6상인>을 So] 들고 라운드 승리 : J) 《@상인》으로 다른 플레이어를 Sage : Fra 02) 3 개 이상 : @ BI 문구 번경 : ee 플레이: 다른 플레이어 한 명을 지목합니다. 【 그 플레이어가 손에 든 카드의 숫자가           | 5 이하라면, 라운드에서 탈락합니다.             | 『봐라, 미 SO) 장사 실력 대빠미제!」                 |"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "119",
+      "category": null,
+      "subtype": null,
+      "name": "시 오기오니 SHUTS OO RAS OOS 8 88",
+      "raw_ocr_text": "2 BAR 여승려\n\n시 오기오니 SHUTS OO RAS OOS 8 88\n\n수         a»\naot               경 건 한   여 rey 려\n C3 ㅣ AGIA 봄사하고 밌는 며자 승려는\nMOA | 건건함을 US 것은 물론미고,\nb J 진절하며 입미 무구문 껏므로\nNPA | oan 있습니다. 그녀미끼 픈지를\n부탁할 수 있다면, 반드시 잘될 검니다.\n‘E|  (@ 승려》를 손에 든 상태로, 또는 버림 더미에\n놓은 채로 라운드 승리 :+ (별\nJ) <@승려》를 eo 들고\n라운드에서 탈락합니다: + @\n[조건] 라운드 종료시 (별 1 개 이상 (우선 적용) :\nE|  (120) [121] 공개\n[조건] 라운드 종료시 69 1개 이상 : 1122) 공개\n위의 조건 중 하나를 충족하면\n이 카드를 제거합니다.\n\n1726). que Coa) | ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 7,
+      "effects": [
+        {
+          "tag": null,
+          "text": "수         a» aot               경 건 한   여 rey 려 C3 ㅣ AGIA 봄사하고 밌는 며자 승려는 MOA | 건건함을 US 것은 물론미고, b J 진절하며 입미 무구문 껏므로 NPA | oan 있습니다. 그녀미끼 픈지를 부탁할 수 있다면, 반드시 잘될 검니다. ‘E|  (@ 승려》를 손에 든 상태로, 또는 버림 더미에 놓은 채로 라운드 승리 :+ (별 J) <@승려》를 eo 들고 라운드에서 탈락합니다: + @ [조건] 라운드 종료시 (별 1 개 이상 (우선 적용) :"
+        },
+        {
+          "tag": "종료",
+          "text": "|  (120) [121] 공개 [조건] 라운드 종료시 69 1개 이상 : 1122) 공개 위의 조건 중 하나를 충족하면 이 카드를 제거합니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "120",
+      "category": null,
+      "subtype": null,
+      "name": "승려 올리비아",
+      "raw_ocr_text": "————————\n\n승려 올리비아\n\n승려 올리비아\n01 ©\ncad Ww ole\n대              /\n신인    것 ental\nol al Ot              i)\nZs                  y)\n[=]   oOo     <         -\nL| =I =      = \\ ‘<        9)\nca yet\nae % wey.\n+   HH    ' =     :\n드 ee      7  “ig '           ak\n트   08    ‘aia\nct iy 08\nNS\n\n| ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 7,
+      "effects": [
+        {
+          "tag": null,
+          "text": "01 © 대              / 신인    것 ental L| =I =      = \\ ‘<        9) 드 ee      7  “ig '           ak 트   08    ‘aia ct iy 08"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "121",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\n^\n승려 올리비아\n[개  (@ 승려》를 손에 들고 라운드 승리 :\n+ Sef)\niE  《@ 승려》가 버림 더미에 있는 채로\n라운드 승리 :+ fe]\nSe) 3 개 이상 : 버림 더미에 《@ 승려》가\n있다면 당신은 탈락하지 않습니다.\nTél2 당신미 HAS EES) 보고 계실 겁니다.\n~ ㅠㅜ\nㆍ\n\n     rota ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 8,
+      "effects": [
+        {
+          "tag": null,
+          "text": "승려 올리비아 [개  (@ 승려》를 손에 들고 라운드 승리 : iE  《@ 승려》가 버림 더미에 있는 채로 라운드 승리 :+ fe] Se) 3 개 이상 : 버림 더미에 《@ 승려》가 있다면 당신은 탈락하지 않습니다. Tél2 당신미 HAS EES) 보고 계실 겁니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "122",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\n%               H                 o\n참으로 불미스러운 일\n편지 AMON 좋은 결과를 얻지 못한 SHE AKIO]\n부족함[| 부끄러뭐 참회실메 SOHO WAC\n합니다. 떠떻게든 그너가 Es 되찾기를 빌며,\nEMIS AME BEd Sol 섬 마래의 SEO\n밤문매 ROSLICt.\n선택\n성당 앞을 청소하고 있는 수사에게 SS 겁니다. :\n(123] ~ 1125) 공개\n참회실에서 고해를 합니다 : [130] ~ 1133) 공개\nMAS 마친 후에 이 카드를 제거합니다.\n\n(122) Apa] ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 8,
+      "effects": [
+        {
+          "tag": null,
+          "text": "참으로 불미스러운 일 편지 AMON 좋은 결과를 얻지 못한 SHE AKIO] 부족함[| 부끄러뭐 참회실메 SOHO WAC 합니다. 떠떻게든 그너가 Es 되찾기를 빌며, EMIS AME BEd Sol 섬 마래의 SEO 밤문매 ROSLICt. 선택 성당 앞을 청소하고 있는 수사에게 SS 겁니다. : (123] ~ 1125) 공개 참회실에서 고해를 합니다 : [130] ~ 1133) 공개 MAS 마친 후에 이 카드를 제거합니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "123",
+      "category": null,
+      "subtype": null,
+      "name": "",
+      "raw_ocr_text": "\n|\nAa\nge, ,안색이 나쁜 수사 1\nfy 10100        OIG OS He OD DOO oe oe rn OH OnyC Ce\nif rp       「한마…. ABE 말겠므나\nwy 4        제가 할 수 밌는 것은 기도하는\nty      밀 점도라고나 할마요…….」\n\\        「\nSF . <@ 승려》 1장을 딕에서 제거하고,\n~ @ 수사》[125】 1장을 덱에 추가합니다.\n(개  《@ 수사》를 손에 든 상태로, 또는 버림 더미에\n놓은 채로 라운드 승리 :+ (별\n| ㅣ 《@ 수사》를 손에 들고\n라운드에서 탈락합니다: +O\n\n(128 ) 세띠텍흐 ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 8,
+      "effects": [
+        {
+          "tag": null,
+          "text": "ge, ,안색이 나쁜 수사 1 fy 10100        OIG OS He OD DOO oe oe rn OH OnyC Ce if rp       「한마…. ABE 말겠므나 wy 4        제가 할 수 밌는 것은 기도하는 ty      밀 점도라고나 할마요…….」 SF . <@ 승려》 1장을 딕에서 제거하고, ~ @ 수사》[125】 1장을 덱에 추가합니다. (개  《@ 수사》를 손에 든 상태로, 또는 버림 더미에 놓은 채로 라운드 승리 :+ (별 | ㅣ 《@ 수사》를 손에 들고 라운드에서 탈락합니다: +O"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "124",
+      "category": null,
+      "subtype": null,
+      "name": "태사 가베 베베 08 EEUU OULU 개 0",
+      "raw_ocr_text": "Da\n\n안색이 나쁜 Sap\n\n태사 가베 베베 08 EEUU OULU 개 0\n\nHH A\nagin       Don enbgenn So dgGNmOS caPeogaQeaoeT\n10\n|       Mp\n\nes\nJ\n[개 [조건] 라운드 종료시 @ 1 개 이상 (우선 적용) :\n【126】 【127]】 공개\n[조건] 라운드 종료시 (6) 1개 이상 : [129] 공개\n위의 조건 중 하나를 충족하면\n「안색이 나쁜 수사 ｌ」과 이 카드를 제거합니다.\n\n(134) 시띠텍흐 ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 8,
+      "effects": [
+        {
+          "tag": null,
+          "text": "10 [개 [조건] 라운드 종료시 @ 1 개 이상 (우선 적용) : 【126】 【127]】 공개 [조건] 라운드 종료시 (6) 1개 이상 : [129] 공개 위의 조건 중 하나를 충족하면 「안색이 나쁜 수사 ｌ」과 이 카드를 제거합니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "125",
+      "category": null,
+      "subtype": null,
+      "name": "수사",
+      "raw_ocr_text": "  A\n\n수사\n\n{      수사      {\n\n2240.08                            |\nIi      |          ：\n\nute        At       \\       =\n\nbowed         \\      |g         =\n\n=        Lt        =\n\n=          1   /      원\"\n| 2\n\n 버림 더미에 있는 카드 1장을 선택합니다.\n\n그 카드의 「플레이:」효과를 사용합니다.           seh ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 8,
+      "effects": [
+        {
+          "tag": null,
+          "text": "2240.08                            | =          1   /      원\" | 2 버림 더미에 있는 카드 1장을 선택합니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "126",
+      "category": null,
+      "subtype": null,
+      "name": "수사 알베르트",
+      "raw_ocr_text": "수사 알베르트\n\n수사 알베르트\n\n미     (001\nae    ay\n= 저         Al\nol et          /\now\nsii       t   /\na DP     Lf\n|\n\n4 i\n\na       Vy\n\n0 1 ㅣ ……ㅁ…ㄴㅁ…ㅠ…ㄴㄴㅁ…ㅁㅠㅁㅠㅁㄴ…ㄴㅋㅜ       *     aclh 1) 20  Wp ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 8,
+      "effects": [
+        {
+          "tag": null,
+          "text": "미     (001 = 저         Al 4 i"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "127",
+      "category": null,
+      "subtype": null,
+      "name": "…ㄴ×ㄴ…ㄴ9ㅁ…0…ㅁㄴ이시기시이서이이의의이시시이지시기시시 기이",
+      "raw_ocr_text": "…ㄴ×ㄴ…ㄴ9ㅁ…0…ㅁㄴ이시기시이서이이의의이시시이지시기시시 기이\n\n수사 알베르트\n\n수사 알베르트\n[개  @ 수사》를 손에 든 상태로, 또는 버림 더미에\n놓은 채로 라운드 Se]: + WIM\n모를 Co) 2 개 이상 : 덱에서 《6@ AH ISS\nmee 제거하고, 《@) 수사》【128] 1장을 추가합니다.\n(이 카드에서 ho] 가 이동하여 YQ] BAS\n충족할 수 없게 된 경우에도 이 효과는\n계속 유지됩니다.)\nOME Sele slo] 가호일 검니다.」\n>». 질\n\n     vate ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 8,
+      "effects": [
+        {
+          "tag": null,
+          "text": "수사 알베르트 [개  @ 수사》를 손에 든 상태로, 또는 버림 더미에 놓은 채로 라운드 Se]: + WIM 모를 Co) 2 개 이상 : 덱에서 《6@ AH ISS mee 제거하고, 《@) 수사》【128] 1장을 추가합니다. (이 카드에서 ho] 가 이동하여 YQ] BAS 충족할 수 없게 된 경우에도 이 효과는 계속 유지됩니다.) OME Sele slo] 가호일 검니다.」 >». 질"
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "128",
+      "category": null,
+      "subtype": null,
+      "name": "수사",
+      "raw_ocr_text": "A\n\n수사\n\nA\n\n{   수사   {\nVa)        |\nA f= Hl\nes          :          =\n=              | Veit              =\n=               {                =\n[at\n 버림 더미에 있는 카드 1장을 선택합니다.\n그 =| 효과를 사용합니다.\n\n(128) 페일 ec | ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 8,
+      "effects": [
+        {
+          "tag": null,
+          "text": "버림 더미에 있는 카드 1장을 선택합니다. 그 =| 효과를 사용합니다."
+        }
+      ],
+      "needs_review": true
+    },
+    {
+      "id": "129",
+      "category": null,
+      "subtype": null,
+      "name": "여브조",
+      "raw_ocr_text": "여브조\n\nTT\n\n4\n\np\n\n{i\n\n|\n\nSee e reer eersssaeeeesesesssssesys\n\nH\nfy  TAN        ApocenacndeconcgconocondoqdeGodG\ni 0,       OLA) 나는 점말…. 섬안메\n복구 | 의지할수 밌는 분미계시니\n| 2s col ㄷ2264.\n»        시         SME 역부족을 Alto\n섬만미 APIS 소깨해 줍니다.\n모서럼의 SOS POST 합시다.\n$F wermnaa\n이 카드를 제거합니다.\n\n(129 ) 시때텍호 ",
+      "source_file": "LLS_cards_part_2.pdf",
+      "source_page": 8,
+      "effects": [
+        {
+          "tag": null,
+          "text": "i 0,       OLA) 나는 점말…. 섬안메 복구 | 의지할수 밌는 분미계시니 | 2s col ㄷ2264. »        시         SME 역부족을 Alto 섬만미 APIS 소깨해 줍니다. 모서럼의 SOS POST 합시다. 이 카드를 제거합니다."
         }
       ],
       "needs_review": true
@@ -1013,12 +2089,7 @@
       "036",
       "037",
       "038",
-      "039",
-      "040",
-      "041",
-      "042",
-      "043",
-      "044"
+      "110"
     ],
     "미분류": [
       "017",
@@ -1031,6 +2102,12 @@
       "030",
       "031",
       "032",
+      "039",
+      "040",
+      "041",
+      "042",
+      "043",
+      "044",
       "045",
       "046",
       "047",
@@ -1047,9 +2124,67 @@
       "058",
       "059",
       "060",
-      "061",
       "062",
-      "063"
+      "063",
+      "064",
+      "065",
+      "066",
+      "067",
+      "068",
+      "069",
+      "070",
+      "071",
+      "072",
+      "073",
+      "074",
+      "075",
+      "076",
+      "077",
+      "078",
+      "079",
+      "080",
+      "081",
+      "082",
+      "083",
+      "084",
+      "085",
+      "087",
+      "088",
+      "090",
+      "091",
+      "093",
+      "094",
+      "095",
+      "096",
+      "097",
+      "098",
+      "099",
+      "100",
+      "102",
+      "103",
+      "104",
+      "105",
+      "106",
+      "107",
+      "108",
+      "109",
+      "112",
+      "113",
+      "114",
+      "115",
+      "116",
+      "117",
+      "119",
+      "120",
+      "121",
+      "122",
+      "123",
+      "124",
+      "125",
+      "126",
+      "127",
+      "128",
+      "129"
     ],
     "캐릭터": [
       "018",
@@ -1057,7 +2192,16 @@
       "020",
       "021",
       "028",
-      "029"
+      "029",
+      "061",
+      "086",
+      "092",
+      "101",
+      "111",
+      "118"
+    ],
+    "시나리오": [
+      "089"
     ]
   }
 }
