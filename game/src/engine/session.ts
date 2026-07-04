@@ -54,7 +54,7 @@ export interface SessionState {
   currentRoute: Route;
   letterTokens: Record<CharacterSlotId, Record<string /* playerId */, number>>;
   ended: boolean;
-  endingReason: "roundCap" | null;
+  endingReason: "roundCap" | "earlyThreshold" | null;
   playerEndings: Record<string /* playerId */, CharacterSlotId | null> | null; // null = "이루어진 상대 없음"
   overallWinnerPlayerId: string | null; // RANK8_SLOTS 중 하나와 맺어진 플레이어
   lastRoundSummary: RoundSummary | null;
@@ -98,7 +98,10 @@ export function startSession(playerConfigs: PlayerConfig[], initialRoute: Route 
     playerEndings: null,
     overallWinnerPlayerId: null,
     lastRoundSummary: null,
-    storyArchive: [seedArchiveCard("017")],
+    // 017 「시간」, 018/020(잉그리드공주/아레스왕자), 023(역사1) -- exactly
+    // what the rulebook's worked example shows in the archive at session
+    // start (before any round-end reveal has happened).
+    storyArchive: [seedArchiveCard("017"), seedArchiveCard("018"), seedArchiveCard("020"), seedArchiveCard("023")],
     pendingArchivePlacement: null,
     pendingLetterChoice: null,
   });
@@ -169,10 +172,19 @@ function checkClockMilestones(session: SessionState): void {
   }
 }
 
-/** Generic condition checker: "[성공]/[실패] N개 이상 -> 카드 공개 (+선택적
- * 제거)". Not a general Action/Condition interpreter -- just this one
- * pattern, which covers every card seeded in data/scenario.ts. */
-function resolveArchiveConditions(session: SessionState): void {
+/** Checks the 3 small archive-condition patterns (see types.ts's
+ * ArchiveCondition doc comment) and reveals/removes cards accordingly.
+ * Not a general Action/Condition interpreter -- just these 3 patterns,
+ * which cover every card seeded in data/scenario.ts.
+ *
+ * `winnerCardName` is only meaningful right at round end (for 023's
+ * "winnerHeldCard" branch) -- other callers (e.g. placeArchiveToken, which
+ * isn't a round-end event) omit it, so that branch simply never fires
+ * there. Runs to a fixed point (a reveal can itself satisfy another card's
+ * condition, e.g. 023 revealing 053 lets 024's "2+ conditioned cards"
+ * check see it in the same pass), which also matches the rulebook's
+ * "ascending card-id" processing for this small dataset since 023 < 024. */
+function resolveArchiveConditions(session: SessionState, winnerCardName?: CardName | null): void {
   let changed = true;
   while (changed) {
     changed = false;
@@ -181,12 +193,25 @@ function resolveArchiveConditions(session: SessionState): void {
     for (const card of session.storyArchive) {
       for (const cond of card.conditions) {
         if (cond.fired) continue;
-        const count = cond.token === "성공" ? card.successTokens : card.failTokens;
-        if (count >= cond.threshold) {
+        let met = false;
+        if (cond.kind === "sharedToken") {
+          const count = cond.token === "성공" ? card.successTokens : card.failTokens;
+          met = count >= cond.threshold;
+        } else if (cond.kind === "winnerHeldCard") {
+          met = winnerCardName != null && winnerCardName === cond.cardName;
+        } else if (cond.kind === "archiveCardCount") {
+          // Doesn't count itself -- a card checking "N+ OTHER conditioned
+          // cards" shouldn't satisfy its own threshold by existing.
+          const otherConditionedCount = session.storyArchive.filter(
+            (c) => c.id !== card.id && c.conditions.some((other) => !other.fired)
+          ).length;
+          met = otherConditionedCount >= cond.minCount;
+        }
+        if (met) {
           cond.fired = true;
           changed = true;
           cond.revealIds.forEach((id) => toReveal.add(id));
-          (cond.removeIds ?? []).forEach((id) => toRemove.add(id));
+          if (cond.kind === "sharedToken") (cond.removeIds ?? []).forEach((id) => toRemove.add(id));
         }
       }
     }
@@ -205,15 +230,25 @@ function applySessionRoundEnd(session: SessionState): SessionState {
   const next: SessionState = structuredClone(session);
   const result = next.round.roundResult!;
   const winnerId = result.winnerId;
+  const winnerCard = winnerId ? result.revealedHands[winnerId] : null;
   const letterGains: RoundSummary["letterTokensGained"] = [];
 
   next.clockTokens += 1;
+
+  // 023 「역사 1」의 "승자가 든 카드 확인" 조건 등을 이번 라운드의 [성공]/
+  // [실패] 부여보다 먼저 처리한다 -- 그래야 이번 라운드에 새로 공개되는
+  // 카드(예: 053)가 존재하는 상태에서 그 아래쪽 addArchiveToken 호출이
+  // 토큰을 놓을 수 있다. (반대로, 새로 공개된 카드 자신의 [조건] 충족
+  // 여부는 원래 "공개된 라운드 중에는 처리하지 않는다"는 규칙이 있지만,
+  // v1에서는 이 재확인을 별도로 억제하지 않는다 -- 같은 라운드에 정확히
+  // 임계값에 도달하는 경우는 드물고, 억제 로직을 넣을 만큼 가치가 크지
+  // 않다고 판단.)
+  resolveArchiveConditions(next, winnerCard?.name ?? null);
 
   if (winnerId) {
     // 카드 017 「시간」: 라운드 승리 -> 공개된 공주/왕자 중 하나를 골라
     // [편지] +1 (「공주」를 들고 승리했다면 +2). 어느 캐릭터에 놓을지는
     // currentRoute와 무관하게 승자의 선택 -- see resolveLetterChoice.
-    const winnerCard = result.revealedHands[winnerId];
     const amount = winnerCard?.name === "공주" ? 2 : 1;
     next.pendingLetterChoice = {
       playerId: winnerId,
@@ -252,7 +287,9 @@ function applySessionRoundEnd(session: SessionState): SessionState {
   }
 
   checkClockMilestones(next);
-  resolveArchiveConditions(next);
+  // Re-check now that this round's [성공]/[실패] grants (and any clock
+  // milestone reveal, e.g. 024) are in.
+  resolveArchiveConditions(next, winnerCard?.name ?? null);
 
   next.lastRoundSummary = {
     roundNumber: next.roundNumber,
@@ -266,17 +303,32 @@ function applySessionRoundEnd(session: SessionState): SessionState {
 }
 
 /** Runs once the round winner's [편지] placement (or move/decline) is
- * settled -- checks the round cap and, if the session continues, opens the
- * story-archive placement gate. Split out from applySessionRoundEnd because
- * the round-cap/ending check must wait for that placement: the winner
- * should still get to decide where their final letter goes before
- * resolveEnding reads the token counts. */
+ * settled -- checks both ending conditions and, if the session continues,
+ * opens the story-archive placement gate. Split out from
+ * applySessionRoundEnd because the ending checks must wait for that
+ * placement: the winner should still get to decide where their final
+ * letter goes before token counts are read. */
 function finalizeRoundEndDecisions(session: SessionState, winnerId: string | null): SessionState {
   const next = session;
+  // 018/020 「잉그리드 공주/아레스 왕자」의 종료 tag: 한 플레이어가 그
+  // 캐릭터 위에 [편지] 10개를 놓으면 즉시 게임 종료 (051 공개). 이건
+  // "10개를 다 쓰면 게임이 계속된다"는 개인 풀 소진과는 다른 규칙 --
+  // 여러 캐릭터에 나눠 놓아 풀을 다 쓴 경우엔 안 끝나지만, 한 캐릭터에
+  // 몰아서 10개를 채우면 즉시 끝난다.
+  for (const cfg of next.playerConfigs) {
+    for (const slot of RANK8_SLOTS) {
+      if ((next.letterTokens[slot][cfg.id] ?? 0) >= LETTER_TOKEN_POOL) {
+        return resolveEnding(next, "earlyThreshold", winnerId ?? next.playerConfigs[0].id);
+      }
+    }
+  }
   if (next.roundNumber >= 8) {
     return resolveEnding(next, "roundCap", winnerId ?? next.playerConfigs[0].id);
   }
+  // 역사 3[031]이 공개되기 전에는 "첫 탈락자가 조건 카드에 토큰을 놓을 수
+  // 있다"는 규칙 자체가 아직 존재하지 않는다.
   if (
+    next.storyArchive.some((c) => c.id === "031") &&
     next.round.firstEliminatedThisRound &&
     next.storyArchive.some((c) => c.conditions.some((cond) => !cond.fired))
   ) {
@@ -286,11 +338,15 @@ function finalizeRoundEndDecisions(session: SessionState, winnerId: string | nul
 }
 
 /** Rulebook end-game resolution, implemented generically over ALL_SLOTS so
- * Phase 3 can extend coverage without touching this algorithm. The session
- * only ever ends via the 8-round cap (reaching a player's 10-token pool
- * does NOT end the game, per rulebook Q&A), so `startingPlayerId` is always
- * "the round-8 winner" -- no early-ending case to special-case here. */
-function resolveEnding(session: SessionState, reason: "roundCap", startingPlayerId: string): SessionState {
+ * Phase 3 can extend coverage without touching this algorithm. Assumption
+ * (flagged): for an early-threshold ending, "8라운드의 승자부터" is read as
+ * "whoever won the round that triggered the ending" -- the rulebook text
+ * assumes reaching round 8. */
+function resolveEnding(
+  session: SessionState,
+  reason: "roundCap" | "earlyThreshold",
+  startingPlayerId: string
+): SessionState {
   const next: SessionState = structuredClone(session);
   const playerIds = next.playerConfigs.map((c) => c.id);
   const order = [startingPlayerId, ...playerIds.filter((id) => id !== startingPlayerId)];

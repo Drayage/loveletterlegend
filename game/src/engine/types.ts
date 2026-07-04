@@ -135,15 +135,29 @@ export type SessionEvent =
 
 /** Runtime state of one card sitting in the "이야기 보관소" (story archive).
  * Lives here (not engine/session.ts) so both session.ts and ai.ts can import
- * it without a circular dependency between those two modules. */
-export interface ArchiveCondition {
-  id: string;
-  token: "성공" | "실패";
-  threshold: number;
-  revealIds: string[];
-  removeIds?: string[];
-  fired: boolean;
-}
+ * it without a circular dependency between those two modules.
+ *
+ * Three small, enumerable trigger patterns (not a general Action/Condition
+ * interpreter -- see data/scenario.ts's module header):
+ * - "sharedToken": card 031/053-style -- a shared [성공]/[실패] counter on
+ *   this card reaches a threshold (e.g. 053 -> 055/056 or 062).
+ * - "winnerHeldCard": card 023-style -- round-end check of what CardName
+ *   the round winner held (e.g. held 「경비병」 -> reveal 053).
+ * - "archiveCardCount": card 024-style -- round-end check of how many
+ *   currently-revealed archive cards still have an unfired condition
+ *   (e.g. 2+ such cards -> reveal 031). */
+export type ArchiveCondition =
+  | {
+      id: string;
+      kind: "sharedToken";
+      token: "성공" | "실패";
+      threshold: number;
+      revealIds: string[];
+      removeIds?: string[];
+      fired: boolean;
+    }
+  | { id: string; kind: "winnerHeldCard"; cardName: CardName; revealIds: string[]; fired: boolean }
+  | { id: string; kind: "archiveCardCount"; minCount: number; revealIds: string[]; fired: boolean };
 
 export interface ArchiveCardState {
   id: string;

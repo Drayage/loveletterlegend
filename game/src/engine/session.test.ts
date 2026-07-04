@@ -13,11 +13,29 @@ import {
 } from "./session";
 import type { SessionState } from "./session";
 import type { PlayerConfig, GameState } from "./types";
+import { ARCHIVE_CARD_SEEDS } from "../data/scenario";
 
 const PLAYERS: PlayerConfig[] = [
   { id: "p1", displayName: "플레이어", isAI: false },
   { id: "p2", displayName: "AI", isAI: true },
 ];
+
+// Mirrors session.ts's private seedArchiveCard, kept independent of
+// setupRound's random shuffle so it's a genuinely deterministic baseline
+// for forceImmediateWin to reset onto (see its comment below).
+function pristineStoryArchive(): SessionState["storyArchive"] {
+  return ["017", "018", "020", "023"].map((id) => {
+    const seed = ARCHIVE_CARD_SEEDS[id];
+    return {
+      id: seed.id,
+      name: seed.name,
+      flavor: seed.flavor,
+      conditions: seed.conditions.map((c) => ({ ...c, fired: false })),
+      successTokens: 0,
+      failTokens: 0,
+    };
+  });
+}
 
 function driveOneSessionRound(session: SessionState): SessionState {
   let s = session;
@@ -67,9 +85,25 @@ function driveSessionToEnd(session: SessionState, maxRounds = 20): SessionState 
 // hand-mutation technique already used in rules.test.ts.
 function forceImmediateWin(session: SessionState, winnerId: string, winnerHand?: GameState["players"][number]["hand"]): SessionState {
   const s: SessionState = structuredClone(session);
+  // The random initial deal can occasionally (~2-3% of the time) already
+  // trigger 「대신」's passive elimination during setupRound, ending the
+  // round before this helper ever runs (see effects.ts's
+  // checkMinisterElimination) -- and, since that degenerate round runs
+  // through the exact same applySessionRoundEnd this helper is about to
+  // trigger again, it can also have already advanced clockTokens/
+  // storyArchive (e.g. already revealing 053, or even resolving 053's own
+  // condition). Reset all of that to a pristine baseline so this helper's
+  // result only reflects the round it's about to force, not whatever the
+  // untamed initial deal happened to do first.
+  s.round.roundResult = null;
+  s.round.firstEliminatedThisRound = null;
+  s.clockTokens = 0;
+  s.storyArchive = pristineStoryArchive();
+  s.pendingLetterChoice = null;
+  s.pendingArchivePlacement = null;
   const winner = s.round.players.find((p) => p.id === winnerId)!;
   for (const p of s.round.players) {
-    if (p.id !== winnerId) p.eliminated = true;
+    p.eliminated = p.id !== winnerId;
   }
   // Always pin the hand to a card that never needs a target (대신), unless
   // the caller explicitly wants to test a specific hand -- otherwise this
@@ -90,6 +124,52 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
       expect(session.roundNumber).toBeLessThanOrEqual(8);
       expect(session.playerEndings).not.toBeNull();
     }
+  });
+
+  it("seeds exactly 017/018/020/023 at session start -- no 마술사의도제, no 053/031 yet", () => {
+    const session = startSession(PLAYERS);
+    const ids = session.storyArchive.map((c) => c.id).sort();
+    // The random initial deal can rarely (~2-3%) already trigger 「대신」's
+    // passive elimination during setupRound, ending round 1 before this
+    // assertion even runs -- which legitimately advances the clock to 1 and
+    // reveals 024 right away. Tolerate that instead of asserting on it.
+    const expected = session.clockTokens >= 1 ? ["017", "018", "020", "023", "024"] : ["017", "018", "020", "023"];
+    expect(ids).toEqual(expected);
+    expect(session.storyArchive.some((c) => ["053", "031"].includes(c.id))).toBe(false);
+  });
+
+  it("023's winnerHeldCard condition reveals 053 only when the winner held 「경비병」", () => {
+    let session = startSession(PLAYERS);
+    session = forceImmediateWin(session, "p1", [
+      { instanceId: "c1", name: "대신" },
+      { instanceId: "c2", name: "경비병" },
+    ]);
+    expect(session.storyArchive.some((c) => c.id === "053")).toBe(true);
+    // 023's condition only fires once.
+    const card023 = session.storyArchive.find((c) => c.id === "023")!;
+    expect(card023.conditions.every((c) => c.fired)).toBe(true);
+  });
+
+  it("does not reveal 053 when the winner held a different card", () => {
+    let session = startSession(PLAYERS);
+    session = forceImmediateWin(session, "p1", [
+      { instanceId: "c1", name: "대신" },
+      { instanceId: "c2", name: "장군" },
+    ]);
+    expect(session.storyArchive.some((c) => c.id === "053")).toBe(false);
+  });
+
+  it("gates the first-eliminated archive-token placement behind 031 being revealed", () => {
+    let session = startSession(PLAYERS);
+    // 031 isn't revealed yet in a fresh session -- even a first-eliminated
+    // player shouldn't get a pendingArchivePlacement.
+    session.round.firstEliminatedThisRound = "p2";
+    session = forceImmediateWin(session, "p1", [
+      { instanceId: "c1", name: "대신" },
+      { instanceId: "c2", name: "장군" },
+    ]);
+    session = resolveLetterChoice(session, "p1", { type: "place", slot: "잉그리드공주" });
+    expect(session.pendingArchivePlacement).toBeNull();
   });
 
   it("accrues letter tokens for AI wins just like human wins (no human-only special case), via the winner's own placement choice", () => {
@@ -114,9 +194,24 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
     expect(session.letterTokens["아레스왕자"]["p1"]).toBe(2);
   });
 
-  it("does not end the session when a player's letter-token pool reaches 10 (rulebook Q&A)", () => {
+  it("ends the session immediately once a player concentrates 10 letter tokens on a single 공주/왕자 slot", () => {
     let session = startSession(PLAYERS);
-    session.letterTokens["잉그리드공주"]["p1"] = 10;
+    session.letterTokens["잉그리드공주"]["p1"] = 9;
+    session = forceImmediateWin(session, "p1", [
+      { instanceId: "c1", name: "대신" },
+      { instanceId: "c2", name: "장군" },
+    ]);
+    expect(session.pendingLetterChoice?.atCap).toBe(false); // only 9 total so far, still room
+    session = resolveLetterChoice(session, "p1", { type: "place", slot: "잉그리드공주" });
+    expect(session.letterTokens["잉그리드공주"]["p1"]).toBe(10);
+    expect(session.ended).toBe(true);
+    expect(session.endingReason).toBe("earlyThreshold");
+  });
+
+  it("does not end the session when a player's 10-token pool is split across multiple slots (rulebook Q&A)", () => {
+    let session = startSession(PLAYERS);
+    session.letterTokens["잉그리드공주"]["p1"] = 6;
+    session.letterTokens["마술사의도제"]["p1"] = 4; // total 10, but no single 공주/왕자 slot has 10
     session = forceImmediateWin(session, "p1", [
       { instanceId: "c1", name: "대신" },
       { instanceId: "c2", name: "장군" },
@@ -125,7 +220,6 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
     expect(() => resolveLetterChoice(session, "p1", { type: "place", slot: "아레스왕자" })).toThrow();
     session = resolveLetterChoice(session, "p1", { type: "decline" });
     expect(session.ended).toBe(false);
-    expect(session.letterTokens["잉그리드공주"]["p1"]).toBe(10);
   });
 
   it("lets an at-cap player move an already-placed token between slots instead of gaining a new one", () => {
@@ -187,8 +281,24 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
       name: "고지식한 병사",
       flavor: "",
       conditions: [
-        { id: "053-success", token: "성공", threshold: 2, revealIds: ["055", "056"], removeIds: ["053"], fired: false },
-        { id: "053-fail", token: "실패", threshold: 4, revealIds: ["062"], removeIds: ["053"], fired: false },
+        {
+          id: "053-success",
+          kind: "sharedToken",
+          token: "성공",
+          threshold: 2,
+          revealIds: ["055", "056"],
+          removeIds: ["053"],
+          fired: false,
+        },
+        {
+          id: "053-fail",
+          kind: "sharedToken",
+          token: "실패",
+          threshold: 4,
+          revealIds: ["062"],
+          removeIds: ["053"],
+          fired: false,
+        },
       ],
       successTokens: 1, // one below the real threshold of 2
       failTokens: 0,

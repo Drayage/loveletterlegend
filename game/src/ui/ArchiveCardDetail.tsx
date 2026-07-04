@@ -1,6 +1,11 @@
-import type { ArchiveCardState } from "../engine/types";
+import type { ArchiveCardState, ArchiveCondition } from "../engine/types";
 import { ARCHIVE_CARD_SEEDS } from "../data/scenario";
 import "./ArchiveCardDetail.css";
+
+type SharedTokenCondition = Extract<ArchiveCondition, { kind: "sharedToken" }>;
+function isSharedToken(c: ArchiveCondition): c is SharedTokenCondition {
+  return c.kind === "sharedToken";
+}
 
 /** earnRules entries end with a "...: 성공" / "...: 실패" suffix marking
  * which shared token they contribute to -- split it off so it can be
@@ -12,7 +17,12 @@ function splitEarnRule(rule: string): { text: string; token: "성공" | "실패"
 }
 
 export function ArchiveCardDetail({ card }: { card: ArchiveCardState }) {
-  const pendingConditions = card.conditions.filter((c) => !c.fired);
+  // Only "sharedToken" conditions (e.g. 053's [성공]/[실패] thresholds) have
+  // a meaningful player-facing progress readout here. The other condition
+  // kinds (023's "winner held X card", 024's "N+ conditioned cards") are
+  // driven by things the player can't grind toward, so there's nothing
+  // useful to show for them yet.
+  const pendingConditions = card.conditions.filter((c): c is SharedTokenCondition => !c.fired && isSharedToken(c));
   const earnRules = ARCHIVE_CARD_SEEDS[card.id]?.earnRules ?? [];
   const parsedRules = earnRules.map(splitEarnRule).filter((r): r is NonNullable<typeof r> => r !== null);
 

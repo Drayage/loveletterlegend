@@ -18,6 +18,17 @@ const SLOT_INFO: Record<CharacterSlotId, { name: string; art?: string }> = {
   마술사의도제: { name: WIZARD_APPRENTICE.name },
 };
 
+/** A slot only shows up here once its character has actually been
+ * introduced in the story archive -- 잉그리드공주/아레스왕자 are seeded
+ * from session start (018/020), but 마술사의도제 has no reveal card in
+ * this v1 slice yet, so she stays hidden (her [편지] still counts toward
+ * the ending algorithm either way -- this is purely a display gate). */
+const SLOT_REVEAL_CARD_ID: Record<CharacterSlotId, string> = {
+  잉그리드공주: "018",
+  아레스왕자: "020",
+  마술사의도제: WIZARD_APPRENTICE.characterId,
+};
+
 /** Stable per-player color, assigned by seat order -- used so every
  * character row can show each player's [편지] count in "their" color
  * instead of only surfacing the human's own pursued route. */
@@ -58,6 +69,10 @@ function SlotRow({
 }
 
 export function SessionHeader({ session, humanId, onShowArchive }: SessionHeaderProps) {
+  const revealedSlots = ALL_SLOTS.filter((slot) =>
+    session.storyArchive.some((c) => c.id === SLOT_REVEAL_CARD_ID[slot])
+  );
+
   return (
     <div className="session-header">
       <div className="session-header__stat">
@@ -82,7 +97,7 @@ export function SessionHeader({ session, humanId, onShowArchive }: SessionHeader
       </div>
 
       <div className="session-header__slots">
-        {ALL_SLOTS.map((slot) => (
+        {revealedSlots.map((slot) => (
           <SlotRow
             key={slot}
             slot={slot}
