@@ -257,14 +257,6 @@ export default function App() {
 
   return (
     <div className="app-layout">
-      <header className="app-header">
-        <h1>Love Letter Legend</h1>
-        <div className="app-header__meta">
-          <span>덱 {round.deck.length}장 남음</span>
-          <span>공개된 카드 {round.faceUpRemovedCards.length}장</span>
-        </div>
-      </header>
-
       <SessionHeader session={session} humanId={HUMAN_ID} onShowArchive={() => setShowStoryArchive(true)} />
 
       {/* 스크롤이 필요하면 이 보드 영역 내부에서만 일어난다 -- 로그가
@@ -273,17 +265,18 @@ export default function App() {
       <EffectToast entries={round.log} />
 
       <div className="removed-row">
-        {round.faceUpRemovedCards.length > 0 ? (
-          <>
-            <span className="removed-row__label">공개 제거된 카드</span>
-            <div className="removed-row__cards">
-              {round.faceUpRemovedCards.map((c) => (
-                <Card key={c.instanceId} name={c.name} size="md" remainingCount={remaining[c.name]} />
-              ))}
-            </div>
-          </>
-        ) : (
-          <span className="removed-row__label">공개 제거된 카드 없음</span>
+        <div className="removed-row__labels">
+          <span className="removed-row__label">
+            {round.faceUpRemovedCards.length > 0 ? "공개 제거된 카드" : "공개 제거된 카드 없음"}
+          </span>
+          <span className="removed-row__deck-count">덱 {round.deck.length}장 남음</span>
+        </div>
+        {round.faceUpRemovedCards.length > 0 && (
+          <div className="removed-row__cards">
+            {round.faceUpRemovedCards.map((c) => (
+              <Card key={c.instanceId} name={c.name} size="sm" remainingCount={remaining[c.name]} />
+            ))}
+          </div>
         )}
         <button type="button" className="removed-row__reference-btn" onClick={() => setShowCardReference(true)}>
           이번 게임 카드 확인
@@ -311,6 +304,7 @@ export default function App() {
         isCurrentTurn={round.pendingDecision?.playerId === AI_ID}
         revealHand={Boolean(round.roundResult)}
         remaining={remaining}
+        handSize="sm"
       />
 
       <TablePlay state={round} remaining={remaining} />

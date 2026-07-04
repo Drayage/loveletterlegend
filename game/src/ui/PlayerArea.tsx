@@ -11,6 +11,8 @@ interface PlayerAreaProps {
   selectableCardIds?: string[];
   onSelectCard?: (instanceId: string) => void;
   remaining: Record<CardName, number>;
+  /** 상대(AI) 손패는 "sm"으로 줄여 화면 중앙 보드 공간을 확보한다. */
+  handSize?: "sm" | "md";
 }
 
 export function PlayerArea({
@@ -20,6 +22,7 @@ export function PlayerArea({
   selectableCardIds,
   onSelectCard,
   remaining,
+  handSize = "md",
 }: PlayerAreaProps) {
   const [showDiscards, setShowDiscards] = useState(false);
   const [justEliminated, setJustEliminated] = useState(false);
@@ -65,7 +68,7 @@ export function PlayerArea({
                 <Card
                   key={c.instanceId}
                   name={c.name}
-                  size="md"
+                  size={handSize}
                   remainingCount={remaining[c.name]}
                   onClick={
                     selectableCardIds?.includes(c.instanceId)
@@ -74,7 +77,7 @@ export function PlayerArea({
                   }
                 />
               ) : (
-                <Card key={c.instanceId} name={c.name} faceDown size="md" />
+                <Card key={c.instanceId} name={c.name} faceDown size={handSize} />
               )
             )}
           </div>
