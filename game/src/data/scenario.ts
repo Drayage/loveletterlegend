@@ -1,23 +1,19 @@
 // Sourced from data/cards.json (corrected version), a small hand-picked
 // slice of the 65-card "이야기 보관소" (story archive) chain -- not the
-// full graph (see GAME_PLAN.md Phase 3). Three things are seeded from
-// session start:
-//   1. Card 017 "시간" itself, whose [시계] threshold table below drives
-//      flavor-only History-chapter reveals (024/025/032/049/050) -- shown
-//      to the player but their own branching mechanics are NOT executed.
-//   2. Card 031 "역사 3" -- its real text is the ONLY source of the "첫
-//      탈락자가 성공/실패 토큰을 놓을 수 있습니다" mechanic, so it's kept
-//      visible in the archive from the start (rather than only granting
-//      the ability silently) precisely so the player can see where that
-//      decision point comes from. v1 simplification: real timing is
-//      gated behind [시계] 6 + a 2-card meta-condition on 024; here it's
-//      just always present.
-//   3. "고지식한 병사" (053), which IS fully interactive: its [성공]/[실패]
-//      counts accrue automatically from 경비병 play outcomes (see
-//      engine/session.ts) and from 031's manual placement above. The real
-//      cards split this across two physical cards (053/054) purely for
-//      layout reasons -- 053 has no mechanical content of its own beyond
-//      flavor, so it's merged into a single archive entry here.
+// full graph (see GAME_PLAN.md Phase 3).
+//
+// Only card 017 "시간" is seeded at session start (it's the origin
+// scenario, and its [시계] threshold table below drives every other
+// reveal). Everything else -- including 031 "역사 3" (the only source of
+// the "첫 탈락자가 성공/실패 토큰을 놓을 수 있습니다" mechanic) and
+// "고지식한 병사" (053, the interactive [성공]/[실패] demo) -- is gated
+// behind [시계] 1 instead of appearing immediately in round 1. v1
+// simplification: the real chain requires 역사 2 (024) to exist AND the
+// archive to already hold 2+ conditioned cards before 031 unlocks; here
+// they're just bundled into the same first milestone. 053/054 in the real
+// cards are split across two physical cards purely for layout reasons --
+// 053 has no mechanical content of its own beyond flavor, so they're
+// merged into one archive entry here.
 
 export interface ArchiveConditionSeed {
   id: string;
@@ -36,6 +32,10 @@ export interface ArchiveCardSeed {
   name: string;
   flavor: string;
   conditions: ArchiveConditionSeed[];
+  /** Real card text describing what actions move the shared [성공]/[실패]
+   * counters -- shown to the player so they can play toward it, WITHOUT
+   * revealing what the condition actually unlocks (that stays a surprise). */
+  earnRules?: string[];
 }
 
 export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
@@ -95,6 +95,12 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
       { id: "053-success", token: "성공", threshold: 2, revealIds: ["055", "056"], removeIds: ["053"] },
       { id: "053-fail", token: "실패", threshold: 4, revealIds: ["062"], removeIds: ["053"] },
     ],
+    earnRules: [
+      "「경비병」을 손에 들고 라운드 승리: 성공",
+      "「경비병」으로 다른 플레이어를 탈락시킴: 성공",
+      "「경비병」을 손에 들고 탈락함: 실패",
+      "「경비병」으로 지목했으나 추측이 빗나감: 실패",
+    ],
   },
   "055": {
     id: "055",
@@ -121,24 +127,17 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
   },
 };
 
-/** [시계] N개 -> reveal these ids (flavor-only, real thresholds from card 017). */
+/** [시계] N개 -> reveal these ids. 024/025/032/049/050 are the real
+ * flavor-only thresholds from card 017; 031/053 are bundled into the same
+ * first milestone as a v1 simplification (see module header) so the
+ * [성공]/[실패] mechanic isn't visible from round 1. */
 export const CLOCK_MILESTONES: Record<number, string[]> = {
-  1: ["024"],
+  1: ["024", "031", "053"],
   2: ["025"],
   3: ["032"],
   6: ["049"],
   7: ["050"],
 };
-
-/** Human-readable name(s) of whatever a condition's revealIds point to, for
- * displaying "성공 2개 이상 -> 공개: X" style text in the archive UI. Real
- * cards sometimes split one character across two physical ids (e.g. 055/056
- * are both "경비병 알리오스") purely for layout reasons, so duplicate names
- * are shown once. */
-export function describeRevealTargets(revealIds: string[]): string {
-  const names = revealIds.map((id) => ARCHIVE_CARD_SEEDS[id]?.name ?? id);
-  return [...new Set(names)].join(", ");
-}
 
 export const ENDING_FLAVOR = {
   cardId: "051",

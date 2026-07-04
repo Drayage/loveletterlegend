@@ -79,7 +79,7 @@ export function startSession(playerConfigs: PlayerConfig[], initialRoute: Route 
     playerEndings: null,
     overallWinnerPlayerId: null,
     lastRoundSummary: null,
-    storyArchive: [seedArchiveCard("017"), seedArchiveCard("031"), seedArchiveCard("053")],
+    storyArchive: [seedArchiveCard("017")],
     pendingArchivePlacement: null,
   });
 }
