@@ -1,5 +1,5 @@
 import { setupRound } from "./rules";
-import { ARCHIVE_CARD_SEEDS, CLOCK_MILESTONES } from "../data/scenario";
+import { ARCHIVE_CARD_SEEDS } from "../data/scenario";
 import { WIZARD_APPRENTICE } from "../data/characters";
 import type { Route } from "../data/routes";
 import type {
@@ -164,19 +164,9 @@ function addArchiveToken(session: SessionState, cardId: string, token: "성공" 
   else card.failTokens += amount;
 }
 
-function checkClockMilestones(session: SessionState): void {
-  const ids = CLOCK_MILESTONES[session.clockTokens];
-  if (!ids) return;
-  for (const id of ids) {
-    if (!session.storyArchive.some((c) => c.id === id)) {
-      session.storyArchive.push(seedArchiveCard(id));
-    }
-  }
-}
-
-/** Checks the 3 small archive-condition patterns (see types.ts's
+/** Checks the 4 small archive-condition patterns (see types.ts's
  * ArchiveCondition doc comment) and reveals/removes cards accordingly.
- * Not a general Action/Condition interpreter -- just these 3 patterns,
+ * Not a general Action/Condition interpreter -- just these 4 patterns,
  * which cover every card seeded in data/scenario.ts.
  *
  * `winnerCardName` is only meaningful right at round end (for 023's
@@ -208,6 +198,8 @@ function resolveArchiveConditions(session: SessionState, winnerCardName?: CardNa
             (c) => c.id !== card.id && c.conditions.some((other) => !other.fired)
           ).length;
           met = otherConditionedCount >= cond.minCount;
+        } else if (cond.kind === "clockThreshold") {
+          met = session.clockTokens >= cond.threshold;
         }
         if (met) {
           cond.fired = true;
@@ -251,7 +243,17 @@ function applySessionRoundEnd(session: SessionState): SessionState {
     // 카드 017 「시간」: 라운드 승리 -> 공개된 공주/왕자 중 하나를 골라
     // [편지] +1 (「공주」를 들고 승리했다면 +2). 어느 캐릭터에 놓을지는
     // currentRoute와 무관하게 승자의 선택 -- see resolveLetterChoice.
-    const amount = winnerCard?.name === "공주" ? 2 : 1;
+    let amount = winnerCard?.name === "공주" ? 2 : 1;
+    // 049 「역사 7」의 "중요" tag: 캐릭터 카드에 [편지]를 놓을 때 추가 +1
+    // (실제 카드는 이 추가분을 "선택"으로 두지만, v1은 017 자체의 승리
+    // 포상과 동일하게 자동 지급으로 단순화한다).
+    if (next.storyArchive.some((c) => c.id === "049")) amount += 1;
+    // 050 「역사 8」의 "중요" tag: 라운드 승자는 추가 +1, 「공주」를 들고
+    // 승리했다면 대응 캐릭터에 추가 +2 더 (역시 자동 지급으로 단순화).
+    if (next.storyArchive.some((c) => c.id === "050")) {
+      amount += 1;
+      if (winnerCard?.name === "공주") amount += 2;
+    }
     next.pendingLetterChoice = {
       playerId: winnerId,
       amount,
@@ -288,9 +290,8 @@ function applySessionRoundEnd(session: SessionState): SessionState {
     }
   }
 
-  checkClockMilestones(next);
-  // Re-check now that this round's [성공]/[실패] grants (and any clock
-  // milestone reveal, e.g. 024) are in.
+  // Re-check now that this round's [성공]/[실패] grants (and the clock
+  // token bumped at the top of this function) are in.
   resolveArchiveConditions(next, winnerCard?.name ?? null);
 
   next.lastRoundSummary = {
@@ -327,6 +328,26 @@ function finalizeRoundEndDecisions(session: SessionState, winnerId: string | nul
   if (next.roundNumber >= 8) {
     return resolveEnding(next, "roundCap", winnerId ?? next.playerConfigs[0].id);
   }
+
+  // 050 「역사 8」의 "종료" tag: 《8(공주)》을 손에 들고 라운드에서 승리하고,
+  // 대응하는 캐릭터(현재 route의 RANK8 슬롯)에 놓은 [편지]가 플레이어들
+  // 중 가장 많다면 -> 051 공개. 이 시점(편지 배치가 끝난 직후)의
+  // letterTokens를 읽어야 하므로 일반 조건 체커가 아닌 별도 체크로 둔다.
+  if (
+    winnerId &&
+    next.storyArchive.some((c) => c.id === "050") &&
+    !next.storyArchive.some((c) => c.id === "051") &&
+    next.round.roundResult?.revealedHands[winnerId]?.name === "공주"
+  ) {
+    const slot = ROUTE_SLOT[next.currentRoute];
+    const mine = next.letterTokens[slot][winnerId] ?? 0;
+    const othersMax = Math.max(
+      0,
+      ...next.playerConfigs.filter((c) => c.id !== winnerId).map((c) => next.letterTokens[slot][c.id] ?? 0)
+    );
+    if (mine > othersMax) next.storyArchive.push(seedArchiveCard("051"));
+  }
+
   // 역사 3[031]이 공개되기 전에는 "첫 탈락자가 조건 카드에 토큰을 놓을 수
   // 있다"는 규칙 자체가 아직 존재하지 않는다.
   if (

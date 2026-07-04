@@ -86,7 +86,12 @@ function driveSessionToEnd(session: SessionState, maxRounds = 20): SessionState 
 // Deterministically ends the current round with `winnerId` as the sole
 // survivor, regardless of what's actually in play -- mirrors the
 // hand-mutation technique already used in rules.test.ts.
-function forceImmediateWin(session: SessionState, winnerId: string, winnerHand?: GameState["players"][number]["hand"]): SessionState {
+function forceImmediateWin(
+  session: SessionState,
+  winnerId: string,
+  winnerHand?: GameState["players"][number]["hand"],
+  extraArchiveCards: SessionState["storyArchive"] = []
+): SessionState {
   const s: SessionState = structuredClone(session);
   // The random initial deal can occasionally (~2-3% of the time) already
   // trigger 「대신」's passive elimination during setupRound, ending the
@@ -101,7 +106,7 @@ function forceImmediateWin(session: SessionState, winnerId: string, winnerHand?:
   s.round.roundResult = null;
   s.round.firstEliminatedThisRound = null;
   s.clockTokens = 0;
-  s.storyArchive = pristineStoryArchive();
+  s.storyArchive = [...pristineStoryArchive(), ...extraArchiveCards];
   s.pendingLetterChoice = null;
   s.pendingArchivePlacement = null;
   const winner = s.round.players.find((p) => p.id === winnerId)!;
@@ -161,6 +166,78 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
       { instanceId: "c2", name: "장군" },
     ]);
     expect(session.storyArchive.some((c) => c.id === "053")).toBe(false);
+  });
+
+  it("017's clockThreshold conditions progressively unlock 024/025/032/049/050 as clockTokens accumulate", () => {
+    let session = startSession(PLAYERS);
+    session.clockTokens = 6;
+    session.pendingArchivePlacement = { eligiblePlayerId: "p1" };
+    // 017 has no sharedToken conditions, so this placement only serves to
+    // trigger a resolveArchiveConditions pass without also forcing a round
+    // to actually end (which would reset clockTokens via forceImmediateWin).
+    session = placeArchiveToken(session, "p1", "017", "성공");
+    const ids = session.storyArchive.map((c) => c.id);
+    expect(ids).toEqual(expect.arrayContaining(["024", "025", "032", "049"]));
+    expect(ids).not.toContain("050");
+  });
+
+  it("049 grants an automatic +1 letter bonus on top of the round-win award once revealed", () => {
+    let session = startSession(PLAYERS);
+    session = forceImmediateWin(
+      session,
+      "p1",
+      [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "장군" },
+      ],
+      [{ id: "049", name: ARCHIVE_CARD_SEEDS["049"].name, category: "scenario", flavor: "", conditions: [], successTokens: 0, failTokens: 0 }]
+    );
+    expect(session.pendingLetterChoice?.amount).toBe(2);
+  });
+
+  it("050 grants +1, plus +2 more when the winner held 「공주」, on top of the round-win award", () => {
+    let session = startSession(PLAYERS);
+    session = forceImmediateWin(
+      session,
+      "p1",
+      [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "공주" },
+      ],
+      [{ id: "050", name: ARCHIVE_CARD_SEEDS["050"].name, category: "scenario", flavor: "", conditions: [], successTokens: 0, failTokens: 0 }]
+    );
+    // base 2 (공주 win) + 050's +1 + 050's +2 (also held 공주) = 5
+    expect(session.pendingLetterChoice?.amount).toBe(5);
+  });
+
+  it("050's ending tag reveals 051 when the 공주-holding winner leads the corresponding route slot", () => {
+    let session = startSession(PLAYERS);
+    session = forceImmediateWin(
+      session,
+      "p1",
+      [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "공주" },
+      ],
+      [{ id: "050", name: ARCHIVE_CARD_SEEDS["050"].name, category: "scenario", flavor: "", conditions: [], successTokens: 0, failTokens: 0 }]
+    );
+    session = resolveLetterChoice(session, "p1", { type: "place", slot: "잉그리드공주" });
+    expect(session.storyArchive.some((c) => c.id === "051")).toBe(true);
+  });
+
+  it("does not reveal 051 when 050 is present but the winner did not hold 「공주」", () => {
+    let session = startSession(PLAYERS);
+    session = forceImmediateWin(
+      session,
+      "p1",
+      [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "장군" },
+      ],
+      [{ id: "050", name: ARCHIVE_CARD_SEEDS["050"].name, category: "scenario", flavor: "", conditions: [], successTokens: 0, failTokens: 0 }]
+    );
+    session = resolveLetterChoice(session, "p1", { type: "place", slot: "잉그리드공주" });
+    expect(session.storyArchive.some((c) => c.id === "051")).toBe(false);
   });
 
   it("gates the first-eliminated archive-token placement behind 031 being revealed", () => {

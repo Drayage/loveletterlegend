@@ -157,7 +157,11 @@ export type ArchiveCondition =
       fired: boolean;
     }
   | { id: string; kind: "winnerHeldCard"; cardName: CardName; revealIds: string[]; fired: boolean }
-  | { id: string; kind: "archiveCardCount"; minCount: number; revealIds: string[]; fired: boolean };
+  | { id: string; kind: "archiveCardCount"; minCount: number; revealIds: string[]; fired: boolean }
+  /** 017 「시간」's own "시작" tag table -- [시계] N개 이상 -> 공개.
+   * Folded into the same generic checker as the other condition kinds
+   * (previously a separate CLOCK_MILESTONES table/function). */
+  | { id: string; kind: "clockThreshold"; threshold: number; revealIds: string[]; fired: boolean };
 
 export interface ArchiveCardState {
   id: string;

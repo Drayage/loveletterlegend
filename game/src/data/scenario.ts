@@ -6,8 +6,10 @@
 // 017 「시간」, the 잉그리드 공주/아레스 왕자 character cards, and 023
 // 「역사 1 이야기의 시작」. Everything else is unlocked by an actual
 // round-end/round-start condition, not bundled together:
-// - 024 「역사 2」 is revealed by 017's own [시계] 1개 milestone (checked at
-//   the next round's start).
+// - 024/025/032/049/050 are revealed by 017's own real "시작" tag table
+//   ([시계] N개 -> 공개), modeled as `clockThreshold` conditions living on
+//   017 itself (see ArchiveConditionSeed below) instead of a separate
+//   CLOCK_MILESTONES table.
 // - 053 「고지식한 병사」 (merged with the real 054, which has no content of
 //   its own beyond the reveal condition) is revealed by 023's real
 //   "라운드 종료시, 승자가 든 카드 확인" branch -- v1 only wires up the
@@ -19,6 +21,20 @@
 //   card (053) ever present in this v1 slice, that threshold in practice
 //   won't be reached; the mechanism is still implemented faithfully so
 //   Phase 3 can add more conditioned cards without touching the engine.
+// - 025/032/039 (「국왕 랜들 3세」/「역사 4」/「역사 5」) each gate a real NEW
+//   base-game mechanic (025 adds a playable 「왕」 card to the deck; 032
+//   hands out a persistent per-player "정체" identity card with its own
+//   passive ability; 039 adds a "축제" sub-deck) that this v1 slice doesn't
+//   implement -- so 025 stays a flavor-only leaf (no further reveals wired
+//   up), and 032/039 aren't seeded here at all yet (Phase 3 follow-up).
+// - 049/050 (「역사 7」/「역사 8」) don't gate new mechanics -- their real
+//   "중요" tags are optional bonus [편지] grants layered on top of 017's
+//   own round-win award, applied automatically once revealed (see
+//   engine/session.ts's applySessionRoundEnd). 050's own "종료" tag
+//   (winning with the rank-8 card while leading its route) reveals 051,
+//   modeled as a bespoke check in finalizeRoundEndDecisions since it needs
+//   the post-placement letter-token state that the generic checker doesn't
+//   have access to.
 
 import type { CardName } from "../engine/types";
 import { ROUTE_DEFS } from "./routes";
@@ -38,7 +54,8 @@ export type ArchiveConditionSeed =
       removeIds?: string[];
     }
   | { id: string; kind: "winnerHeldCard"; cardName: CardName; revealIds: string[] }
-  | { id: string; kind: "archiveCardCount"; minCount: number; revealIds: string[] };
+  | { id: string; kind: "archiveCardCount"; minCount: number; revealIds: string[] }
+  | { id: string; kind: "clockThreshold"; threshold: number; revealIds: string[] };
 
 export interface ArchiveCardSeed {
   id: string;
@@ -64,7 +81,13 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     category: "scenario",
     flavor:
       "시간의 흐름은 누구에게나 공평하며 무자비합니다. 당신은 제한된 시간 내에 마음에 품은 상대의 사랑을 쟁취해 내어야 합니다.",
-    conditions: [],
+    conditions: [
+      { id: "017-clock-1", kind: "clockThreshold", threshold: 1, revealIds: ["024"] },
+      { id: "017-clock-2", kind: "clockThreshold", threshold: 2, revealIds: ["025"] },
+      { id: "017-clock-3", kind: "clockThreshold", threshold: 3, revealIds: ["032"] },
+      { id: "017-clock-6", kind: "clockThreshold", threshold: 6, revealIds: ["049"] },
+      { id: "017-clock-7", kind: "clockThreshold", threshold: 7, revealIds: ["050"] },
+    ],
   },
   "018": {
     id: "018",
@@ -180,19 +203,13 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
       "병사들이 편지의 전갈을 맡고 있는 것이 왕에게 알려지고 말았습니다. 그들은 왕에게 꾸중을 듣고, 주선을 해 주지 않게 되어 버렸습니다. 다른 수단을 생각하지 않으면....",
     conditions: [],
   },
-};
-
-/** [시계] N개 -> reveal these ids, checked at the next round's start (017's
- * own "시작" tag). 024 is the only one reachable from this v1 slice's
- * starting content; 025/032/049/050 are further down the real 017 table
- * and stay reachable for completeness even though nothing else in this
- * slice reacts to them yet. */
-export const CLOCK_MILESTONES: Record<number, string[]> = {
-  1: ["024"],
-  2: ["025"],
-  3: ["032"],
-  6: ["049"],
-  7: ["050"],
+  "051": {
+    id: "051",
+    name: "역사 9 운명의 순간",
+    category: "scenario",
+    flavor: "스토리북의 21쪽으로 갑니다.",
+    conditions: [],
+  },
 };
 
 export const ENDING_FLAVOR = {
