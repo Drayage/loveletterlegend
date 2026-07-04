@@ -1,16 +1,23 @@
 // Sourced from data/cards.json (corrected version), a small hand-picked
 // slice of the 65-card "이야기 보관소" (story archive) chain -- not the
-// full graph (see GAME_PLAN.md Phase 3). Two things are seeded from
+// full graph (see GAME_PLAN.md Phase 3). Three things are seeded from
 // session start:
 //   1. Card 017 "시간" itself, whose [시계] threshold table below drives
 //      flavor-only History-chapter reveals (024/025/032/049/050) -- shown
 //      to the player but their own branching mechanics are NOT executed.
-//   2. The "고지식한 병사" pair (053/054), which IS fully interactive: its
-//      [성공]/[실패] counts accrue automatically from 경비병 play outcomes
-//      (see engine/session.ts) and from the "첫 탈락자가 토큰을 놓을 수
-//      있습니다" manual placement (031's real mechanic, implemented
-//      generically and, as a v1 simplification, active from session start
-//      rather than gated behind 031's own real reveal-at-[시계]6 timing).
+//   2. Card 031 "역사 3" -- its real text is the ONLY source of the "첫
+//      탈락자가 성공/실패 토큰을 놓을 수 있습니다" mechanic, so it's kept
+//      visible in the archive from the start (rather than only granting
+//      the ability silently) precisely so the player can see where that
+//      decision point comes from. v1 simplification: real timing is
+//      gated behind [시계] 6 + a 2-card meta-condition on 024; here it's
+//      just always present.
+//   3. "고지식한 병사" (053), which IS fully interactive: its [성공]/[실패]
+//      counts accrue automatically from 경비병 play outcomes (see
+//      engine/session.ts) and from 031's manual placement above. The real
+//      cards split this across two physical cards (053/054) purely for
+//      layout reasons -- 053 has no mechanical content of its own beyond
+//      flavor, so it's merged into a single archive entry here.
 
 export interface ArchiveConditionSeed {
   id: string;
@@ -72,20 +79,21 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
       "다양한 우연과 기연을 통해, 편지를 보낸 이들은 새해를 맞이하는 의례에 참석합니다. 이 기적과도 같은 순간에 자신의 마음과 마주하고 진실한 답을 찾을 수 있을까요.",
     conditions: [],
   },
-  "053": {
-    id: "053",
-    name: "고지식한 병사 1",
+  "031": {
+    id: "031",
+    name: "역사 3 운명의 변덕",
     flavor:
-      "당신은 성문 앞에서 자주 보는 성실한 병사에게 편지를 전해달라고 부탁합니다. 그는 무뚝뚝한 얼굴로 그 편지를 받습니다. 「하는 수 없군. 해보지. 너무 기대는 하지 마시오.」",
+      "운명의 여신은 편지를 보낸 이들 편인 듯합니다. 한번 러브레터에 연관된 자들은 알지 못할 인연으로 그 흐름에 휘말려 갑니다. 매 라운드에서 첫 번째로 탈락한 플레이어는 이야기 보관소의 조건이 걸린 카드 1장 위에 「성공」 또는 「실패」 토큰 1개를 놓을 수 있습니다.",
     conditions: [],
   },
-  "054": {
-    id: "054",
-    name: "고지식한 병사 2",
-    flavor: "고지식한 병사가 편지를 전하러 나선 결과가 궁금해집니다.",
+  "053": {
+    id: "053",
+    name: "고지식한 병사",
+    flavor:
+      "당신은 성문 앞에서 자주 보는 성실한 병사에게 편지를 전해달라고 부탁합니다. 그는 무뚝뚝한 얼굴로 그 편지를 받습니다. 「하는 수 없군. 해보지. 너무 기대는 하지 마시오.」 고지식한 병사가 편지를 전하러 나선 결과가 궁금해집니다.",
     conditions: [
-      { id: "054-success", token: "성공", threshold: 2, revealIds: ["055", "056"], removeIds: ["053", "054"] },
-      { id: "054-fail", token: "실패", threshold: 4, revealIds: ["062"], removeIds: ["053", "054"] },
+      { id: "053-success", token: "성공", threshold: 2, revealIds: ["055", "056"], removeIds: ["053"] },
+      { id: "053-fail", token: "실패", threshold: 4, revealIds: ["062"], removeIds: ["053"] },
     ],
   },
   "055": {
@@ -121,6 +129,16 @@ export const CLOCK_MILESTONES: Record<number, string[]> = {
   6: ["049"],
   7: ["050"],
 };
+
+/** Human-readable name(s) of whatever a condition's revealIds point to, for
+ * displaying "성공 2개 이상 -> 공개: X" style text in the archive UI. Real
+ * cards sometimes split one character across two physical ids (e.g. 055/056
+ * are both "경비병 알리오스") purely for layout reasons, so duplicate names
+ * are shown once. */
+export function describeRevealTargets(revealIds: string[]): string {
+  const names = revealIds.map((id) => ARCHIVE_CARD_SEEDS[id]?.name ?? id);
+  return [...new Set(names)].join(", ");
+}
 
 export const ENDING_FLAVOR = {
   cardId: "051",

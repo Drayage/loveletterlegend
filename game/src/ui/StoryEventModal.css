@@ -1,13 +1,13 @@
-.story-archive {
+.story-event {
   display: flex;
   flex-direction: column;
   gap: 14px;
   width: 100%;
 }
 
-.story-archive__card {
-  background: var(--bg);
-  border: 1px solid var(--border);
+.story-event__card {
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
   border-radius: 10px;
   padding: 10px 12px;
 }

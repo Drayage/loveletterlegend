@@ -25,14 +25,50 @@
 
 .session-header__value {
   font-weight: 700;
+  font-size: 13px;
 }
 
-.session-header__stat--route {
-  min-width: 160px;
+.session-header__routes {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.session-header__route {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 170px;
+}
+
+.session-header__route-art {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center 15%;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.session-header__route-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.session-header__route-player {
+  font-size: 10.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .session-header__progress {
   width: 100%;
+  min-width: 110px;
   height: 6px;
   border-radius: 999px;
   background: var(--accent-soft);

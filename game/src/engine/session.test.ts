@@ -153,14 +153,13 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
 
   it("reveals new archive cards once a shared token condition is met", () => {
     let session = startSession(PLAYERS);
-    const card054 = session.storyArchive.find((c) => c.id === "054")!;
-    card054.successTokens = 1; // one below the real threshold of 2
+    const card053 = session.storyArchive.find((c) => c.id === "053")!;
+    card053.successTokens = 1; // one below the real threshold of 2
     session.pendingArchivePlacement = { eligiblePlayerId: "p1" };
 
-    session = placeArchiveToken(session, "p1", "054", "성공");
+    session = placeArchiveToken(session, "p1", "053", "성공");
 
     expect(session.storyArchive.some((c) => c.id === "053")).toBe(false);
-    expect(session.storyArchive.some((c) => c.id === "054")).toBe(false);
     expect(session.storyArchive.some((c) => c.id === "055")).toBe(true);
     expect(session.storyArchive.some((c) => c.id === "056")).toBe(true);
   });

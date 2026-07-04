@@ -2,6 +2,9 @@
 // starting "공주/왕자" romance routes the human can pursue and switch
 // between each round (see engine/session.ts).
 
+import princess from "../assets/cards/princess.jpg";
+import prince from "../assets/cards/extra/8. 왕자.jpg";
+
 export type Route = "공주" | "왕자";
 
 export interface RouteDef {
@@ -12,6 +15,7 @@ export interface RouteDef {
   swapAbilityText: string;
   oddCardId: string;
   evenCardId: string;
+  art: string;
 }
 
 export const ROUTE_DEFS: Record<Route, RouteDef> = {
@@ -22,6 +26,7 @@ export const ROUTE_DEFS: Record<Route, RouteDef> = {
       "매 라운드 시작시, 다른 「공주/왕자」를 덱의 대응하는 캐릭터 카드 아래로 되돌리고 「공주」를 덱에 추가해도 됩니다.",
     oddCardId: "018",
     evenCardId: "019",
+    art: princess,
   },
   왕자: {
     displayName: "아레스 왕자",
@@ -30,5 +35,6 @@ export const ROUTE_DEFS: Record<Route, RouteDef> = {
       "매 라운드 시작시, 다른 「공주/왕자」를 덱의 대응하는 캐릭터 카드 아래로 되돌리고 「왕자」를 덱에 추가해도 됩니다.",
     oddCardId: "020",
     evenCardId: "021",
+    art: prince,
   },
 };

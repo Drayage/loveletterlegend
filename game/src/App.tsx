@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { GameState, PendingDecision, PlayerConfig } from "./engine/types";
+import type { ArchiveCardState, GameState, PendingDecision, PlayerConfig } from "./engine/types";
 import { chooseCardToPlay, chooseTarget, chooseGuess } from "./engine/rules";
 import { chooseCardToPlayAI, chooseGuessAI, chooseTargetAI, chooseRouteAI, chooseArchiveTokenAI } from "./engine/ai";
 import { computeRemainingCounts } from "./engine/remaining";
@@ -25,7 +25,7 @@ import { RoundEndSummary } from "./ui/RoundEndSummary";
 import { SessionEndScreen } from "./ui/SessionEndScreen";
 import { StoryArchiveModal } from "./ui/StoryArchiveModal";
 import { ArchiveTokenModal } from "./ui/ArchiveTokenModal";
-import { HistoryRevealToast } from "./ui/HistoryRevealToast";
+import { StoryEventModal } from "./ui/StoryEventModal";
 import "./App.css";
 
 const HUMAN_ID = "human";
@@ -64,7 +64,7 @@ export default function App() {
   const [dismissedRevealId, setDismissedRevealId] = useState<string | null>(null);
   const [showRouteSwitch, setShowRouteSwitch] = useState(false);
   const [endSummaryAcknowledged, setEndSummaryAcknowledged] = useState(false);
-  const [historyToast, setHistoryToast] = useState<{ id: string; names: string[] } | null>(null);
+  const [pendingStoryEvent, setPendingStoryEvent] = useState<ArchiveCardState[] | null>(null);
   const handledDecisionRef = useRef<PendingDecision | null>(null);
   const handledArchiveRef = useRef<SessionState["pendingArchivePlacement"]>(null);
   const seenArchiveIdsRef = useRef<Set<string>>(new Set());
@@ -102,7 +102,7 @@ export default function App() {
       handledArchiveRef.current = null;
       return;
     }
-    if (pendingHumanReveal) return;
+    if (pendingHumanReveal || pendingStoryEvent) return;
     const placement = session.pendingArchivePlacement;
     const actor = session.playerConfigs.find((p) => p.id === placement.eligiblePlayerId);
     if (!actor?.isAI) return;
@@ -123,18 +123,17 @@ export default function App() {
       });
     }, 700);
     return () => clearTimeout(timer);
-  }, [session, pendingHumanReveal]);
+  }, [session, pendingHumanReveal, pendingStoryEvent]);
 
-  // Show a brief toast whenever new cards appear in the story archive.
+  // Show a readable popup (with full flavor text + conditions) whenever new
+  // cards appear in the story archive.
   useEffect(() => {
     if (!session) return;
     const currentIds = session.storyArchive.map((c) => c.id);
     const newly = session.storyArchive.filter((c) => !seenArchiveIdsRef.current.has(c.id));
     for (const id of currentIds) seenArchiveIdsRef.current.add(id);
     if (newly.length === 0) return;
-    setHistoryToast({ id: currentIds.join(","), names: newly.map((c) => c.name) });
-    const timer = setTimeout(() => setHistoryToast(null), 4000);
-    return () => clearTimeout(timer);
+    setPendingStoryEvent(newly);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.storyArchive.map((c) => c.id).join(",")]);
 
@@ -145,6 +144,7 @@ export default function App() {
     setDismissedRevealId(null);
     setShowRouteSwitch(false);
     setEndSummaryAcknowledged(false);
+    setPendingStoryEvent(null);
     setSession(startSession(PLAYERS));
   }
 
@@ -212,7 +212,6 @@ export default function App() {
       <SessionHeader session={session} humanId={HUMAN_ID} onShowArchive={() => setShowStoryArchive(true)} />
 
       <EffectToast entries={round.log} />
-      {historyToast && <HistoryRevealToast names={historyToast.names} />}
 
       <div className="removed-row">
         {round.faceUpRemovedCards.length > 0 ? (
@@ -275,7 +274,17 @@ export default function App() {
 
       {!isHumanDecision && decision && <div className="thinking-banner">AI가 생각하는 중...</div>}
 
-      {humanNeedsArchivePlacement && (
+      {/* Priority when several session-level popups could be true at once:
+          pendingHumanReveal (in-round private info from the card that just
+          ended the round) must be read first, then pendingStoryEvent (what
+          got revealed as a result), then the round-transition screens. Each
+          gate below explicitly excludes the ones before it so at most one
+          full-screen modal is ever mounted at a time. */}
+      {!pendingHumanReveal && pendingStoryEvent && (
+        <StoryEventModal cards={pendingStoryEvent} onClose={() => setPendingStoryEvent(null)} />
+      )}
+
+      {!pendingHumanReveal && !pendingStoryEvent && humanNeedsArchivePlacement && (
         <ArchiveTokenModal
           archive={session.storyArchive}
           onPlace={handlePlaceArchiveToken}
@@ -283,7 +292,9 @@ export default function App() {
         />
       )}
 
-      {roundOver &&
+      {!pendingHumanReveal &&
+        !pendingStoryEvent &&
+        roundOver &&
         !needsArchivePlacement &&
         session.lastRoundSummary &&
         !endSummaryAcknowledged &&
@@ -296,11 +307,16 @@ export default function App() {
           />
         )}
 
-      {roundOver && !needsArchivePlacement && !session.ended && showRouteSwitch && (
-        <RouteSwitchPrompt currentRoute={session.currentRoute[HUMAN_ID]} onChoose={proceedToNextRound} />
-      )}
+      {!pendingHumanReveal &&
+        !pendingStoryEvent &&
+        roundOver &&
+        !needsArchivePlacement &&
+        !session.ended &&
+        showRouteSwitch && (
+          <RouteSwitchPrompt currentRoute={session.currentRoute[HUMAN_ID]} onChoose={proceedToNextRound} />
+        )}
 
-      {roundOver && session.ended && endSummaryAcknowledged && (
+      {!pendingHumanReveal && !pendingStoryEvent && roundOver && session.ended && endSummaryAcknowledged && (
         <SessionEndScreen session={session} players={session.playerConfigs} onNewGame={startGame} />
       )}
 
