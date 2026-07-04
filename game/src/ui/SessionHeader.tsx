@@ -1,6 +1,7 @@
-import type { Route, SessionState } from "../engine/session";
-import { ROUTE_SLOT } from "../engine/session";
+import type { CharacterSlotId, SessionState } from "../engine/session";
 import { ROUTE_DEFS } from "../data/routes";
+import { WIZARD_APPRENTICE } from "../data/characters";
+import type { PlayerConfig } from "../engine/types";
 import "./SessionHeader.css";
 
 interface SessionHeaderProps {
@@ -9,21 +10,48 @@ interface SessionHeaderProps {
   onShowArchive: () => void;
 }
 
-function RouteStatus({ playerName, route, letters }: { playerName: string; route: Route; letters: number }) {
-  const def = ROUTE_DEFS[route];
+const ALL_SLOTS: CharacterSlotId[] = ["잉그리드공주", "아레스왕자", "마술사의도제"];
+
+const SLOT_INFO: Record<CharacterSlotId, { name: string; art?: string }> = {
+  잉그리드공주: { name: ROUTE_DEFS.공주.displayName, art: ROUTE_DEFS.공주.art },
+  아레스왕자: { name: ROUTE_DEFS.왕자.displayName, art: ROUTE_DEFS.왕자.art },
+  마술사의도제: { name: WIZARD_APPRENTICE.name },
+};
+
+/** Stable per-player color, assigned by seat order -- used so every
+ * character row can show each player's [편지] count in "their" color
+ * instead of only surfacing the human's own pursued route. */
+const PLAYER_COLORS = ["#4f8fef", "#ef6a6a", "#5fbf7a", "#c98fef"];
+
+function SlotRow({
+  slot,
+  playerConfigs,
+  humanId,
+  letterTokens,
+}: {
+  slot: CharacterSlotId;
+  playerConfigs: PlayerConfig[];
+  humanId: string;
+  letterTokens: SessionState["letterTokens"];
+}) {
+  const info = SLOT_INFO[slot];
   return (
-    <div className="session-header__route">
-      <img className="session-header__route-art" src={def.art} alt={def.displayName} />
-      <div className="session-header__route-info">
-        <span className="session-header__route-player">{playerName}</span>
-        <span className="session-header__value">{def.displayName}</span>
-        <div className="session-header__progress">
-          <div
-            className="session-header__progress-bar"
-            style={{ width: `${Math.min(100, (letters / 10) * 100)}%` }}
-          />
+    <div className="session-header__slot">
+      {info.art && <img className="session-header__slot-art" src={info.art} alt={info.name} />}
+      <div className="session-header__slot-info">
+        <span className="session-header__value">{info.name}</span>
+        <div className="session-header__slot-counts">
+          {playerConfigs.map((cfg, i) => (
+            <span
+              key={cfg.id}
+              className="session-header__slot-count"
+              style={{ color: PLAYER_COLORS[i % PLAYER_COLORS.length] }}
+              title={cfg.id === humanId ? "나" : cfg.displayName}
+            >
+              {letterTokens[slot]?.[cfg.id] ?? 0}
+            </span>
+          ))}
         </div>
-        <span className="session-header__progress-label">편지 {letters} / 10</span>
       </div>
     </div>
   );
@@ -41,20 +69,28 @@ export function SessionHeader({ session, humanId, onShowArchive }: SessionHeader
         <span className="session-header__value">{session.clockTokens}</span>
       </div>
 
-      <div className="session-header__routes">
-        {session.playerConfigs.map((cfg) => {
-          const route = session.currentRoute[cfg.id];
-          const slot = ROUTE_SLOT[route];
-          const letters = session.letterTokens[slot]?.[cfg.id] ?? 0;
-          return (
-            <RouteStatus
-              key={cfg.id}
-              playerName={cfg.id === humanId ? "나" : cfg.displayName}
-              route={route}
-              letters={letters}
+      <div className="session-header__legend">
+        {session.playerConfigs.map((cfg, i) => (
+          <span key={cfg.id} className="session-header__legend-entry">
+            <span
+              className="session-header__legend-dot"
+              style={{ background: PLAYER_COLORS[i % PLAYER_COLORS.length] }}
             />
-          );
-        })}
+            {cfg.id === humanId ? "나" : cfg.displayName}
+          </span>
+        ))}
+      </div>
+
+      <div className="session-header__slots">
+        {ALL_SLOTS.map((slot) => (
+          <SlotRow
+            key={slot}
+            slot={slot}
+            playerConfigs={session.playerConfigs}
+            humanId={humanId}
+            letterTokens={session.letterTokens}
+          />
+        ))}
       </div>
 
       <button type="button" className="session-header__archive-btn" onClick={onShowArchive}>

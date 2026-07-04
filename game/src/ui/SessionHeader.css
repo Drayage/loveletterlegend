@@ -28,21 +28,41 @@
   font-size: 13px;
 }
 
-.session-header__routes {
+.session-header__legend {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.session-header__legend-entry {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.session-header__legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.session-header__slots {
   display: flex;
   gap: 14px;
   flex-wrap: wrap;
   flex: 1;
 }
 
-.session-header__route {
+.session-header__slot {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 170px;
+  min-width: 150px;
 }
 
-.session-header__route-art {
+.session-header__slot-art {
   width: 34px;
   height: 34px;
   border-radius: 50%;
@@ -52,40 +72,24 @@
   flex-shrink: 0;
 }
 
-.session-header__route-info {
+.session-header__slot-info {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
 
-.session-header__route-player {
-  font-size: 10.5px;
+.session-header__slot-counts {
+  display: flex;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.session-header__slot-count:not(:last-child)::after {
+  content: " /";
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.session-header__progress {
-  width: 100%;
-  min-width: 110px;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  overflow: hidden;
-  margin-top: 2px;
-}
-
-.session-header__progress-bar {
-  height: 100%;
-  background: var(--accent);
-  border-radius: 999px;
-  transition: width 0.3s ease;
-}
-
-.session-header__progress-label {
-  font-size: 11px;
-  color: var(--muted);
+  font-weight: 400;
 }
 
 .session-header__archive-btn {

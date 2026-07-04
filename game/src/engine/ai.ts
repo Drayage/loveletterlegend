@@ -1,6 +1,6 @@
 import { CARD_DEFS, CARD_ORDER } from "./cards";
 import { cardRank } from "./effects";
-import type { ArchiveCardState, CardInstance, CardName, GameState } from "./types";
+import type { ArchiveCardState, CardInstance, CardName, CharacterSlotId, GameState } from "./types";
 import type { Route } from "../data/routes";
 
 /**
@@ -114,6 +114,20 @@ function scoreCardToPlay(
 // more [편지] progress on) is a natural place to extend later.
 export function chooseRouteAI(currentRoute: Route): Route {
   return currentRoute;
+}
+
+// v1: the AI always places its round-win [편지] on the slot matching
+// `routeSlot` (the character tied to the session's current shared route)
+// and never bothers reallocating once its pool is full. A richer policy
+// (chasing whichever slot it's closest to winning, or reallocating to
+// consolidate) is future work -- see engine/session.ts's resolveLetterChoice
+// for the move/decline shape this would need to return.
+export function chooseLetterTargetAI(
+  routeSlot: CharacterSlotId,
+  atCap: boolean
+): { type: "place"; slot: CharacterSlotId } | { type: "decline" } {
+  if (atCap) return { type: "decline" };
+  return { type: "place", slot: routeSlot };
 }
 
 // v1: simple policy for the "이야기 보관소" token-placement decision (see

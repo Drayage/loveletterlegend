@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import type { ArchiveCardState, GameState, PendingDecision, PlayerConfig } from "./engine/types";
 import { chooseCardToPlay, chooseTarget, chooseGuess } from "./engine/rules";
-import { chooseCardToPlayAI, chooseGuessAI, chooseTargetAI, chooseRouteAI, chooseArchiveTokenAI } from "./engine/ai";
+import {
+  chooseCardToPlayAI,
+  chooseGuessAI,
+  chooseTargetAI,
+  chooseArchiveTokenAI,
+  chooseLetterTargetAI,
+} from "./engine/ai";
 import { computeRemainingCounts } from "./engine/remaining";
 import {
   startSession,
@@ -9,8 +15,11 @@ import {
   beginNextRound,
   placeArchiveToken,
   skipArchivePlacement,
+  resolveLetterChoice,
+  ROUTE_SLOT,
 } from "./engine/session";
-import type { Route, SessionState } from "./engine/session";
+import type { CharacterSlotId, LetterChoice, Route, SessionState } from "./engine/session";
+import { LetterTokenChoiceModal } from "./ui/LetterTokenChoiceModal";
 import { Card } from "./ui/Card";
 import { PlayerArea } from "./ui/PlayerArea";
 import { TablePlay } from "./ui/TablePlay";
@@ -67,6 +76,7 @@ export default function App() {
   const [pendingStoryEvent, setPendingStoryEvent] = useState<ArchiveCardState[] | null>(null);
   const handledDecisionRef = useRef<PendingDecision | null>(null);
   const handledArchiveRef = useRef<SessionState["pendingArchivePlacement"]>(null);
+  const handledLetterChoiceRef = useRef<SessionState["pendingLetterChoice"]>(null);
   const seenArchiveIdsRef = useRef<Set<string>>(new Set());
 
   const round = session?.round ?? null;
@@ -95,6 +105,38 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [round, pendingHumanReveal]);
 
+  // AI's round-win [편지] token placement, when the AI is the round winner.
+  useEffect(() => {
+    if (!session?.pendingLetterChoice) {
+      handledLetterChoiceRef.current = null;
+      return;
+    }
+    const pending = session.pendingLetterChoice;
+    // If a reveal/story popup shows up in the same tick this becomes
+    // pending, clear the "handled" marker instead of leaving it stuck --
+    // otherwise once those popups clear, the dependency-array re-run sees
+    // handledLetterChoiceRef already pointing at this exact `pending`
+    // object and skips rescheduling forever.
+    if (pendingHumanReveal || pendingStoryEvent) {
+      handledLetterChoiceRef.current = null;
+      return;
+    }
+    const actor = session.playerConfigs.find((p) => p.id === pending.playerId);
+    if (!actor?.isAI) return;
+    if (handledLetterChoiceRef.current === pending) return;
+    handledLetterChoiceRef.current = pending;
+
+    const timer = setTimeout(() => {
+      setSession((prev) => {
+        if (!prev || prev.pendingLetterChoice !== pending) return prev;
+        const routeSlot = ROUTE_SLOT[prev.currentRoute];
+        const choice: LetterChoice = chooseLetterTargetAI(routeSlot, pending.atCap);
+        return safely(() => resolveLetterChoice(prev, pending.playerId, choice)) ?? prev;
+      });
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [session, pendingHumanReveal, pendingStoryEvent]);
+
   // AI's story-archive token placement, when it's the AI who was first
   // eliminated this round.
   useEffect(() => {
@@ -102,8 +144,13 @@ export default function App() {
       handledArchiveRef.current = null;
       return;
     }
-    if (pendingHumanReveal || pendingStoryEvent) return;
     const placement = session.pendingArchivePlacement;
+    // Same "don't get stuck" fix as the letter-choice effect above: clear
+    // the marker rather than leaving it stale while blocked.
+    if (pendingHumanReveal || pendingStoryEvent) {
+      handledArchiveRef.current = null;
+      return;
+    }
     const actor = session.playerConfigs.find((p) => p.id === placement.eligiblePlayerId);
     if (!actor?.isAI) return;
     if (handledArchiveRef.current === placement) return;
@@ -140,6 +187,7 @@ export default function App() {
   function startGame() {
     handledDecisionRef.current = null;
     handledArchiveRef.current = null;
+    handledLetterChoiceRef.current = null;
     seenArchiveIdsRef.current = new Set();
     setDismissedRevealId(null);
     setShowRouteSwitch(false);
@@ -158,14 +206,8 @@ export default function App() {
     setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseGuess(s, name))) ?? prev : prev));
   }
 
-  function proceedToNextRound(humanRoute: Route) {
-    setSession((prev) => {
-      if (!prev) return prev;
-      const routeChoices: Record<string, Route> = { [HUMAN_ID]: humanRoute };
-      const aiId = prev.playerConfigs.find((p) => p.isAI)?.id;
-      if (aiId) routeChoices[aiId] = chooseRouteAI(prev.currentRoute[aiId]);
-      return safely(() => beginNextRound(prev, routeChoices)) ?? prev;
-    });
+  function proceedToNextRound(route: Route) {
+    setSession((prev) => (prev ? safely(() => beginNextRound(prev, route)) ?? prev : prev));
     setShowRouteSwitch(false);
   }
 
@@ -174,6 +216,10 @@ export default function App() {
   }
   function handleSkipArchivePlacement() {
     setSession((prev) => (prev ? safely(() => skipArchivePlacement(prev, HUMAN_ID)) ?? prev : prev));
+  }
+
+  function handleLetterChoice(choice: LetterChoice) {
+    setSession((prev) => (prev ? safely(() => resolveLetterChoice(prev, HUMAN_ID, choice)) ?? prev : prev));
   }
 
   if (!session || !round) {
@@ -198,6 +244,14 @@ export default function App() {
   const needsArchivePlacement = Boolean(session.pendingArchivePlacement);
   const humanNeedsArchivePlacement =
     needsArchivePlacement && session.pendingArchivePlacement!.eligiblePlayerId === HUMAN_ID;
+  const needsLetterChoice = Boolean(session.pendingLetterChoice);
+  const humanNeedsLetterChoice = needsLetterChoice && session.pendingLetterChoice!.playerId === HUMAN_ID;
+  const humanLetterTokens = Object.fromEntries(
+    (["잉그리드공주", "아레스왕자", "마술사의도제"] as CharacterSlotId[]).map((slot) => [
+      slot,
+      session.letterTokens[slot]?.[HUMAN_ID] ?? 0,
+    ])
+  ) as Record<CharacterSlotId, number>;
 
   return (
     <div className="app-layout">
@@ -277,7 +331,8 @@ export default function App() {
       {/* Priority when several session-level popups could be true at once:
           pendingHumanReveal (in-round private info from the card that just
           ended the round) must be read first, then pendingStoryEvent (what
-          got revealed as a result), then the round-transition screens. Each
+          got revealed as a result), then the winner's letter-token choice,
+          then archive placement, then the round-transition screens. Each
           gate below explicitly excludes the ones before it so at most one
           full-screen modal is ever mounted at a time. */}
       {!pendingHumanReveal && pendingStoryEvent && (
@@ -287,7 +342,16 @@ export default function App() {
         />
       )}
 
-      {!pendingHumanReveal && !pendingStoryEvent && humanNeedsArchivePlacement && (
+      {!pendingHumanReveal && !pendingStoryEvent && humanNeedsLetterChoice && (
+        <LetterTokenChoiceModal
+          amount={session.pendingLetterChoice!.amount}
+          atCap={session.pendingLetterChoice!.atCap}
+          tokens={humanLetterTokens}
+          onChoose={handleLetterChoice}
+        />
+      )}
+
+      {!pendingHumanReveal && !pendingStoryEvent && !needsLetterChoice && humanNeedsArchivePlacement && (
         <ArchiveTokenModal
           archive={session.storyArchive}
           onPlace={handlePlaceArchiveToken}
@@ -297,6 +361,7 @@ export default function App() {
 
       {!pendingHumanReveal &&
         !pendingStoryEvent &&
+        !needsLetterChoice &&
         roundOver &&
         !needsArchivePlacement &&
         session.lastRoundSummary &&
@@ -312,11 +377,12 @@ export default function App() {
 
       {!pendingHumanReveal &&
         !pendingStoryEvent &&
+        !needsLetterChoice &&
         roundOver &&
         !needsArchivePlacement &&
         !session.ended &&
         showRouteSwitch && (
-          <RouteSwitchPrompt currentRoute={session.currentRoute[HUMAN_ID]} onChoose={proceedToNextRound} />
+          <RouteSwitchPrompt currentRoute={session.currentRoute} onChoose={proceedToNextRound} />
         )}
 
       {!pendingHumanReveal && !pendingStoryEvent && roundOver && session.ended && endSummaryAcknowledged && (

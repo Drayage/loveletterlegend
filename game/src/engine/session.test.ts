@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { chooseCardToPlay, chooseTarget, chooseGuess } from "./rules";
-import { chooseCardToPlayAI, chooseGuessAI, chooseTargetAI, chooseRouteAI } from "./ai";
+import { chooseCardToPlayAI, chooseGuessAI, chooseTargetAI, chooseRouteAI, chooseLetterTargetAI } from "./ai";
 import { needsTarget, targetsFor, applyEffect } from "./effects";
 import {
   startSession,
@@ -8,8 +8,10 @@ import {
   beginNextRound,
   placeArchiveToken,
   skipArchivePlacement,
+  resolveLetterChoice,
+  ROUTE_SLOT,
 } from "./session";
-import type { Route, SessionState } from "./session";
+import type { SessionState } from "./session";
 import type { PlayerConfig, GameState } from "./types";
 
 const PLAYERS: PlayerConfig[] = [
@@ -46,13 +48,15 @@ function driveSessionToEnd(session: SessionState, maxRounds = 20): SessionState 
     rounds += 1;
     if (rounds > maxRounds) throw new Error("세션이 끝나지 않습니다 (무한 루프 의심)");
     s = driveOneSessionRound(s);
+    if (s.pendingLetterChoice) {
+      const choice = chooseLetterTargetAI(ROUTE_SLOT[s.currentRoute], s.pendingLetterChoice.atCap);
+      s = resolveLetterChoice(s, s.pendingLetterChoice.playerId, choice);
+    }
     if (s.pendingArchivePlacement) {
       s = skipArchivePlacement(s, s.pendingArchivePlacement.eligiblePlayerId);
     }
     if (!s.ended) {
-      const routeChoices: Record<string, Route> = {};
-      for (const cfg of s.playerConfigs) routeChoices[cfg.id] = chooseRouteAI(s.currentRoute[cfg.id]);
-      s = beginNextRound(s, routeChoices);
+      s = beginNextRound(s, chooseRouteAI(s.currentRoute));
     }
   }
   return s;
@@ -88,32 +92,52 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
     }
   });
 
-  it("accrues letter tokens for AI wins just like human wins (no human-only special case)", () => {
+  it("accrues letter tokens for AI wins just like human wins (no human-only special case), via the winner's own placement choice", () => {
     let session = startSession(PLAYERS);
     session = forceImmediateWin(session, "p2");
+    expect(session.pendingLetterChoice?.playerId).toBe("p2");
+    expect(session.pendingLetterChoice?.amount).toBe(1);
+    session = resolveLetterChoice(session, "p2", { type: "place", slot: "잉그리드공주" });
     expect(session.letterTokens["잉그리드공주"]["p2"]).toBe(1);
+    expect(session.pendingLetterChoice).toBeNull();
   });
 
-  it("awards an extra letter token when the winner held 「공주」", () => {
+  it("offers an extra letter token to place when the winner held 「공주」", () => {
     let session = startSession(PLAYERS);
     session = forceImmediateWin(session, "p1", [
       { instanceId: "c1", name: "대신" },
       { instanceId: "c2", name: "공주" },
     ]);
-    // played "대신" (no-op), leaving 공주 as revealedHands[winnerId] -> +1 base +1 bonus
-    expect(session.letterTokens["잉그리드공주"]["p1"]).toBe(2);
+    // played "대신" (no-op), leaving 공주 as revealedHands[winnerId] -> amount 2
+    expect(session.pendingLetterChoice?.amount).toBe(2);
+    session = resolveLetterChoice(session, "p1", { type: "place", slot: "아레스왕자" });
+    expect(session.letterTokens["아레스왕자"]["p1"]).toBe(2);
   });
 
-  it("ends the session early once a player's route reaches 10 letter tokens", () => {
+  it("does not end the session when a player's letter-token pool reaches 10 (rulebook Q&A)", () => {
     let session = startSession(PLAYERS);
-    session.letterTokens["잉그리드공주"]["p1"] = 9;
+    session.letterTokens["잉그리드공주"]["p1"] = 10;
     session = forceImmediateWin(session, "p1", [
       { instanceId: "c1", name: "대신" },
       { instanceId: "c2", name: "장군" },
     ]);
+    expect(session.pendingLetterChoice?.atCap).toBe(true);
+    expect(() => resolveLetterChoice(session, "p1", { type: "place", slot: "아레스왕자" })).toThrow();
+    session = resolveLetterChoice(session, "p1", { type: "decline" });
+    expect(session.ended).toBe(false);
     expect(session.letterTokens["잉그리드공주"]["p1"]).toBe(10);
-    expect(session.ended).toBe(true);
-    expect(session.endingReason).toBe("earlyThreshold");
+  });
+
+  it("lets an at-cap player move an already-placed token between slots instead of gaining a new one", () => {
+    let session = startSession(PLAYERS);
+    session.letterTokens["잉그리드공주"]["p1"] = 10;
+    session = forceImmediateWin(session, "p1", [
+      { instanceId: "c1", name: "대신" },
+      { instanceId: "c2", name: "장군" },
+    ]);
+    session = resolveLetterChoice(session, "p1", { type: "move", from: "잉그리드공주", to: "아레스왕자" });
+    expect(session.letterTokens["잉그리드공주"]["p1"]).toBe(9);
+    expect(session.letterTokens["아레스왕자"]["p1"]).toBe(1);
   });
 
   it("tie-wipes equal token counts on a slot before assigning endings", () => {
@@ -126,11 +150,14 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
       { instanceId: "c1", name: "대신" },
       { instanceId: "c2", name: "장군" },
     ]);
+    // Round-cap ending waits for the winner's letter-token placement first.
+    expect(session.ended).toBe(false);
+    session = resolveLetterChoice(session, "p1", { type: "place", slot: "아레스왕자" });
     expect(session.ended).toBe(true);
     expect(session.endingReason).toBe("roundCap");
     // p1's tied 잉그리드공주 tokens got wiped, but their untied 아레스왕자
-    // tokens (plus the +1 from this round's win, credited to whichever
-    // route p1 is currently pursuing) still let them claim something.
+    // tokens (now boosted by this round's placement) still let them claim
+    // something.
     expect(session.playerEndings).not.toBeNull();
   });
 
@@ -146,6 +173,8 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
       { instanceId: "c1", name: "대신" },
       { instanceId: "c2", name: "장군" },
     ]);
+    expect(session.ended).toBe(false);
+    session = resolveLetterChoice(session, "p1", { type: "place", slot: "잉그리드공주" });
     expect(session.ended).toBe(true);
     // p2 never won anything this round and had every slot tied -> "이루어진 상대 없음"
     expect(session.playerEndings?.["p2"]).toBeNull();
@@ -207,6 +236,6 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
   it("beginNextRound rejects being called while a session-level decision is pending", () => {
     let session = startSession(PLAYERS);
     session.pendingArchivePlacement = { eligiblePlayerId: "p1" };
-    expect(() => beginNextRound(session, { p1: "공주", p2: "공주" })).toThrow();
+    expect(() => beginNextRound(session, "공주")).toThrow();
   });
 });

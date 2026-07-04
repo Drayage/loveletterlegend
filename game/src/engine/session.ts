@@ -5,22 +5,31 @@ import type { Route } from "../data/routes";
 import type {
   ArchiveCardState,
   CardName,
+  CharacterSlotId,
   CharacterUpgradeTier,
   GameState,
   PlayerConfig,
 } from "./types";
 
 export type { Route } from "../data/routes";
+export type { CharacterSlotId } from "./types";
 
-/** Character "slots" whose [편지] we track for v1 (see engine/upgrades.ts
- * and data/characters.ts for how "마술사의도제" feeds back into gameplay).
+/** [편지] 토큰을 추적하는 캐릭터 슬롯 목록 (see engine/upgrades.ts and
+ * data/characters.ts for how "마술사의도제" feeds back into gameplay).
  * Extending coverage to more of the 64 character cards later is purely a
  * matter of adding slots here + seed data -- this module's algorithms don't
  * change. */
-export type CharacterSlotId = "잉그리드공주" | "아레스왕자" | "마술사의도제";
 export const ROUTE_SLOT: Record<Route, CharacterSlotId> = { 공주: "잉그리드공주", 왕자: "아레스왕자" };
 export const RANK8_SLOTS: readonly CharacterSlotId[] = ["잉그리드공주", "아레스왕자"];
 const ALL_SLOTS: readonly CharacterSlotId[] = ["잉그리드공주", "아레스왕자", "마술사의도제"];
+
+/** Each player owns a finite personal pool of 10 physical [편지] tokens,
+ * shared across every character slot (not a per-slot cap). Confirmed by
+ * rulebook Q&A: using all 10 does NOT end the game, and once a player has
+ * placed all 10, they may choose to move one of their already-placed
+ * tokens between characters (or leave them where they are) instead of
+ * gaining a new one. */
+const LETTER_TOKEN_POOL = 10;
 
 export interface RoundSummary {
   roundNumber: number;
@@ -29,20 +38,32 @@ export interface RoundSummary {
   letterTokensGained: Array<{ playerId: string; slot: CharacterSlotId; amount: number }>;
 }
 
+export type LetterChoice =
+  | { type: "place"; slot: CharacterSlotId }
+  | { type: "move"; from: CharacterSlotId; to: CharacterSlotId }
+  | { type: "decline" };
+
 export interface SessionState {
   playerConfigs: PlayerConfig[];
   round: GameState; // current single-round engine state, shape unchanged
   roundNumber: number; // 1-based
   clockTokens: number; // 카드 017 누적, 라운드 상한(8) 판정에 사용
-  currentRoute: Record<string /* playerId */, Route>; // 각 플레이어가 추구하는 라우트
+  /** 카드 한 장(공주/왕자)의 현재 활성 면 -- 세션 전체가 공유하는 값이며
+   * 플레이어별로 다르지 않다. 매 라운드 시작 시 그 라운드의 선플레이어만
+   * 전환 여부를 결정하고, 다른 플레이어는 결과만 본다. */
+  currentRoute: Route;
   letterTokens: Record<CharacterSlotId, Record<string /* playerId */, number>>;
   ended: boolean;
-  endingReason: "roundCap" | "earlyThreshold" | null;
+  endingReason: "roundCap" | null;
   playerEndings: Record<string /* playerId */, CharacterSlotId | null> | null; // null = "이루어진 상대 없음"
   overallWinnerPlayerId: string | null; // RANK8_SLOTS 중 하나와 맺어진 플레이어
   lastRoundSummary: RoundSummary | null;
   storyArchive: ArchiveCardState[];
   pendingArchivePlacement: { eligiblePlayerId: string } | null;
+  /** 라운드 승자가 이번 라운드에 얻은 [편지] 토큰을 어디에 놓을지 결정할
+   * 차례 -- amount는 놓일 토큰 수(공주를 들고 승리했다면 2), atCap이면
+   * 놓을 자리가 없어 "이동" 또는 "이동하지 않음"만 선택 가능하다. */
+  pendingLetterChoice: { playerId: string; amount: number; atCap: boolean } | null;
 }
 
 function seedArchiveCard(id: string): ArchiveCardState {
@@ -64,15 +85,13 @@ export function startSession(playerConfigs: PlayerConfig[], initialRoute: Route 
     letterTokens[slot] = {};
     for (const cfg of playerConfigs) letterTokens[slot][cfg.id] = 0;
   }
-  const currentRoute: Record<string, Route> = {};
-  for (const cfg of playerConfigs) currentRoute[cfg.id] = initialRoute;
 
   return finalizeFreshRound({
     playerConfigs,
     round: { ...setupRound(playerConfigs), sessionEvents: [] },
     roundNumber: 1,
     clockTokens: 0,
-    currentRoute,
+    currentRoute: initialRoute,
     letterTokens,
     ended: false,
     endingReason: null,
@@ -81,6 +100,7 @@ export function startSession(playerConfigs: PlayerConfig[], initialRoute: Route 
     lastRoundSummary: null,
     storyArchive: [seedArchiveCard("017")],
     pendingArchivePlacement: null,
+    pendingLetterChoice: null,
   });
 }
 
@@ -111,6 +131,25 @@ function finalizeFreshRound(session: SessionState): SessionState {
 
 function addLetterToken(session: SessionState, slot: CharacterSlotId, playerId: string, amount: number): void {
   session.letterTokens[slot][playerId] = (session.letterTokens[slot][playerId] ?? 0) + amount;
+}
+
+function totalLetterTokens(session: SessionState, playerId: string): number {
+  return ALL_SLOTS.reduce((sum, slot) => sum + (session.letterTokens[slot][playerId] ?? 0), 0);
+}
+
+/** Adds up to `amount` tokens without exceeding the player's 10-token pool,
+ * silently dropping whatever doesn't fit. Used for the automatic (non-
+ * choice) grants -- 마술사의도제 progress and the archive's shared tokens
+ * aren't part of this cap, only per-player letterTokens are. This is a v1
+ * simplification: unlike the round-win route award (which always gets a
+ * real move-or-decline choice via pendingLetterChoice when at cap), these
+ * secondary grants just get dropped once the pool is full rather than also
+ * offering a reallocation prompt. */
+function addLetterTokenCapped(session: SessionState, slot: CharacterSlotId, playerId: string, amount: number): number {
+  const room = LETTER_TOKEN_POOL - totalLetterTokens(session, playerId);
+  const applied = Math.max(0, Math.min(amount, room));
+  if (applied > 0) addLetterToken(session, slot, playerId, applied);
+  return applied;
 }
 
 function addArchiveToken(session: SessionState, cardId: string, token: "성공" | "실패", amount: number): void {
@@ -171,23 +210,23 @@ function applySessionRoundEnd(session: SessionState): SessionState {
   next.clockTokens += 1;
 
   if (winnerId) {
-    const routeSlot = ROUTE_SLOT[next.currentRoute[winnerId]];
-    addLetterToken(next, routeSlot, winnerId, 1);
-    letterGains.push({ playerId: winnerId, slot: routeSlot, amount: 1 });
-
-    // 카드 017 종료 tag 2조항: 「공주」(rank 8)를 손에 들고 승리하면 추가 +1.
+    // 카드 017 「시간」: 라운드 승리 -> 공개된 공주/왕자 중 하나를 골라
+    // [편지] +1 (「공주」를 들고 승리했다면 +2). 어느 캐릭터에 놓을지는
+    // currentRoute와 무관하게 승자의 선택 -- see resolveLetterChoice.
     const winnerCard = result.revealedHands[winnerId];
-    if (winnerCard?.name === "공주") {
-      addLetterToken(next, routeSlot, winnerId, 1);
-      letterGains.push({ playerId: winnerId, slot: routeSlot, amount: 1 });
-    }
+    const amount = winnerCard?.name === "공주" ? 2 : 1;
+    next.pendingLetterChoice = {
+      playerId: winnerId,
+      amount,
+      atCap: totalLetterTokens(next, winnerId) >= LETTER_TOKEN_POOL,
+    };
 
     const winner = next.round.players.find((p) => p.id === winnerId);
     const heldOrDiscardedWizard =
       winner?.hand.some((c) => c.name === "마술사") || winner?.discardPile.some((c) => c.name === "마술사");
     if (heldOrDiscardedWizard) {
-      addLetterToken(next, "마술사의도제", winnerId, 2);
-      letterGains.push({ playerId: winnerId, slot: "마술사의도제", amount: 2 });
+      const applied = addLetterTokenCapped(next, "마술사의도제", winnerId, 2);
+      if (applied > 0) letterGains.push({ playerId: winnerId, slot: "마술사의도제", amount: applied });
     }
 
     // 053 "고지식한 병사 1" -- 경비병을 들고/버리고 승리: 공유 [성공] +1.
@@ -198,8 +237,8 @@ function applySessionRoundEnd(session: SessionState): SessionState {
 
   for (const event of next.round.sessionEvents ?? []) {
     if (event.type === "wizardForcedDiscard") {
-      addLetterToken(next, "마술사의도제", event.actingPlayerId, 1);
-      letterGains.push({ playerId: event.actingPlayerId, slot: "마술사의도제", amount: 1 });
+      const applied = addLetterTokenCapped(next, "마술사의도제", event.actingPlayerId, 1);
+      if (applied > 0) letterGains.push({ playerId: event.actingPlayerId, slot: "마술사의도제", amount: applied });
     } else if (event.type === "guardGuessResolved") {
       addArchiveToken(next, "053", event.hit ? "성공" : "실패", 1);
     }
@@ -222,24 +261,20 @@ function applySessionRoundEnd(session: SessionState): SessionState {
     letterTokensGained: letterGains,
   };
 
-  let ended = false;
-  let endingReason: SessionState["endingReason"] = null;
-  if (next.roundNumber >= 8) {
-    ended = true;
-    endingReason = "roundCap";
-  } else {
-    for (const cfg of next.playerConfigs) {
-      const slot = ROUTE_SLOT[next.currentRoute[cfg.id]];
-      if ((next.letterTokens[slot][cfg.id] ?? 0) >= 10) {
-        ended = true;
-        endingReason = "earlyThreshold";
-        break;
-      }
-    }
-  }
+  if (next.pendingLetterChoice) return next;
+  return finalizeRoundEndDecisions(next, winnerId);
+}
 
-  if (ended) {
-    return resolveEnding(next, endingReason!, winnerId ?? next.playerConfigs[0].id);
+/** Runs once the round winner's [편지] placement (or move/decline) is
+ * settled -- checks the round cap and, if the session continues, opens the
+ * story-archive placement gate. Split out from applySessionRoundEnd because
+ * the round-cap/ending check must wait for that placement: the winner
+ * should still get to decide where their final letter goes before
+ * resolveEnding reads the token counts. */
+function finalizeRoundEndDecisions(session: SessionState, winnerId: string | null): SessionState {
+  const next = session;
+  if (next.roundNumber >= 8) {
+    return resolveEnding(next, "roundCap", winnerId ?? next.playerConfigs[0].id);
   }
   if (
     next.round.firstEliminatedThisRound &&
@@ -251,15 +286,11 @@ function applySessionRoundEnd(session: SessionState): SessionState {
 }
 
 /** Rulebook end-game resolution, implemented generically over ALL_SLOTS so
- * Phase 3 can extend coverage without touching this algorithm. Assumption
- * (flagged): for an early-threshold ending, "8라운드의 승자부터" is read as
- * "whoever won the round that triggered the ending" -- the rulebook text
- * assumes reaching round 8. */
-function resolveEnding(
-  session: SessionState,
-  reason: "roundCap" | "earlyThreshold",
-  startingPlayerId: string
-): SessionState {
+ * Phase 3 can extend coverage without touching this algorithm. The session
+ * only ever ends via the 8-round cap (reaching a player's 10-token pool
+ * does NOT end the game, per rulebook Q&A), so `startingPlayerId` is always
+ * "the round-8 winner" -- no early-ending case to special-case here. */
+function resolveEnding(session: SessionState, reason: "roundCap", startingPlayerId: string): SessionState {
   const next: SessionState = structuredClone(session);
   const playerIds = next.playerConfigs.map((c) => c.id);
   const order = [startingPlayerId, ...playerIds.filter((id) => id !== startingPlayerId)];
@@ -308,6 +339,7 @@ function resolveEnding(
       return slot !== null && (RANK8_SLOTS as readonly string[]).includes(slot);
     }) ?? null;
   next.pendingArchivePlacement = null;
+  next.pendingLetterChoice = null;
   return next;
 }
 
@@ -325,18 +357,58 @@ function resolveActiveUpgrades(session: SessionState): Partial<Record<CardName, 
   return upgrades;
 }
 
-export function beginNextRound(session: SessionState, routeChoices: Record<string, Route>): SessionState {
+/** `route` is decided by whichever player leads the upcoming round (v1: the
+ * engine never rotates turn order, so that's always `playerConfigs[0]` --
+ * see App.tsx/ai.ts for how that player's choice, human or AI, is sourced).
+ * Other players never get an independent say; they just see the result. */
+export function beginNextRound(session: SessionState, route: Route): SessionState {
   if (session.ended) throw new Error("세션이 이미 종료되었습니다.");
+  if (session.pendingLetterChoice) throw new Error("편지 토큰 배치가 끝나지 않았습니다.");
   if (session.pendingArchivePlacement) throw new Error("이야기 보관소 토큰 배치가 끝나지 않았습니다.");
   const next: SessionState = structuredClone(session);
-  for (const cfg of next.playerConfigs) {
-    next.currentRoute[cfg.id] = routeChoices[cfg.id] ?? next.currentRoute[cfg.id];
-  }
+  next.currentRoute = route;
   next.roundNumber += 1;
   const upgrades = resolveActiveUpgrades(next);
   next.round = { ...setupRound(next.playerConfigs), activeCardUpgrades: upgrades, sessionEvents: [] };
   next.lastRoundSummary = null;
   return finalizeFreshRound(next);
+}
+
+/** Resolves the round winner's pendingLetterChoice: a fresh placement when
+ * under the 10-token pool, or -- once the pool is full -- an optional move
+ * between slots (never a fresh placement, per rulebook Q&A). */
+export function resolveLetterChoice(session: SessionState, playerId: string, choice: LetterChoice): SessionState {
+  const pending = session.pendingLetterChoice;
+  if (!pending || pending.playerId !== playerId) {
+    throw new Error("지금은 이 플레이어가 편지 토큰을 놓을 차례가 아닙니다.");
+  }
+  if (choice.type === "place" && pending.atCap) {
+    throw new Error("편지 토큰을 이미 다 사용해 새로 놓을 수 없습니다. 이동하거나 그대로 두세요.");
+  }
+  if (choice.type !== "place" && !pending.atCap) {
+    throw new Error("아직 편지 토큰에 여유가 있어 이동할 수 없습니다.");
+  }
+  if (choice.type === "place" && !(RANK8_SLOTS as readonly CharacterSlotId[]).includes(choice.slot)) {
+    throw new Error("편지 토큰은 공주/왕자 캐릭터에만 놓을 수 있습니다.");
+  }
+
+  const next: SessionState = structuredClone(session);
+  const letterGains: RoundSummary["letterTokensGained"] = [...(next.lastRoundSummary?.letterTokensGained ?? [])];
+
+  if (choice.type === "place") {
+    addLetterToken(next, choice.slot, playerId, pending.amount);
+    letterGains.push({ playerId, slot: choice.slot, amount: pending.amount });
+  } else if (choice.type === "move") {
+    const available = next.letterTokens[choice.from][playerId] ?? 0;
+    if (available <= 0) throw new Error(`${choice.from}에 이동시킬 토큰이 없습니다.`);
+    addLetterToken(next, choice.from, playerId, -1);
+    addLetterToken(next, choice.to, playerId, 1);
+  }
+  // "decline": no-op.
+
+  if (next.lastRoundSummary) next.lastRoundSummary = { ...next.lastRoundSummary, letterTokensGained: letterGains };
+  next.pendingLetterChoice = null;
+  return finalizeRoundEndDecisions(next, next.round.roundResult?.winnerId ?? null);
 }
 
 export function placeArchiveToken(

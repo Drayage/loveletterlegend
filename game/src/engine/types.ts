@@ -153,3 +153,9 @@ export interface ArchiveCardState {
   successTokens: number;
   failTokens: number;
 }
+
+/** Character "slots" whose [편지] we track for v1 (see engine/session.ts,
+ * engine/upgrades.ts and data/characters.ts). Lives here (not
+ * engine/session.ts) so ai.ts can reference the type without depending on
+ * session.ts. */
+export type CharacterSlotId = "잉그리드공주" | "아레스왕자" | "마술사의도제";
