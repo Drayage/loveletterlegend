@@ -281,7 +281,10 @@ export default function App() {
           gate below explicitly excludes the ones before it so at most one
           full-screen modal is ever mounted at a time. */}
       {!pendingHumanReveal && pendingStoryEvent && (
-        <StoryEventModal cards={pendingStoryEvent} onClose={() => setPendingStoryEvent(null)} />
+        <StoryEventModal
+          cards={pendingStoryEvent}
+          onNext={() => setPendingStoryEvent((prev) => (prev && prev.length > 1 ? prev.slice(1) : null))}
+        />
       )}
 
       {!pendingHumanReveal && !pendingStoryEvent && humanNeedsArchivePlacement && (
