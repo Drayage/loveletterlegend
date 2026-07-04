@@ -2,28 +2,41 @@ import type { ArchiveCardState } from "../engine/types";
 import { ARCHIVE_CARD_SEEDS } from "../data/scenario";
 import "./ArchiveCardDetail.css";
 
+/** earnRules entries end with a "...: 성공" / "...: 실패" suffix marking
+ * which shared token they contribute to -- split it off so it can be
+ * grouped under the matching condition instead of shown as a flat list. */
+function splitEarnRule(rule: string): { text: string; token: "성공" | "실패" } | null {
+  const match = rule.match(/^(.*):\s*(성공|실패)$/);
+  if (!match) return null;
+  return { text: match[1], token: match[2] as "성공" | "실패" };
+}
+
 export function ArchiveCardDetail({ card }: { card: ArchiveCardState }) {
   const pendingConditions = card.conditions.filter((c) => !c.fired);
-  const earnRules = ARCHIVE_CARD_SEEDS[card.id]?.earnRules;
+  const earnRules = ARCHIVE_CARD_SEEDS[card.id]?.earnRules ?? [];
+  const parsedRules = earnRules.map(splitEarnRule).filter((r): r is NonNullable<typeof r> => r !== null);
 
   return (
     <div className="archive-card-detail">
       <p className="archive-card-detail__name">{card.name}</p>
       <p className="archive-card-detail__flavor">{card.flavor}</p>
-      {earnRules && earnRules.length > 0 && (
-        <ul className="archive-card-detail__earn-rules">
-          {earnRules.map((rule, i) => (
-            <li key={i}>{rule}</li>
-          ))}
-        </ul>
-      )}
       {pendingConditions.length > 0 && (
         <ul className="archive-card-detail__conditions">
           {pendingConditions.map((c) => {
             const count = c.token === "성공" ? card.successTokens : card.failTokens;
+            const rulesForToken = parsedRules.filter((r) => r.token === c.token);
             return (
               <li key={c.id}>
-                [{c.token}] {Math.min(count, c.threshold)} / {c.threshold} 이상 필요
+                <span className="archive-card-detail__condition-progress">
+                  [{c.token}] {Math.min(count, c.threshold)} / {c.threshold} 이상 필요
+                </span>
+                {rulesForToken.length > 0 && (
+                  <ul className="archive-card-detail__earn-rules">
+                    {rulesForToken.map((r, i) => (
+                      <li key={i}>{r.text}</li>
+                    ))}
+                  </ul>
+                )}
               </li>
             );
           })}
