@@ -14,6 +14,7 @@ import {
   targetsFor,
 } from "./effects";
 import { CARD_ORDER } from "./cards";
+import { resolveUpgradeTier } from "./upgrades";
 import type { CardInstance, CardName, GameState, PlayerConfig } from "./types";
 export type { PlayerConfig } from "./types";
 
@@ -57,6 +58,7 @@ export function setupRound(playerConfigs: PlayerConfig[]): GameState {
     deckExhaustedThisTurn: false,
     lastPlayedCard: null,
     lastReveal: null,
+    firstEliminatedThisRound: null,
   };
   log(state, "라운드를 시작합니다.");
   state = beginTurn(state);
@@ -106,8 +108,9 @@ export function chooseCardToPlay(state: GameState, cardInstanceId: string): Game
   draft.lastPlayedCard = { playerId, card };
   log(draft, `${player.displayName}: 「${card.name}」 카드를 냅니다.`);
 
-  if (needsTarget(card.name)) {
-    const eligible = targetsFor(draft, playerId, card.name);
+  const upgrade = resolveUpgradeTier(draft, card.name);
+  if (needsTarget(card.name, upgrade)) {
+    const eligible = targetsFor(draft, playerId, card.name, upgrade);
     draft.pendingDecision = {
       kind: "chooseTarget",
       playerId,
@@ -164,7 +167,8 @@ function finishResolution(
   const playerId = draft.resolvingPlayerId;
   if (!card || !playerId) throw new Error("진행 중인 카드가 없습니다.");
 
-  applyEffect(draft, { actingPlayerId: playerId, card, ...extra });
+  const upgrade = resolveUpgradeTier(draft, card.name);
+  applyEffect(draft, { actingPlayerId: playerId, card, upgrade, ...extra });
 
   const actor = getPlayer(draft, playerId);
   if (!actor.eliminated) {

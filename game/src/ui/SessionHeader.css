@@ -1,0 +1,72 @@
+.session-header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.session-header__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.session-header__label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.session-header__value {
+  font-weight: 700;
+}
+
+.session-header__stat--route {
+  min-width: 160px;
+}
+
+.session-header__progress {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.session-header__progress-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.session-header__progress-label {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.session-header__archive-btn {
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.session-header__archive-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}

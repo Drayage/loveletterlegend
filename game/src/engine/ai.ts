@@ -1,6 +1,7 @@
 import { CARD_DEFS, CARD_ORDER } from "./cards";
 import { cardRank } from "./effects";
-import type { CardInstance, CardName, GameState } from "./types";
+import type { ArchiveCardState, CardInstance, CardName, GameState } from "./types";
+import type { Route } from "../data/routes";
 
 /**
  * Heuristic (non-cheating) probability estimate of what a given "unseen"
@@ -106,6 +107,27 @@ function scoreCardToPlay(
     default:
       return base;
   }
+}
+
+// v1: no strategic route preference -- the AI just stays on its current
+// route each round. A richer policy (e.g. chasing whichever route it has
+// more [편지] progress on) is a natural place to extend later.
+export function chooseRouteAI(currentRoute: Route): Route {
+  return currentRoute;
+}
+
+// v1: simple policy for the "이야기 보관소" token-placement decision (see
+// engine/session.ts) -- pick uniformly among cards with an unfired
+// condition, and a coin-flip for success vs failure. A more strategic AI
+// (e.g. deliberately sabotaging outcomes it doesn't want) is future work.
+export function chooseArchiveTokenAI(
+  archive: ArchiveCardState[]
+): { cardId: string; token: "성공" | "실패" } | null {
+  const candidates = archive.filter((c) => c.conditions.some((cond) => !cond.fired));
+  if (candidates.length === 0) return null;
+  const card = candidates[Math.floor(Math.random() * candidates.length)];
+  const token: "성공" | "실패" = Math.random() < 0.5 ? "성공" : "실패";
+  return { cardId: card.id, token };
 }
 
 export function chooseCardToPlayAI(state: GameState, playerId: string): CardInstance {

@@ -83,6 +83,10 @@ export interface RoundResult {
   revealedHands: Record<string, CardInstance | undefined>;
 }
 
+/** A card's ability text/behavior can be upgraded by a player's accumulated
+ * [편지] on the character currently skinning it (see engine/upgrades.ts). */
+export type CharacterUpgradeTier = "tier1" | "tier2";
+
 export interface GameState {
   players: PlayerState[];
   deck: CardInstance[];
@@ -106,4 +110,46 @@ export interface GameState {
   /** Private info revealed by the last-resolved effect, if any -- only
    * meaningful to whoever is named in viewerPlayerId. */
   lastReveal: RevealInfo | null;
+  /** Session-driven ability upgrades active for this round (see
+   * engine/session.ts / engine/upgrades.ts). Absent for callers that don't
+   * know about sessions (e.g. rules.test.ts) -- everything defaults to
+   * base-card behavior when this is undefined. */
+  activeCardUpgrades?: Partial<Record<CardName, CharacterUpgradeTier>>;
+  /** First player eliminated during this round, if any -- used by the
+   * session layer's story-archive token placement (see engine/session.ts).
+   * Set once per round by effects.ts's eliminatePlayer and never cleared
+   * mid-round. */
+  firstEliminatedThisRound?: string | null;
+  /** Structured record of specific effect resolutions this round, read by
+   * the session layer after the round ends to award character-progress
+   * tokens (e.g. 147/056's [편지] conditions) that aren't derivable from
+   * final hand/discard state alone. Only populated when the caller (see
+   * engine/session.ts) initializes it to []; plain single-round callers
+   * (e.g. rules.test.ts) leave it undefined and these pushes are skipped. */
+  sessionEvents?: SessionEvent[];
+}
+
+export type SessionEvent =
+  | { type: "guardGuessResolved"; actingPlayerId: string; hit: boolean }
+  | { type: "wizardForcedDiscard"; actingPlayerId: string; targetPlayerId: string; discardedCardName: CardName };
+
+/** Runtime state of one card sitting in the "이야기 보관소" (story archive).
+ * Lives here (not engine/session.ts) so both session.ts and ai.ts can import
+ * it without a circular dependency between those two modules. */
+export interface ArchiveCondition {
+  id: string;
+  token: "성공" | "실패";
+  threshold: number;
+  revealIds: string[];
+  removeIds?: string[];
+  fired: boolean;
+}
+
+export interface ArchiveCardState {
+  id: string;
+  name: string;
+  flavor: string;
+  conditions: ArchiveCondition[];
+  successTokens: number;
+  failTokens: number;
 }

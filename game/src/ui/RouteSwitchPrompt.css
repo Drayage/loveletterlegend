@@ -1,0 +1,35 @@
+.route-switch {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.route-switch__prompt {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.route-switch__options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.route-switch__btn {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: var(--panel);
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.route-switch__btn:hover {
+  background: var(--accent);
+  color: white;
+}

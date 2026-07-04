@@ -1,0 +1,75 @@
+.archive-token {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.archive-token__prompt {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.archive-token__cards {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.archive-token__card {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.archive-token__card--selected {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.archive-token__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.archive-token__btn {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: var(--panel);
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.archive-token__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.archive-token__btn:not(:disabled):hover {
+  background: var(--accent);
+  color: white;
+}
+
+.archive-token__skip {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  margin-left: auto;
+}

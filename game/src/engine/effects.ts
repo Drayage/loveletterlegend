@@ -1,4 +1,4 @@
-import type { CardInstance, CardName, GameState } from "./types";
+import type { CardInstance, CardName, CharacterUpgradeTier, GameState } from "./types";
 import { nextLogId } from "./clone";
 
 export function log(draft: GameState, message: string): void {
@@ -19,6 +19,7 @@ export function eliminatePlayer(draft: GameState, playerId: string, reason: stri
   const player = getPlayer(draft, playerId);
   if (player.eliminated) return;
   player.eliminated = true;
+  if (!draft.firstEliminatedThisRound) draft.firstEliminatedThisRound = playerId;
   log(draft, `${player.displayName}: ${reason} → 라운드에서 탈락합니다.`);
 }
 
@@ -54,7 +55,12 @@ function eligibleTargets(draft: GameState, actingPlayerId: string, allowSelf: bo
     .map((p) => p.id);
 }
 
-export function targetsFor(draft: GameState, actingPlayerId: string, cardName: CardName): string[] {
+export function targetsFor(
+  draft: GameState,
+  actingPlayerId: string,
+  cardName: CardName,
+  upgrade?: CharacterUpgradeTier
+): string[] {
   switch (cardName) {
     case "경비병":
     case "광대":
@@ -62,13 +68,16 @@ export function targetsFor(draft: GameState, actingPlayerId: string, cardName: C
     case "장군":
       return eligibleTargets(draft, actingPlayerId, false);
     case "마술사":
+      // 「마술사의 도제」 편지 5개 이상 개정판: 대상 없이 스스로 카드를 교체.
+      if (upgrade === "tier2") return [];
       return eligibleTargets(draft, actingPlayerId, true);
     default:
       return [];
   }
 }
 
-export function needsTarget(cardName: CardName): boolean {
+export function needsTarget(cardName: CardName, upgrade?: CharacterUpgradeTier): boolean {
+  if (cardName === "마술사" && upgrade === "tier2") return false;
   return cardName === "경비병" || cardName === "광대" || cardName === "기사" ||
     cardName === "장군" || cardName === "마술사";
 }
@@ -82,10 +91,11 @@ export interface ResolveArgs {
   card: CardInstance;
   targetId?: string;
   guess?: CardName;
+  upgrade?: CharacterUpgradeTier;
 }
 
 export function applyEffect(draft: GameState, args: ResolveArgs): void {
-  const { actingPlayerId, card, targetId, guess } = args;
+  const { actingPlayerId, card, targetId, guess, upgrade } = args;
   const actor = getPlayer(draft, actingPlayerId);
 
   switch (card.name) {
@@ -97,6 +107,7 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       const target = getPlayer(draft, targetId);
       const hit = target.hand.some((c) => c.name === guess);
       log(draft, `${actor.displayName}: ${target.displayName}을(를) 지목하고 「${guess}」(이)라고 추측합니다.`);
+      draft.sessionEvents?.push({ type: "guardGuessResolved", actingPlayerId, hit });
       if (hit) {
         eliminatePlayer(draft, targetId, "「경비병」 추측 적중");
       } else {
@@ -164,14 +175,39 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       return;
     }
     case "마술사": {
+      // 「마술사의 도제」 편지 5개 이상 개정판: 대상 없이 스스로 손패를 교체.
+      if (upgrade === "tier2") {
+        const discarded = actor.hand.pop();
+        if (!discarded) return;
+        log(draft, `${actor.displayName}: 「마술사의 도제」 개정된 효과로 스스로 카드를 교체합니다.`);
+        discardCard(draft, actingPlayerId, discarded);
+        if (!getPlayer(draft, actingPlayerId).eliminated) {
+          drawCardFor(draft, actingPlayerId);
+          log(draft, `${actor.displayName}이(가) 덱에서 새 카드를 뽑습니다.`);
+        }
+        return;
+      }
       if (!targetId) {
         log(draft, `${actor.displayName}: 지목할 상대가 없어 「마술사」 효과가 발동하지 않았습니다.`);
         return;
+      }
+      // 「마술사의 도제」 편지 3개 이상 개정판: 대상 지목 전에 덱 위 카드를 확인.
+      if (upgrade === "tier1") {
+        const peek = draft.deck.slice(0, 2);
+        log(draft, `${actor.displayName}: 「마술사의 도제」 효과로 덱 위 카드 ${peek.length}장을 확인합니다.`);
       }
       const target = getPlayer(draft, targetId);
       const discarded = target.hand.pop();
       if (!discarded) return;
       log(draft, `${actor.displayName}: 「마술사」 효과로 ${target.displayName}이(가) 손패를 버립니다.`);
+      if (cardRank(discarded.name) >= 5 && targetId !== actingPlayerId) {
+        draft.sessionEvents?.push({
+          type: "wizardForcedDiscard",
+          actingPlayerId,
+          targetPlayerId: targetId,
+          discardedCardName: discarded.name,
+        });
+      }
       discardCard(draft, targetId, discarded);
       if (!getPlayer(draft, targetId).eliminated) {
         drawCardFor(draft, targetId);

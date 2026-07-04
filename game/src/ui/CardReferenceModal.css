@@ -27,3 +27,9 @@
   line-height: 1.5;
   color: var(--muted);
 }
+
+.card-reference__ability--upgraded {
+  margin-top: 6px;
+  color: var(--accent);
+  font-weight: 600;
+}

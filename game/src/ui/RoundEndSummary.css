@@ -1,0 +1,31 @@
+.round-end-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+}
+
+.round-end-summary__winner {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.round-end-summary__clock {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.round-end-summary__letters {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
