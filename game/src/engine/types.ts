@@ -162,6 +162,11 @@ export type ArchiveCondition =
 export interface ArchiveCardState {
   id: string;
   name: string;
+  /** Matches the real card's data/cards.json category -- drives the
+   * 캐릭터/시나리오 split in the story archive UI. */
+  category: "character" | "scenario";
+  /** Portrait shown next to character cards (character-only). */
+  art?: string;
   flavor: string;
   conditions: ArchiveCondition[];
   successTokens: number;

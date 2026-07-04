@@ -18,7 +18,12 @@ import { resolveUpgradeTier } from "./upgrades";
 import type { CardInstance, CardName, GameState, PlayerConfig } from "./types";
 export type { PlayerConfig } from "./types";
 
-export function setupRound(playerConfigs: PlayerConfig[]): GameState {
+/** `startingPlayerId` -- the previous round's winner leads the new round
+ * (rulebook: "이전 라운드에서 승리한 플레이어가 새로운 라운드의 시작
+ * 플레이어가 됩니다"). Defaults to the first configured player, which
+ * also covers round 1 and plain single-round callers (e.g. rules.test.ts)
+ * that don't care about session-level turn rotation. */
+export function setupRound(playerConfigs: PlayerConfig[], startingPlayerId?: string): GameState {
   const deck = shuffledDeck();
   const hiddenRemovedCard = deck.shift() ?? null;
   const faceUpRemovedCards: CardInstance[] = [];
@@ -44,12 +49,14 @@ export function setupRound(playerConfigs: PlayerConfig[]): GameState {
     if (card) player.hand.push(card);
   }
 
+  const startingIndex = startingPlayerId ? players.findIndex((p) => p.id === startingPlayerId) : 0;
+
   let state: GameState = {
     players,
     deck,
     hiddenRemovedCard,
     faceUpRemovedCards,
-    currentPlayerIndex: 0,
+    currentPlayerIndex: startingIndex >= 0 ? startingIndex : 0,
     log: [],
     pendingDecision: null,
     roundResult: null,

@@ -1,8 +1,29 @@
 .story-archive {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
   width: 100%;
+}
+
+.story-archive__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.story-archive__section-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.story-archive__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .story-archive__card {

@@ -28,8 +28,15 @@ export function ArchiveCardDetail({ card }: { card: ArchiveCardState }) {
 
   return (
     <div className="archive-card-detail">
-      <p className="archive-card-detail__name">{card.name}</p>
-      <p className="archive-card-detail__flavor">{card.flavor}</p>
+      <div className="archive-card-detail__header">
+        {card.category === "character" && card.art && (
+          <img className="archive-card-detail__portrait" src={card.art} alt={card.name} />
+        )}
+        <div className="archive-card-detail__header-text">
+          <p className="archive-card-detail__name">{card.name}</p>
+          <p className="archive-card-detail__flavor">{card.flavor}</p>
+        </div>
+      </div>
       {pendingConditions.length > 0 && (
         <ul className="archive-card-detail__conditions">
           {pendingConditions.map((c) => {

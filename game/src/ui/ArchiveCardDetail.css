@@ -1,3 +1,23 @@
+.archive-card-detail__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.archive-card-detail__portrait {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+  object-position: center 15%;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.archive-card-detail__header-text {
+  min-width: 0;
+}
+
 .archive-card-detail__name {
   margin: 0 0 4px;
   font-size: 13.5px;

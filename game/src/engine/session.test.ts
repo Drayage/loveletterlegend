@@ -9,6 +9,7 @@ import {
   placeArchiveToken,
   skipArchivePlacement,
   resolveLetterChoice,
+  nextRoundLeader,
   ROUTE_SLOT,
 } from "./session";
 import type { SessionState } from "./session";
@@ -29,6 +30,8 @@ function pristineStoryArchive(): SessionState["storyArchive"] {
     return {
       id: seed.id,
       name: seed.name,
+      category: seed.category,
+      art: seed.art,
       flavor: seed.flavor,
       conditions: seed.conditions.map((c) => ({ ...c, fired: false })),
       successTokens: 0,
@@ -126,16 +129,17 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
     }
   });
 
-  it("seeds exactly 017/018/020/023 at session start -- no 마술사의도제, no 053/031 yet", () => {
+  it("seeds 017/018/020/023 at session start -- 031 not revealed yet", () => {
     const session = startSession(PLAYERS);
-    const ids = session.storyArchive.map((c) => c.id).sort();
+    const ids = session.storyArchive.map((c) => c.id);
     // The random initial deal can rarely (~2-3%) already trigger 「대신」's
     // passive elimination during setupRound, ending round 1 before this
-    // assertion even runs -- which legitimately advances the clock to 1 and
-    // reveals 024 right away. Tolerate that instead of asserting on it.
-    const expected = session.clockTokens >= 1 ? ["017", "018", "020", "023", "024"] : ["017", "018", "020", "023"];
-    expect(ids).toEqual(expected);
-    expect(session.storyArchive.some((c) => ["053", "031"].includes(c.id))).toBe(false);
+    // assertion even runs -- which can legitimately reveal 024 (clock=1)
+    // and even 053 (if that degenerate round's winner held 「경비병」,
+    // firing 023's condition). Assert on the base 4 ids and the one thing
+    // that should never happen this early, instead of exact equality.
+    expect(ids).toEqual(expect.arrayContaining(["017", "018", "020", "023"]));
+    expect(session.storyArchive.some((c) => c.id === "031")).toBe(false);
   });
 
   it("023's winnerHeldCard condition reveals 053 only when the winner held 「경비병」", () => {
@@ -180,6 +184,17 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
     session = resolveLetterChoice(session, "p2", { type: "place", slot: "잉그리드공주" });
     expect(session.letterTokens["잉그리드공주"]["p2"]).toBe(1);
     expect(session.pendingLetterChoice).toBeNull();
+  });
+
+  it("makes the previous round's winner the next round's leader (선플레이어), whose route choice is the only one that applies", () => {
+    let session = startSession(PLAYERS);
+    session = forceImmediateWin(session, "p2");
+    session = resolveLetterChoice(session, "p2", { type: "place", slot: "잉그리드공주" });
+    expect(nextRoundLeader(session)).toBe("p2");
+    session = beginNextRound(session, "왕자");
+    // p2 (AI) leads -> currentPlayerIndex should point at p2, not p1.
+    expect(session.round.players[session.round.currentPlayerIndex].id).toBe("p2");
+    expect(session.currentRoute).toBe("왕자");
   });
 
   it("offers an extra letter token to place when the winner held 「공주」", () => {
@@ -279,6 +294,7 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
     session.storyArchive.push({
       id: "053",
       name: "고지식한 병사",
+      category: "scenario",
       flavor: "",
       conditions: [
         {

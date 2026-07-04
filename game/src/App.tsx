@@ -7,6 +7,7 @@ import {
   chooseTargetAI,
   chooseArchiveTokenAI,
   chooseLetterTargetAI,
+  chooseRouteAI,
 } from "./engine/ai";
 import { computeRemainingCounts } from "./engine/remaining";
 import {
@@ -16,6 +17,7 @@ import {
   placeArchiveToken,
   skipArchivePlacement,
   resolveLetterChoice,
+  nextRoundLeader,
   ROUTE_SLOT,
 } from "./engine/session";
 import type { CharacterSlotId, LetterChoice, Route, SessionState } from "./engine/session";
@@ -371,7 +373,19 @@ export default function App() {
             summary={session.lastRoundSummary}
             players={session.playerConfigs}
             ended={session.ended}
-            onContinue={() => (session.ended ? setEndSummaryAcknowledged(true) : setShowRouteSwitch(true))}
+            onContinue={() => {
+              if (session.ended) {
+                setEndSummaryAcknowledged(true);
+                return;
+              }
+              // 다음 라운드의 선플레이어(직전 라운드 승자)만 라우트 전환을
+              // 결정한다 -- AI가 이겼다면 사람에게 묻지 않고 바로 진행.
+              if (nextRoundLeader(session) === HUMAN_ID) {
+                setShowRouteSwitch(true);
+              } else {
+                proceedToNextRound(chooseRouteAI(session.currentRoute));
+              }
+            }}
           />
         )}
 

@@ -72,6 +72,8 @@ function seedArchiveCard(id: string): ArchiveCardState {
   return {
     id: seed.id,
     name: seed.name,
+    category: seed.category,
+    art: seed.art,
     flavor: seed.flavor,
     conditions: seed.conditions.map((c) => ({ ...c, fired: false })),
     successTokens: 0,
@@ -413,19 +415,25 @@ function resolveActiveUpgrades(session: SessionState): Partial<Record<CardName, 
   return upgrades;
 }
 
-/** `route` is decided by whichever player leads the upcoming round (v1: the
- * engine never rotates turn order, so that's always `playerConfigs[0]` --
- * see App.tsx/ai.ts for how that player's choice, human or AI, is sourced).
- * Other players never get an independent say; they just see the result. */
+/** 이전 라운드에서 승리한 플레이어가 새로운 라운드의 시작 플레이어(선플레이어)가
+ * 된다 -- 무승부(승자 없음)면 세션 시작 시의 첫 플레이어로 되돌아간다.
+ * App.tsx/ai.ts는 이 값으로 route 전환 결정권을 누구에게 물어볼지 정한다. */
+export function nextRoundLeader(session: SessionState): string {
+  return session.lastRoundSummary?.winnerId ?? session.playerConfigs[0].id;
+}
+
+/** `route`는 다음 라운드를 이끄는 플레이어(nextRoundLeader -- 직전 라운드
+ * 승자)가 결정한다. 다른 플레이어는 결과만 본다. */
 export function beginNextRound(session: SessionState, route: Route): SessionState {
   if (session.ended) throw new Error("세션이 이미 종료되었습니다.");
   if (session.pendingLetterChoice) throw new Error("편지 토큰 배치가 끝나지 않았습니다.");
   if (session.pendingArchivePlacement) throw new Error("이야기 보관소 토큰 배치가 끝나지 않았습니다.");
   const next: SessionState = structuredClone(session);
+  const leaderId = nextRoundLeader(next);
   next.currentRoute = route;
   next.roundNumber += 1;
   const upgrades = resolveActiveUpgrades(next);
-  next.round = { ...setupRound(next.playerConfigs), activeCardUpgrades: upgrades, sessionEvents: [] };
+  next.round = { ...setupRound(next.playerConfigs, leaderId), activeCardUpgrades: upgrades, sessionEvents: [] };
   next.lastRoundSummary = null;
   return finalizeFreshRound(next);
 }
