@@ -131,13 +131,14 @@ export function chooseLetterTargetAI(
 }
 
 // v1: simple policy for the "이야기 보관소" token-placement decision (see
-// engine/session.ts) -- pick uniformly among cards with an unfired
-// condition, and a coin-flip for success vs failure. A more strategic AI
-// (e.g. deliberately sabotaging outcomes it doesn't want) is future work.
+// engine/session.ts) -- pick uniformly among [조건]-tagged cards with an
+// unfired condition (031's real rule only allows those as targets), and a
+// coin-flip for success vs failure. A more strategic AI (e.g. deliberately
+// sabotaging outcomes it doesn't want) is future work.
 export function chooseArchiveTokenAI(
   archive: ArchiveCardState[]
 ): { cardId: string; token: "성공" | "실패" } | null {
-  const candidates = archive.filter((c) => c.conditions.some((cond) => !cond.fired));
+  const candidates = archive.filter((c) => c.conditionTag && c.conditions.some((cond) => !cond.fired));
   if (candidates.length === 0) return null;
   const card = candidates[Math.floor(Math.random() * candidates.length)];
   const token: "성공" | "실패" = Math.random() < 0.5 ? "성공" : "실패";

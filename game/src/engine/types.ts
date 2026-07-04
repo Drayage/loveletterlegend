@@ -107,6 +107,14 @@ export interface GameState {
   /** The most recent card played by anyone, shown as "the card currently in
    * play" until the next card is played (by either player). */
   lastPlayedCard: { playerId: string; card: CardInstance } | null;
+  /** Rolling window of the last two plays (one per player in 2P) with a
+   * one-line outcome summary attached once the effect resolves -- drives
+   * the center table's "who played what and what happened" exchange view.
+   * `outcome` is null while a freshly-played card still awaits its
+   * target/guess decision. Optional for the same reason as sessionEvents:
+   * bare GameState fixtures (rules.test.ts) may omit it, in which case
+   * the tracking is skipped. */
+  recentPlays?: Array<{ playerId: string; card: CardInstance; outcome: string | null }>;
   /** Private info revealed by the last-resolved effect, if any -- only
    * meaningful to whoever is named in viewerPlayerId. */
   lastReveal: RevealInfo | null;
@@ -137,31 +145,47 @@ export type SessionEvent =
  * Lives here (not engine/session.ts) so both session.ts and ai.ts can import
  * it without a circular dependency between those two modules.
  *
- * Three small, enumerable trigger patterns (not a general Action/Condition
+ * Four small, enumerable trigger patterns (not a general Action/Condition
  * interpreter -- see data/scenario.ts's module header):
- * - "sharedToken": card 031/053-style -- a shared [성공]/[실패] counter on
- *   this card reaches a threshold (e.g. 053 -> 055/056 or 062).
+ * - "sharedToken": card 053-style [조건] tag -- a shared [성공]/[실패]
+ *   counter on this card reaches a threshold (e.g. 053 -> 055/056 or 062).
  * - "winnerHeldCard": card 023-style -- round-end check of what CardName
  *   the round winner held (e.g. held 「경비병」 -> reveal 053).
  * - "archiveCardCount": card 024-style -- round-end check of how many
- *   currently-revealed archive cards still have an unfired condition
- *   (e.g. 2+ such cards -> reveal 031). */
+ *   currently-revealed archive cards carry the [조건] tag (conditionTag
+ *   below, NOT "has any unfired condition" -- 017/023's 시작/종료 reveal
+ *   tables don't qualify as 「조건」).
+ * - "clockThreshold": 017 「시간」's "시작" tag table -- checked at ROUND
+ *   START ([시계] N개 이상 -> 공개), unlike the other three which resolve
+ *   at round end. See conditionTiming below.
+ *
+ * `label` is the checklist row the story-archive UI shows -- the hypothesis
+ * only (e.g. "[시계] 1개", "《1 경비병》"), never the reveal targets, so
+ * what an unlock produces stays a surprise. */
 export type ArchiveCondition =
   | {
       id: string;
       kind: "sharedToken";
+      label: string;
       token: "성공" | "실패";
       threshold: number;
       revealIds: string[];
       removeIds?: string[];
       fired: boolean;
     }
-  | { id: string; kind: "winnerHeldCard"; cardName: CardName; revealIds: string[]; fired: boolean }
-  | { id: string; kind: "archiveCardCount"; minCount: number; revealIds: string[]; fired: boolean }
-  /** 017 「시간」's own "시작" tag table -- [시계] N개 이상 -> 공개.
-   * Folded into the same generic checker as the other condition kinds
-   * (previously a separate CLOCK_MILESTONES table/function). */
-  | { id: string; kind: "clockThreshold"; threshold: number; revealIds: string[]; fired: boolean };
+  | { id: string; kind: "winnerHeldCard"; label: string; cardName: CardName; revealIds: string[]; fired: boolean }
+  | { id: string; kind: "archiveCardCount"; label: string; minCount: number; revealIds: string[]; fired: boolean }
+  | { id: string; kind: "clockThreshold"; label: string; threshold: number; revealIds: string[]; fired: boolean };
+
+/** Real cards check their conditions at two distinct moments -- 「시작」 tags
+ * at round start (017's clock table) and 「종료」 tags at round end
+ * (everything else). Derived from `kind` rather than stored per-seed since
+ * the mapping is inherent to what each pattern means. */
+export type ArchiveConditionTiming = "roundStart" | "roundEnd";
+
+export function conditionTiming(kind: ArchiveCondition["kind"]): ArchiveConditionTiming {
+  return kind === "clockThreshold" ? "roundStart" : "roundEnd";
+}
 
 export interface ArchiveCardState {
   id: string;
@@ -172,6 +196,18 @@ export interface ArchiveCardState {
   /** Portrait shown next to character cards (character-only). */
   art?: string;
   flavor: string;
+  /** True for cards whose real text carries the [조건] tag (053). Only
+   * these count toward 024's "「조건」을 가진 카드 2장 이상" check and only
+   * these may receive 031's first-eliminated token placement. */
+  conditionTag?: boolean;
+  /** Real 「종료」 tag "[시계] N개: 이 카드를 제거합니다." -- the card leaves
+   * the archive at the end of the round where clockTokens reaches N (that
+   * same round's reveal conditions still resolve first). Shown in the UI
+   * as a "남은 시간 (N주)" countdown -- 1 clock token = 1 week. */
+  expiresAtClock?: number;
+  /** Checklist heading shown above the conditions in the archive UI, e.g.
+   * "라운드 종료 시, 승자가 든 카드 확인". */
+  conditionsTitle?: string;
   conditions: ArchiveCondition[];
   successTokens: number;
   failTokens: number;

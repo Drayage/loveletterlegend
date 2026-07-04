@@ -5,6 +5,8 @@ import "./StoryEventModal.css";
 
 interface StoryEventModalProps {
   cards: ArchiveCardState[];
+  /** Elapsed [시계] -- drives the expiring card's "남은 시간 (N주)" badge. */
+  clockTokens: number;
   onNext: () => void;
 }
 
@@ -13,7 +15,7 @@ interface StoryEventModalProps {
  * once) -- so each reveal reads as its own story beat instead of a wall
  * of text. `onNext` advances the queue; the caller clears it after the
  * last card. */
-export function StoryEventModal({ cards, onNext }: StoryEventModalProps) {
+export function StoryEventModal({ cards, clockTokens, onNext }: StoryEventModalProps) {
   if (cards.length === 0) return null;
   const [current, ...rest] = cards;
   const hasMore = rest.length > 0;
@@ -22,7 +24,7 @@ export function StoryEventModal({ cards, onNext }: StoryEventModalProps) {
     <Modal title="이야기 보관소에 새로 공개된 카드" onClose={onNext} dismissible={false}>
       <div className="story-event">
         <div className="story-event__card">
-          <ArchiveCardDetail card={current} />
+          <ArchiveCardDetail card={current} clockTokens={clockTokens} />
         </div>
         <div className="story-event__actions">
           {hasMore && <span className="story-event__counter">다음 카드 {rest.length}장 남음</span>}

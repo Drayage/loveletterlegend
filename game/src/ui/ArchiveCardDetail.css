@@ -22,6 +22,20 @@
   margin: 0 0 4px;
   font-size: 13.5px;
   font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.archive-card-detail__expiry {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
 }
 
 .archive-card-detail__flavor {
@@ -31,31 +45,62 @@
   color: var(--muted);
 }
 
+.archive-card-detail__checklist {
+  margin-top: 8px;
+}
+
+.archive-card-detail__checklist-title {
+  margin: 0 0 4px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
 .archive-card-detail__conditions {
-  margin: 8px 0 0;
+  margin: 0;
   padding: 0;
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .archive-card-detail__conditions li {
   background: var(--accent-soft);
   border-radius: 8px;
-  padding: 6px 10px;
+  padding: 5px 10px;
+}
+
+.archive-card-detail__conditions li.archive-card-detail__condition--met {
+  opacity: 0.75;
+}
+
+.archive-card-detail__condition-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.archive-card-detail__checkbox {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.archive-card-detail__condition--met .archive-card-detail__condition-label {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
 }
 
 .archive-card-detail__condition-progress {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--accent);
 }
 
 .archive-card-detail__earn-rules {
   margin: 4px 0 0;
-  padding: 0 0 0 14px;
+  padding: 0 0 0 24px;
   font-size: 11.5px;
   font-weight: 400;
   color: var(--text);

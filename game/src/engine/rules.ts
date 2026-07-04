@@ -66,6 +66,7 @@ export function setupRound(playerConfigs: PlayerConfig[], startingPlayerId?: str
     lastPlayedCard: null,
     lastReveal: null,
     firstEliminatedThisRound: null,
+    recentPlays: [],
   };
   log(state, "라운드를 시작합니다.");
   state = beginTurn(state);
@@ -113,6 +114,13 @@ export function chooseCardToPlay(state: GameState, cardInstanceId: string): Game
   draft.resolvingCard = card;
   draft.resolvingPlayerId = playerId;
   draft.lastPlayedCard = { playerId, card };
+  // 중앙 테이블의 "누가 뭘 냈고 어떻게 됐는지" 교환 뷰용 -- 최근 2건만
+  // 유지 (2인전에서 양쪽의 직전 플레이). outcome은 효과가 실제로 해소될
+  // 때 effects.ts의 setPlayOutcome이 채운다.
+  if (draft.recentPlays) {
+    draft.recentPlays.push({ playerId, card, outcome: null });
+    while (draft.recentPlays.length > 2) draft.recentPlays.shift();
+  }
   log(draft, `${player.displayName}: 「${card.name}」 카드를 냅니다.`);
 
   const upgrade = resolveUpgradeTier(draft, card.name);

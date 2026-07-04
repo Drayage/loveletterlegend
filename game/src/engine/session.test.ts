@@ -33,6 +33,9 @@ function pristineStoryArchive(): SessionState["storyArchive"] {
       category: seed.category,
       art: seed.art,
       flavor: seed.flavor,
+      conditionTag: seed.conditionTag,
+      expiresAtClock: seed.expiresAtClock,
+      conditionsTitle: seed.conditionsTitle,
       conditions: seed.conditions.map((c) => ({ ...c, fired: false })),
       successTokens: 0,
       failTokens: 0,
@@ -90,7 +93,8 @@ function forceImmediateWin(
   session: SessionState,
   winnerId: string,
   winnerHand?: GameState["players"][number]["hand"],
-  extraArchiveCards: SessionState["storyArchive"] = []
+  extraArchiveCards: SessionState["storyArchive"] = [],
+  presetClock = 0
 ): SessionState {
   const s: SessionState = structuredClone(session);
   // The random initial deal can occasionally (~2-3% of the time) already
@@ -105,7 +109,7 @@ function forceImmediateWin(
   // untamed initial deal happened to do first.
   s.round.roundResult = null;
   s.round.firstEliminatedThisRound = null;
-  s.clockTokens = 0;
+  s.clockTokens = presetClock;
   s.storyArchive = [...pristineStoryArchive(), ...extraArchiveCards];
   s.pendingLetterChoice = null;
   s.pendingArchivePlacement = null;
@@ -154,9 +158,23 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
       { instanceId: "c2", name: "경비병" },
     ]);
     expect(session.storyArchive.some((c) => c.id === "053")).toBe(true);
-    // 023's condition only fires once.
+    // Only the 경비병 branch of 023's 8-branch table fired.
     const card023 = session.storyArchive.find((c) => c.id === "023")!;
-    expect(card023.conditions.every((c) => c.fired)).toBe(true);
+    expect(card023.conditions.find((c) => c.id === "023-guard")?.fired).toBe(true);
+    expect(card023.conditions.find((c) => c.id === "023-clown")?.fired).toBe(false);
+  });
+
+  it("checks off 023's non-경비병 branches without revealing anything", () => {
+    let session = startSession(PLAYERS);
+    session = forceImmediateWin(session, "p1", [
+      { instanceId: "c1", name: "대신" },
+      { instanceId: "c2", name: "광대" },
+    ]);
+    const card023 = session.storyArchive.find((c) => c.id === "023")!;
+    expect(card023.conditions.find((c) => c.id === "023-clown")?.fired).toBe(true);
+    // 광대 branch reveals [079] in the real game -- outside this v1 slice,
+    // so nothing new appears in the archive.
+    expect(session.storyArchive.map((c) => c.id).sort()).toEqual(["017", "018", "020", "023"]);
   });
 
   it("does not reveal 053 when the winner held a different card", () => {
@@ -168,17 +186,143 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
     expect(session.storyArchive.some((c) => c.id === "053")).toBe(false);
   });
 
-  it("017's clockThreshold conditions progressively unlock 024/025/032/049/050 as clockTokens accumulate", () => {
+  it("017's clockThreshold conditions fire at ROUND START (beginNextRound), unlocking by accumulated clock", () => {
     let session = startSession(PLAYERS);
     session.clockTokens = 6;
-    session.pendingArchivePlacement = { eligiblePlayerId: "p1" };
-    // 017 has no sharedToken conditions, so this placement only serves to
-    // trigger a resolveArchiveConditions pass without also forcing a round
-    // to actually end (which would reset clockTokens via forceImmediateWin).
-    session = placeArchiveToken(session, "p1", "017", "성공");
+    session = beginNextRound(session, "공주");
     const ids = session.storyArchive.map((c) => c.id);
     expect(ids).toEqual(expect.arrayContaining(["024", "025", "032", "049"]));
     expect(ids).not.toContain("050");
+  });
+
+  it("does NOT reveal 024 at round 1's end -- only at round 2's start (시작/종료 timing split)", () => {
+    let session = startSession(PLAYERS);
+    session = forceImmediateWin(session, "p1", [
+      { instanceId: "c1", name: "대신" },
+      { instanceId: "c2", name: "장군" },
+    ]);
+    // Round 1 just ended: clock is 1, but 017's 시작 table must not have
+    // fired yet -- it's a round-START check.
+    expect(session.clockTokens).toBe(1);
+    expect(session.storyArchive.some((c) => c.id === "024")).toBe(false);
+    session = resolveLetterChoice(session, "p1", { type: "place", slot: "잉그리드공주" });
+    expect(session.storyArchive.some((c) => c.id === "024")).toBe(false);
+    session = beginNextRound(session, "공주");
+    expect(session.storyArchive.some((c) => c.id === "024")).toBe(true);
+  });
+
+  it("only [조건]-tagged cards count toward 024's 'reveal 031' check -- 시작/종료 reveal tables don't (bug regression)", () => {
+    const card024 = {
+      ...ARCHIVE_CARD_SEEDS["024"],
+      art: undefined,
+      conditions: ARCHIVE_CARD_SEEDS["024"].conditions.map((c) => ({ ...c, fired: false })),
+      successTokens: 0,
+      failTokens: 0,
+    };
+    let session = startSession(PLAYERS);
+    // 017 and 023 both sit in the archive with plenty of unfired conditions
+    // -- but none of them carries the [조건] tag, so 031 must NOT appear.
+    session = forceImmediateWin(
+      session,
+      "p1",
+      [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "장군" },
+      ],
+      [card024]
+    );
+    expect(session.storyArchive.some((c) => c.id === "031")).toBe(false);
+  });
+
+  it("reveals 031 once two [조건]-tagged cards are in the archive", () => {
+    const card024 = {
+      ...ARCHIVE_CARD_SEEDS["024"],
+      art: undefined,
+      conditions: ARCHIVE_CARD_SEEDS["024"].conditions.map((c) => ({ ...c, fired: false })),
+      successTokens: 0,
+      failTokens: 0,
+    };
+    const fakeConditionCard = (id: string) => ({
+      id,
+      name: `조건 카드 ${id}`,
+      category: "scenario" as const,
+      flavor: "",
+      conditionTag: true,
+      conditions: [],
+      successTokens: 0,
+      failTokens: 0,
+    });
+    let session = startSession(PLAYERS);
+    session = forceImmediateWin(
+      session,
+      "p1",
+      [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "장군" },
+      ],
+      [card024, fakeConditionCard("098"), fakeConditionCard("099")]
+    );
+    expect(session.storyArchive.some((c) => c.id === "031")).toBe(true);
+  });
+
+  it("expires archive cards at their [시계] deadline and reports them in the round summary", () => {
+    let session = startSession(PLAYERS);
+    // 023 expires at clock 4 -- preset 3 so this round's end brings it to 4.
+    session = forceImmediateWin(
+      session,
+      "p1",
+      [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "장군" },
+      ],
+      [],
+      3
+    );
+    expect(session.clockTokens).toBe(4);
+    expect(session.storyArchive.some((c) => c.id === "023")).toBe(false);
+    expect(session.lastRoundSummary?.expiredCards).toContain("역사 1 이야기의 시작");
+  });
+
+  it("does not expire 023 before clock 4", () => {
+    let session = startSession(PLAYERS);
+    session = forceImmediateWin(
+      session,
+      "p1",
+      [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "장군" },
+      ],
+      [],
+      2
+    );
+    expect(session.clockTokens).toBe(3);
+    expect(session.storyArchive.some((c) => c.id === "023")).toBe(true);
+    expect(session.lastRoundSummary?.expiredCards).toEqual([]);
+  });
+
+  it("offers the first-eliminated placement only when a [조건] card is present, even with 031 revealed", () => {
+    const card031 = {
+      ...ARCHIVE_CARD_SEEDS["031"],
+      art: undefined,
+      conditions: [],
+      successTokens: 0,
+      failTokens: 0,
+    };
+    let session = startSession(PLAYERS);
+    session = forceImmediateWin(
+      session,
+      "p1",
+      [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "장군" },
+      ],
+      [card031]
+    );
+    session.round.firstEliminatedThisRound = "p2";
+    session = resolveLetterChoice(session, "p1", { type: "place", slot: "잉그리드공주" });
+    // 031 is out, p2 was eliminated first -- but no card carries the
+    // [조건] tag, so there's nothing legal to place a token on.
+    expect(session.pendingArchivePlacement).toBeNull();
   });
 
   it("049 grants an automatic +1 letter bonus on top of the round-win award once revealed", () => {
@@ -373,10 +517,12 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
       name: "고지식한 병사",
       category: "scenario",
       flavor: "",
+      conditionTag: true,
       conditions: [
         {
           id: "053-success",
           kind: "sharedToken",
+          label: "[성공] 2개 이상",
           token: "성공",
           threshold: 2,
           revealIds: ["055", "056"],
@@ -386,6 +532,7 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
         {
           id: "053-fail",
           kind: "sharedToken",
+          label: "[실패] 4개 이상",
           token: "실패",
           threshold: 4,
           revealIds: ["062"],

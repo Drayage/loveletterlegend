@@ -75,13 +75,11 @@ export function SessionHeader({ session, humanId, onShowArchive }: SessionHeader
 
   return (
     <div className="session-header">
+      {/* [시계] 1개 = 1주, 8주짜리 이야기 -- "라운드 N/8"과 "시계 N"이라는
+       * 같은 축의 두 숫자 대신 주차 + 남은 시간 하나로 합쳐 보여준다. */}
       <div className="session-header__stat">
-        <span className="session-header__label">라운드</span>
-        <span className="session-header__value">{session.roundNumber} / 8</span>
-      </div>
-      <div className="session-header__stat">
-        <span className="session-header__label">시계</span>
-        <span className="session-header__value">{session.clockTokens}</span>
+        <span className="session-header__label">{session.roundNumber}주차 / 8주</span>
+        <span className="session-header__value">남은 시간 {Math.max(0, 8 - session.clockTokens)}주</span>
       </div>
 
       <div className="session-header__legend">

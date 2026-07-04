@@ -5,10 +5,12 @@ import "./StoryArchiveModal.css";
 
 interface StoryArchiveModalProps {
   archive: ArchiveCardState[];
+  /** Elapsed [시계] -- drives each expiring card's "남은 시간 (N주)" badge. */
+  clockTokens: number;
   onClose: () => void;
 }
 
-export function StoryArchiveModal({ archive, onClose }: StoryArchiveModalProps) {
+export function StoryArchiveModal({ archive, clockTokens, onClose }: StoryArchiveModalProps) {
   const characters = archive.filter((c) => c.category === "character");
   const scenarios = archive.filter((c) => c.category === "scenario");
 
@@ -21,7 +23,7 @@ export function StoryArchiveModal({ archive, onClose }: StoryArchiveModalProps) 
             <div className="story-archive__cards">
               {characters.map((card) => (
                 <div key={card.id} className="story-archive__card">
-                  <ArchiveCardDetail card={card} />
+                  <ArchiveCardDetail card={card} clockTokens={clockTokens} />
                 </div>
               ))}
             </div>
@@ -33,7 +35,7 @@ export function StoryArchiveModal({ archive, onClose }: StoryArchiveModalProps) 
             <div className="story-archive__cards">
               {scenarios.map((card) => (
                 <div key={card.id} className="story-archive__card">
-                  <ArchiveCardDetail card={card} />
+                  <ArchiveCardDetail card={card} clockTokens={clockTokens} />
                 </div>
               ))}
             </div>

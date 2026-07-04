@@ -5,6 +5,16 @@ export function log(draft: GameState, message: string): void {
   draft.log.push({ id: nextLogId(), message });
 }
 
+/** Attaches a one-line PUBLIC outcome summary to the recentPlays entry for
+ * the given played card (see GameState.recentPlays). Public means: never
+ * include information only the acting player is supposed to know (광대's
+ * seen card etc.) -- the exchange view is visible to everyone. No-op when
+ * recentPlays isn't being tracked (bare rules.test.ts fixtures). */
+export function setPlayOutcome(draft: GameState, cardInstanceId: string, outcome: string): void {
+  const entry = draft.recentPlays?.find((p) => p.card.instanceId === cardInstanceId);
+  if (entry) entry.outcome = outcome;
+}
+
 export function getPlayer(draft: GameState, playerId: string) {
   const player = draft.players.find((p) => p.id === playerId);
   if (!player) throw new Error(`Unknown player ${playerId}`);
@@ -102,6 +112,7 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
     case "경비병": {
       if (!targetId || !guess) {
         log(draft, `${actor.displayName}: 지목할 상대가 없어 「경비병」 효과가 발동하지 않았습니다.`);
+        setPlayOutcome(draft, card.instanceId, "대상 없음 → 효과 불발");
         return;
       }
       const target = getPlayer(draft, targetId);
@@ -110,14 +121,17 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       draft.sessionEvents?.push({ type: "guardGuessResolved", actingPlayerId, hit });
       if (hit) {
         eliminatePlayer(draft, targetId, "「경비병」 추측 적중");
+        setPlayOutcome(draft, card.instanceId, `「${guess}」 추측 적중! ${target.displayName} 탈락`);
       } else {
         log(draft, `${target.displayName}: 추측이 빗나갔습니다.`);
+        setPlayOutcome(draft, card.instanceId, `「${guess}」 추측 → 빗나감`);
       }
       return;
     }
     case "광대": {
       if (!targetId) {
         log(draft, `${actor.displayName}: 지목할 상대가 없어 「광대」 효과가 발동하지 않았습니다.`);
+        setPlayOutcome(draft, card.instanceId, "대상 없음 → 효과 불발");
         return;
       }
       const target = getPlayer(draft, targetId);
@@ -126,6 +140,8 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
         draft,
         `${actor.displayName}: 「광대」 효과로 ${target.displayName}의 손패(「${seen?.name ?? "없음"}」)를 확인했습니다.`
       );
+      // 본 카드가 뭔지는 비공개 정보 -- 공개 요약에는 확인 사실만 남긴다.
+      setPlayOutcome(draft, card.instanceId, `${target.displayName}의 손패를 확인`);
       if (seen) {
         draft.lastReveal = {
           id: nextLogId(),
@@ -140,6 +156,7 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
     case "기사": {
       if (!targetId) {
         log(draft, `${actor.displayName}: 지목할 상대가 없어 「기사」 효과가 발동하지 않았습니다.`);
+        setPlayOutcome(draft, card.instanceId, "대상 없음 → 효과 불발");
         return;
       }
       const target = getPlayer(draft, targetId);
@@ -162,16 +179,20 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       };
       if (actorRank === targetRank) {
         log(draft, "숫자가 같아 아무 일도 일어나지 않습니다.");
+        setPlayOutcome(draft, card.instanceId, `${target.displayName}과(와) 비교 → 무승부`);
       } else if (actorRank < targetRank) {
         eliminatePlayer(draft, actingPlayerId, "「기사」 비교에서 패배");
+        setPlayOutcome(draft, card.instanceId, `${target.displayName}과(와) 비교 패배 → ${actor.displayName} 탈락`);
       } else {
         eliminatePlayer(draft, targetId, "「기사」 비교에서 패배");
+        setPlayOutcome(draft, card.instanceId, `${target.displayName}과(와) 비교 승리 → ${target.displayName} 탈락`);
       }
       return;
     }
     case "승려": {
       actor.protected = true;
       log(draft, `${actor.displayName}: 「승려」 효과로 다음 차례까지 보호받습니다.`);
+      setPlayOutcome(draft, card.instanceId, "다음 차례까지 보호");
       return;
     }
     case "마술사": {
@@ -181,6 +202,7 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
         if (!discarded) return;
         log(draft, `${actor.displayName}: 「마술사의 도제」 개정된 효과로 스스로 카드를 교체합니다.`);
         discardCard(draft, actingPlayerId, discarded);
+        setPlayOutcome(draft, card.instanceId, "스스로 손패를 교체");
         if (!getPlayer(draft, actingPlayerId).eliminated) {
           drawCardFor(draft, actingPlayerId);
           log(draft, `${actor.displayName}이(가) 덱에서 새 카드를 뽑습니다.`);
@@ -189,6 +211,7 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       }
       if (!targetId) {
         log(draft, `${actor.displayName}: 지목할 상대가 없어 「마술사」 효과가 발동하지 않았습니다.`);
+        setPlayOutcome(draft, card.instanceId, "대상 없음 → 효과 불발");
         return;
       }
       // 「마술사의 도제」 편지 3개 이상 개정판: 대상 지목 전에 덱 위 카드를 확인.
@@ -212,12 +235,22 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       if (!getPlayer(draft, targetId).eliminated) {
         drawCardFor(draft, targetId);
         log(draft, `${target.displayName}이(가) 덱에서 새 카드를 뽑습니다.`);
+        setPlayOutcome(
+          draft,
+          card.instanceId,
+          targetId === actingPlayerId ? "스스로 손패를 교체" : `${target.displayName}의 손패를 버리게 함`
+        );
+      } else {
+        // 버린 카드가 「공주」였다면 discardCard가 즉시 탈락시킨다 -- 버린
+        // 더미는 공개 정보이므로 요약에 그대로 담아도 된다.
+        setPlayOutcome(draft, card.instanceId, `「공주」를 버리게 해 ${target.displayName} 탈락`);
       }
       return;
     }
     case "장군": {
       if (!targetId) {
         log(draft, `${actor.displayName}: 지목할 상대가 없어 「장군」 효과가 발동하지 않았습니다.`);
+        setPlayOutcome(draft, card.instanceId, "대상 없음 → 효과 불발");
         return;
       }
       const target = getPlayer(draft, targetId);
@@ -226,16 +259,20 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       if (actorCard) target.hand.push(actorCard);
       if (targetCard) actor.hand.push(targetCard);
       log(draft, `${actor.displayName}과(와) ${target.displayName}이(가) 「장군」 효과로 손패를 교환합니다.`);
+      setPlayOutcome(draft, card.instanceId, `${target.displayName}과(와) 손패 교환`);
       return;
     }
     case "대신": {
       // Passive: handled separately via checkMinisterElimination before the
       // player chooses a card to play. Playing it directly has no extra effect.
+      setPlayOutcome(draft, card.instanceId, "효과 없음");
       return;
     }
     case "공주": {
-      // Discard-triggered elimination is handled by discardCard(); playing
-      // it yourself has no additional effect beyond that.
+      // Discard-triggered elimination is handled by discardCard() right
+      // after applyEffect -- playing 공주 from hand always eliminates the
+      // actor, so summarize that here.
+      setPlayOutcome(draft, card.instanceId, `「공주」를 버려 ${actor.displayName} 탈락`);
       return;
     }
   }

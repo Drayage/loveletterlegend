@@ -33,13 +33,28 @@
   filter: brightness(1.08);
 }
 
+/* Fixed-viewport shell: the page itself never scrolls or grows -- only the
+ * board region in the middle scrolls when it must. This keeps the play
+ * area centered on screen instead of the log dragging the document down. */
 .app-layout {
   max-width: 900px;
   margin: 0 auto;
-  padding: 20px 16px 60px;
+  padding: 10px 16px 12px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
+  height: 100dvh;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.board-region {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .app-header {
@@ -48,6 +63,7 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .app-header h1 {

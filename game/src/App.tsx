@@ -267,6 +267,9 @@ export default function App() {
 
       <SessionHeader session={session} humanId={HUMAN_ID} onShowArchive={() => setShowStoryArchive(true)} />
 
+      {/* 스크롤이 필요하면 이 보드 영역 내부에서만 일어난다 -- 로그가
+       * 쌓여도 문서 자체는 절대 아래로 자라지 않는다 (100dvh 셸). */}
+      <div className="board-region">
       <EffectToast entries={round.log} />
 
       <div className="removed-row">
@@ -291,7 +294,11 @@ export default function App() {
         <CardReferenceModal session={session} onClose={() => setShowCardReference(false)} />
       )}
       {showStoryArchive && (
-        <StoryArchiveModal archive={session.storyArchive} onClose={() => setShowStoryArchive(false)} />
+        <StoryArchiveModal
+          archive={session.storyArchive}
+          clockTokens={session.clockTokens}
+          onClose={() => setShowStoryArchive(false)}
+        />
       )}
 
       <EffectRevealModal
@@ -329,6 +336,7 @@ export default function App() {
       )}
 
       {!isHumanDecision && decision && <div className="thinking-banner">AI가 생각하는 중...</div>}
+      </div>
 
       {/* Priority when several session-level popups could be true at once:
           pendingHumanReveal (in-round private info from the card that just
@@ -340,6 +348,7 @@ export default function App() {
       {!pendingHumanReveal && pendingStoryEvent && (
         <StoryEventModal
           cards={pendingStoryEvent}
+          clockTokens={session.clockTokens}
           onNext={() => setPendingStoryEvent((prev) => (prev && prev.length > 1 ? prev.slice(1) : null))}
         />
       )}

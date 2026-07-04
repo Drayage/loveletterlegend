@@ -2,8 +2,10 @@ import { setupRound } from "./rules";
 import { ARCHIVE_CARD_SEEDS } from "../data/scenario";
 import { WIZARD_APPRENTICE } from "../data/characters";
 import type { Route } from "../data/routes";
+import { conditionTiming } from "./types";
 import type {
   ArchiveCardState,
+  ArchiveConditionTiming,
   CardName,
   CharacterSlotId,
   CharacterUpgradeTier,
@@ -36,6 +38,10 @@ export interface RoundSummary {
   winnerId: string | null;
   clockTokensGained: number;
   letterTokensGained: Array<{ playerId: string; slot: CharacterSlotId; amount: number }>;
+  /** Names of archive cards that hit their "[시계] N개: 이 카드를 제거"
+   * expiry at this round's end -- surfaced in the round-end summary so
+   * cards don't just silently vanish. */
+  expiredCards: string[];
 }
 
 export type LetterChoice =
@@ -75,6 +81,9 @@ function seedArchiveCard(id: string): ArchiveCardState {
     category: seed.category,
     art: seed.art,
     flavor: seed.flavor,
+    conditionTag: seed.conditionTag,
+    expiresAtClock: seed.expiresAtClock,
+    conditionsTitle: seed.conditionsTitle,
     conditions: seed.conditions.map((c) => ({ ...c, fired: false })),
     successTokens: 0,
     failTokens: 0,
@@ -169,14 +178,24 @@ function addArchiveToken(session: SessionState, cardId: string, token: "성공" 
  * Not a general Action/Condition interpreter -- just these 4 patterns,
  * which cover every card seeded in data/scenario.ts.
  *
+ * `timing` keeps the real cards' 시작/종료 tags from interleaving: 017's
+ * clock table ("roundStart") only fires from beginNextRound, everything
+ * else ("roundEnd") from the round-end flow (placeArchiveToken counts as
+ * part of the round-end sequence -- the 031 placement happens between
+ * rounds).
+ *
  * `winnerCardName` is only meaningful right at round end (for 023's
- * "winnerHeldCard" branch) -- other callers (e.g. placeArchiveToken, which
- * isn't a round-end event) omit it, so that branch simply never fires
- * there. Runs to a fixed point (a reveal can itself satisfy another card's
- * condition, e.g. 023 revealing 053 lets 024's "2+ conditioned cards"
- * check see it in the same pass), which also matches the rulebook's
- * "ascending card-id" processing for this small dataset since 023 < 024. */
-function resolveArchiveConditions(session: SessionState, winnerCardName?: CardName | null): void {
+ * "winnerHeldCard" branches) -- other callers omit it, so those branches
+ * simply never fire there. Runs to a fixed point (a reveal can itself
+ * satisfy another card's condition, e.g. 023 revealing 053 lets 024's
+ * "2+ [조건] cards" check see it in the same pass), which also matches
+ * the rulebook's "ascending card-id" processing for this small dataset
+ * since 023 < 024. */
+function resolveArchiveConditions(
+  session: SessionState,
+  timing: ArchiveConditionTiming,
+  winnerCardName?: CardName | null
+): void {
   let changed = true;
   while (changed) {
     changed = false;
@@ -184,7 +203,7 @@ function resolveArchiveConditions(session: SessionState, winnerCardName?: CardNa
     const toRemove = new Set<string>();
     for (const card of session.storyArchive) {
       for (const cond of card.conditions) {
-        if (cond.fired) continue;
+        if (cond.fired || conditionTiming(cond.kind) !== timing) continue;
         let met = false;
         if (cond.kind === "sharedToken") {
           const count = cond.token === "성공" ? card.successTokens : card.failTokens;
@@ -192,12 +211,13 @@ function resolveArchiveConditions(session: SessionState, winnerCardName?: CardNa
         } else if (cond.kind === "winnerHeldCard") {
           met = winnerCardName != null && winnerCardName === cond.cardName;
         } else if (cond.kind === "archiveCardCount") {
-          // Doesn't count itself -- a card checking "N+ OTHER conditioned
-          // cards" shouldn't satisfy its own threshold by existing.
-          const otherConditionedCount = session.storyArchive.filter(
-            (c) => c.id !== card.id && c.conditions.some((other) => !other.fired)
+          // Only cards carrying the real [조건] tag count ("이야기 보관소에
+          // 「조건」을 가진 카드가 2장 이상") -- NOT any card with an
+          // unfired 시작/종료 reveal table. Doesn't count itself either.
+          const conditionTaggedCount = session.storyArchive.filter(
+            (c) => c.id !== card.id && c.conditionTag
           ).length;
-          met = otherConditionedCount >= cond.minCount;
+          met = conditionTaggedCount >= cond.minCount;
         } else if (cond.kind === "clockThreshold") {
           met = session.clockTokens >= cond.threshold;
         }
@@ -237,7 +257,7 @@ function applySessionRoundEnd(session: SessionState): SessionState {
   // v1에서는 이 재확인을 별도로 억제하지 않는다 -- 같은 라운드에 정확히
   // 임계값에 도달하는 경우는 드물고, 억제 로직을 넣을 만큼 가치가 크지
   // 않다고 판단.)
-  resolveArchiveConditions(next, winnerCard?.name ?? null);
+  resolveArchiveConditions(next, "roundEnd", winnerCard?.name ?? null);
 
   if (winnerId) {
     // 카드 017 「시간」: 라운드 승리 -> 공개된 공주/왕자 중 하나를 골라
@@ -290,15 +310,25 @@ function applySessionRoundEnd(session: SessionState): SessionState {
     }
   }
 
-  // Re-check now that this round's [성공]/[실패] grants (and the clock
-  // token bumped at the top of this function) are in.
-  resolveArchiveConditions(next, winnerCard?.name ?? null);
+  // Re-check now that this round's [성공]/[실패] grants are in.
+  resolveArchiveConditions(next, "roundEnd", winnerCard?.name ?? null);
+
+  // 만료 처리 -- "[시계] N개: 이 카드를 제거합니다." 실카드 종료 태그.
+  // 같은 라운드의 공개 조건을 먼저 처리한 뒤에 제거한다 (시계가 4가 되는
+  // 라운드에서도 023의 승자 카드 확인은 그 라운드까지는 유효하다고 해석).
+  const expired = next.storyArchive.filter(
+    (c) => c.expiresAtClock != null && next.clockTokens >= c.expiresAtClock
+  );
+  if (expired.length > 0) {
+    next.storyArchive = next.storyArchive.filter((c) => !expired.includes(c));
+  }
 
   next.lastRoundSummary = {
     roundNumber: next.roundNumber,
     winnerId,
     clockTokensGained: 1,
     letterTokensGained: letterGains,
+    expiredCards: expired.map((c) => c.name),
   };
 
   if (next.pendingLetterChoice) return next;
@@ -349,11 +379,13 @@ function finalizeRoundEndDecisions(session: SessionState, winnerId: string | nul
   }
 
   // 역사 3[031]이 공개되기 전에는 "첫 탈락자가 조건 카드에 토큰을 놓을 수
-  // 있다"는 규칙 자체가 아직 존재하지 않는다.
+  // 있다"는 규칙 자체가 아직 존재하지 않는다. 놓을 수 있는 대상도 실카드
+  // 문구 그대로 "[조건]을 가진 카드"뿐이다 (053류) -- 시작/종료 공개표만
+  // 가진 카드(017/023 등)에는 놓을 수 없다.
   if (
     next.storyArchive.some((c) => c.id === "031") &&
     next.round.firstEliminatedThisRound &&
-    next.storyArchive.some((c) => c.conditions.some((cond) => !cond.fired))
+    next.storyArchive.some((c) => c.conditionTag && c.conditions.some((cond) => !cond.fired))
   ) {
     next.pendingArchivePlacement = { eligiblePlayerId: next.round.firstEliminatedThisRound };
   }
@@ -453,6 +485,10 @@ export function beginNextRound(session: SessionState, route: Route): SessionStat
   const leaderId = nextRoundLeader(next);
   next.currentRoute = route;
   next.roundNumber += 1;
+  // 017 「시간」의 "시작" 태그: 라운드 시작 시 [시계] 개수를 확인해 공개.
+  // 라운드 종료 이벤트와 순서가 섞이지 않도록 여기(다음 라운드가 실제로
+  // 시작되는 시점)에서만 처리한다.
+  resolveArchiveConditions(next, "roundStart");
   const upgrades = resolveActiveUpgrades(next);
   next.round = { ...setupRound(next.playerConfigs, leaderId), activeCardUpgrades: upgrades, sessionEvents: [] };
   next.lastRoundSummary = null;
@@ -506,9 +542,15 @@ export function placeArchiveToken(
     throw new Error("지금은 이 플레이어가 토큰을 놓을 차례가 아닙니다.");
   }
   const next: SessionState = structuredClone(session);
+  const target = next.storyArchive.find((c) => c.id === cardId);
+  if (!target?.conditionTag) {
+    throw new Error("[조건]을 가진 카드 위에만 토큰을 놓을 수 있습니다.");
+  }
   addArchiveToken(next, cardId, token, 1);
   next.pendingArchivePlacement = null;
-  resolveArchiveConditions(next);
+  // 이 배치는 라운드 종료 시퀀스의 일부 -- 시작 태그(017의 시계표)는 여기서
+  // 발동시키지 않는다.
+  resolveArchiveConditions(next, "roundEnd");
   return next;
 }
 
