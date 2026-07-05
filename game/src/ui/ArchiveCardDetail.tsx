@@ -36,11 +36,14 @@ export function ArchiveCardDetail({
   const parsedRules = earnRules.map(splitEarnRule).filter((r): r is NonNullable<typeof r> => r !== null);
   const weeksLeft =
     card.expiresAtClock != null && clockTokens != null ? Math.max(0, card.expiresAtClock - clockTokens) : null;
+  // Already-fired conditions drop off the checklist entirely (rather than a
+  // struck-through row) -- what's left always reads as "still to do".
+  const openConditions = card.conditions.filter((c) => !c.fired);
 
   return (
     <div className="archive-card-detail">
       <div className="archive-card-detail__header">
-        {card.category === "character" && card.art && (
+        {(card.category === "character" || card.category === "identity") && card.art && (
           <img className="archive-card-detail__portrait" src={card.art} alt={card.name} />
         )}
         <div className="archive-card-detail__header-text">
@@ -59,26 +62,26 @@ export function ArchiveCardDetail({
           <p className="archive-card-detail__flavor">{card.flavor}</p>
         </div>
       </div>
-      {card.conditions.length > 0 && (
+      {openConditions.length > 0 && (
         <div className="archive-card-detail__checklist">
           {card.conditionsTitle && <p className="archive-card-detail__checklist-title">{card.conditionsTitle}</p>}
           <ul className="archive-card-detail__conditions">
-            {card.conditions.map((c) => {
+            {openConditions.map((c) => {
               // sharedToken rows get a live progress readout + the earn
               // rules that feed that counter; other kinds are a plain
               // hypothesis row. Reveal targets are never shown.
               const shared = isSharedToken(c) ? c : null;
               const count = shared ? (shared.token === "성공" ? card.successTokens : card.failTokens) : 0;
-              const rulesForToken = shared && !c.fired ? parsedRules.filter((r) => r.token === shared.token) : [];
+              const rulesForToken = shared ? parsedRules.filter((r) => r.token === shared.token) : [];
               return (
-                <li key={c.id} className={c.fired ? "archive-card-detail__condition--met" : undefined}>
+                <li key={c.id}>
                   <span className="archive-card-detail__condition-row">
                     <span className="archive-card-detail__checkbox" aria-hidden="true">
-                      {c.fired ? "☑" : "☐"}
+                      ☐
                     </span>
                     <span className="archive-card-detail__condition-label">
                       {c.label}
-                      {shared && !c.fired && (
+                      {shared && (
                         <span className="archive-card-detail__condition-progress">
                           {" "}
                           — 현재 {Math.min(count, shared.threshold)} / {shared.threshold}

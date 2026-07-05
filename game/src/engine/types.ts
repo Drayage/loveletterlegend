@@ -163,6 +163,40 @@ export interface GameState {
    * the one who caused it. `id` is used (not object identity) for
    * "already shown" tracking, since GameState gets structuredClone'd. */
   lastElimination: { id: string; playerId: string; reason: string } | null;
+  /** Public: result of a 경비병/신병-style guess resolution -- both players
+   * see this (unlike the private compare/peek reveals gated by
+   * RevealInfo.viewerPlayerId), since a guess and its outcome are always
+   * visible to both sides in the physical game. Drives a card-flip effect:
+   * the target's card stays face down while the guess is announced, then
+   * flips face-up ONLY if the guess was correct (hit -- revealing what it
+   * actually was); on a miss the card stays face down forever, since a
+   * wrong guess never reveals the target's real hand. */
+  lastGuessEffect: {
+    id: string;
+    actingPlayerId: string;
+    targetPlayerId: string;
+    cardName: CardName;
+    guess: CardName;
+    hit: boolean;
+  } | null;
+  /** Public: a forced-discard resolution (마술사/마술사의도제 계열) -- shown
+   * to both sides since the discard pile is always public information, so
+   * silently discarding-and-redrawing behind the scenes would hide a real
+   * game event from the player it happened to. */
+  lastForcedDiscard: {
+    id: string;
+    actingPlayerId: string;
+    targetPlayerId: string;
+    cardName: CardName;
+    discardedCardName: CardName;
+  } | null;
+  /** Public: an effect fizzled because it had no legal target -- in this 2P
+   * implementation that only happens when the sole opponent is 승려-protected
+   * (see effects.ts's eligibleTargets), so this doubles as a "blocked by
+   * protection" notice. Surfaced as its own popup instead of a log-only line
+   * so a turn that visibly "did nothing" still reads as an intentional
+   * block, not a silent no-op/bug. */
+  lastEffectBlocked: { id: string; actingPlayerId: string; cardName: CardName } | null;
   /** Session-driven ability upgrades active for this round (see
    * engine/session.ts / engine/upgrades.ts). Absent for callers that don't
    * know about sessions (e.g. rules.test.ts) -- everything defaults to
@@ -279,9 +313,14 @@ export interface ArchiveCardState {
   id: string;
   name: string;
   /** Matches the real card's data/cards.json category -- drives the
-   * 캐릭터/시나리오 split in the story archive UI. */
-  category: "character" | "scenario";
-  /** Portrait shown next to character cards (character-only). */
+   * 캐릭터/정체/시나리오 split in the story archive UI. "identity" is the
+   * 032-revealed 033~038 "정체" card pool: unlike ordinary character cards
+   * (including 잉그리드공주/아레스왕자), these never receive [편지] tokens
+   * (see engine/session.ts's RANK8_SLOTS, which only ever names the two
+   * route characters), so they're shown as their own section rather than
+   * lumped in with 캐릭터. */
+  category: "character" | "scenario" | "identity";
+  /** Portrait shown next to character/identity cards. */
   art?: string;
   flavor: string;
   /** True for cards whose real text carries the [조건] tag (053). Only

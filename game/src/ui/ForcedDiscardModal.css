@@ -1,0 +1,31 @@
+.forced-discard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  width: 100%;
+}
+
+.forced-discard__prompt {
+  margin: 0;
+  font-size: 13.5px;
+}
+
+.forced-discard__caption {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.forced-discard__confirm-btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+}

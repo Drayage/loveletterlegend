@@ -73,6 +73,9 @@ export function setupRound(
     lastPlayedCard: null,
     lastReveal: null,
     lastElimination: null,
+    lastGuessEffect: null,
+    lastForcedDiscard: null,
+    lastEffectBlocked: null,
     firstEliminatedThisRound: null,
     recentPlays: [],
   };

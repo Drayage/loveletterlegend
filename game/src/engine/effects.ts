@@ -1,4 +1,4 @@
-import type { CardInstance, CardName, CharacterUpgradeTier, GameState } from "./types";
+import type { CardInstance, CardName, CharacterUpgradeTier, GameState, PlayerState } from "./types";
 import { nextLogId } from "./clone";
 import { CARD_ORDER } from "./cards";
 
@@ -82,6 +82,16 @@ function eligibleTargets(draft: GameState, actingPlayerId: string, allowSelf: bo
     .map((p) => p.id);
 }
 
+/** Shared "no legal target" fizzle path for every target-needing card. In
+ * this 2P implementation the only way a card ends up with zero eligible
+ * targets is the sole opponent being 승려-protected, so this doubles as the
+ * public "blocked by protection" notice (see GameState.lastEffectBlocked). */
+function blockNoTarget(draft: GameState, actor: PlayerState, card: CardInstance): void {
+  log(draft, `${actor.displayName}: 지목할 상대가 없어 「${card.name}」 효과가 발동하지 않았습니다.`);
+  setPlayOutcome(draft, card.instanceId, "대상 없음 (보호효과) → 효과 불발");
+  draft.lastEffectBlocked = { id: nextLogId(), actingPlayerId: actor.id, cardName: card.name };
+}
+
 export function targetsFor(
   draft: GameState,
   actingPlayerId: string,
@@ -149,14 +159,21 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
     case "경비병":
     case "신병": {
       if (!targetId || !guess) {
-        log(draft, `${actor.displayName}: 지목할 상대가 없어 「${card.name}」 효과가 발동하지 않았습니다.`);
-        setPlayOutcome(draft, card.instanceId, "대상 없음 → 효과 불발");
+        blockNoTarget(draft, actor, card);
         return;
       }
       const target = getPlayer(draft, targetId);
       const hit = target.hand.some((c) => c.name === guess);
       log(draft, `${actor.displayName}: ${target.displayName}을(를) 지목하고 「${guess}」(이)라고 추측합니다.`);
       draft.sessionEvents?.push({ type: "guardGuessResolved", actingPlayerId, hit, cardName: card.name });
+      draft.lastGuessEffect = {
+        id: nextLogId(),
+        actingPlayerId,
+        targetPlayerId: targetId,
+        cardName: card.name,
+        guess,
+        hit,
+      };
       if (hit) {
         eliminatePlayer(draft, targetId, `「${card.name}」 추측 적중`);
         setPlayOutcome(draft, card.instanceId, `「${guess}」 추측 적중! ${target.displayName} 탈락`);
@@ -169,8 +186,7 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
     case "광대":
     case "광대의제자": {
       if (!targetId) {
-        log(draft, `${actor.displayName}: 지목할 상대가 없어 「${card.name}」 효과가 발동하지 않았습니다.`);
-        setPlayOutcome(draft, card.instanceId, "대상 없음 → 효과 불발");
+        blockNoTarget(draft, actor, card);
         return;
       }
       const target = getPlayer(draft, targetId);
@@ -213,8 +229,7 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
     case "기사":
     case "복면기사": {
       if (!targetId) {
-        log(draft, `${actor.displayName}: 지목할 상대가 없어 「${card.name}」 효과가 발동하지 않았습니다.`);
-        setPlayOutcome(draft, card.instanceId, "대상 없음 → 효과 불발");
+        blockNoTarget(draft, actor, card);
         return;
       }
       const target = getPlayer(draft, targetId);
@@ -259,8 +274,7 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
     }
     case "상인": {
       if (!targetId) {
-        log(draft, `${actor.displayName}: 지목할 상대가 없어 「상인」 효과가 발동하지 않았습니다.`);
-        setPlayOutcome(draft, card.instanceId, "대상 없음 → 효과 불발");
+        blockNoTarget(draft, actor, card);
         return;
       }
       const target = getPlayer(draft, targetId);
@@ -315,8 +329,7 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
     }
     case "군사": {
       if (!targetId) {
-        log(draft, `${actor.displayName}: 지목할 상대가 없어 「군사」 효과가 발동하지 않았습니다.`);
-        setPlayOutcome(draft, card.instanceId, "대상 없음 → 효과 불발");
+        blockNoTarget(draft, actor, card);
         return;
       }
       const target = getPlayer(draft, targetId);
@@ -366,6 +379,13 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
         const discarded = actor.hand.pop();
         if (!discarded) return;
         log(draft, `${actor.displayName}: 「마술사의 도제」 개정된 효과로 스스로 카드를 교체합니다.`);
+        draft.lastForcedDiscard = {
+          id: nextLogId(),
+          actingPlayerId,
+          targetPlayerId: actingPlayerId,
+          cardName: card.name,
+          discardedCardName: discarded.name,
+        };
         discardCard(draft, actingPlayerId, discarded);
         setPlayOutcome(draft, card.instanceId, "스스로 손패를 교체");
         if (!getPlayer(draft, actingPlayerId).eliminated) {
@@ -375,8 +395,7 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
         return;
       }
       if (!targetId) {
-        log(draft, `${actor.displayName}: 지목할 상대가 없어 「마술사」 효과가 발동하지 않았습니다.`);
-        setPlayOutcome(draft, card.instanceId, "대상 없음 → 효과 불발");
+        blockNoTarget(draft, actor, card);
         return;
       }
       // 「마술사의 도제」 편지 3개 이상 개정판: 대상 지목 전에 덱 위 카드를 확인.
@@ -388,6 +407,13 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       const discarded = target.hand.pop();
       if (!discarded) return;
       log(draft, `${actor.displayName}: 「마술사」 효과로 ${target.displayName}이(가) 손패를 버립니다.`);
+      draft.lastForcedDiscard = {
+        id: nextLogId(),
+        actingPlayerId,
+        targetPlayerId: targetId,
+        cardName: card.name,
+        discardedCardName: discarded.name,
+      };
       if (cardRank(discarded.name) >= 5 && targetId !== actingPlayerId) {
         draft.sessionEvents?.push({
           type: "wizardForcedDiscard",
@@ -414,8 +440,7 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
     }
     case "장군": {
       if (!targetId) {
-        log(draft, `${actor.displayName}: 지목할 상대가 없어 「장군」 효과가 발동하지 않았습니다.`);
-        setPlayOutcome(draft, card.instanceId, "대상 없음 → 효과 불발");
+        blockNoTarget(draft, actor, card);
         return;
       }
       const target = getPlayer(draft, targetId);
@@ -449,14 +474,20 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
         log(draft, `${actor.displayName}: 「마술사의 도제」 효과로 덱 맨 위 카드를 확인합니다.`);
       }
       if (!targetId) {
-        log(draft, `${actor.displayName}: 지목할 상대가 없어 「마술사의 도제」 효과가 발동하지 않았습니다.`);
-        setPlayOutcome(draft, card.instanceId, "대상 없음 → 효과 불발");
+        blockNoTarget(draft, actor, card);
         return;
       }
       const target = getPlayer(draft, targetId);
       const discarded = target.hand.pop();
       if (!discarded) return;
       log(draft, `${actor.displayName}: 「마술사의 도제」 효과로 ${target.displayName}이(가) 손패를 버립니다.`);
+      draft.lastForcedDiscard = {
+        id: nextLogId(),
+        actingPlayerId,
+        targetPlayerId: targetId,
+        cardName: card.name,
+        discardedCardName: discarded.name,
+      };
       if (cardRank(discarded.name) >= 5) {
         draft.sessionEvents?.push({
           type: "apprenticeForcedDiscard",

@@ -817,6 +817,9 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
       lastPlayedCard: null,
       lastReveal: null,
       lastElimination: null,
+      lastGuessEffect: null,
+      lastForcedDiscard: null,
+      lastEffectBlocked: null,
       firstEliminatedThisRound: null,
     };
     applyEffect(state, {
@@ -941,6 +944,9 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
         lastPlayedCard: null,
         lastReveal: null,
         lastElimination: null,
+        lastGuessEffect: null,
+        lastForcedDiscard: null,
+        lastEffectBlocked: null,
         firstEliminatedThisRound: null,
       };
       const next = beginTurn(state);

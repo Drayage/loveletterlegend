@@ -89,10 +89,6 @@
   padding: 5px 10px;
 }
 
-.archive-card-detail__conditions li.archive-card-detail__condition--met {
-  opacity: 0.75;
-}
-
 .archive-card-detail__condition-row {
   display: flex;
   align-items: baseline;
@@ -104,11 +100,6 @@
 .archive-card-detail__checkbox {
   color: var(--accent);
   flex-shrink: 0;
-}
-
-.archive-card-detail__condition--met .archive-card-detail__condition-label {
-  text-decoration: line-through;
-  text-decoration-thickness: 1px;
 }
 
 .archive-card-detail__condition-progress {

@@ -166,6 +166,9 @@ describe("Love Letter engine", () => {
       lastPlayedCard: null,
       lastReveal: null,
       lastElimination: null,
+      lastGuessEffect: null,
+      lastForcedDiscard: null,
+      lastEffectBlocked: null,
       firstEliminatedThisRound: null,
       activeIdentities,
     };
@@ -235,6 +238,9 @@ describe("039 「역사 5」축제 덱 -- 덱 소진 시 승자 결정 규칙 �
       lastPlayedCard: null,
       lastReveal: null,
       lastElimination: null,
+      lastGuessEffect: null,
+      lastForcedDiscard: null,
+      lastEffectBlocked: null,
       firstEliminatedThisRound: null,
       activeFestivalCardId,
     };
@@ -306,6 +312,9 @@ describe("039 「역사 5」축제 덱 -- 덱 소진 시 승자 결정 규칙 �
       lastPlayedCard: null,
       lastReveal: null,
       lastElimination: null,
+      lastGuessEffect: null,
+      lastForcedDiscard: null,
+      lastEffectBlocked: null,
       firstEliminatedThisRound: null,
       activeFestivalCardId: "047",
     };
@@ -336,6 +345,9 @@ function minimalState(overrides: Partial<GameState> = {}): GameState {
     lastPlayedCard: null,
     lastReveal: null,
     lastElimination: null,
+    lastGuessEffect: null,
+    lastForcedDiscard: null,
+    lastEffectBlocked: null,
     firstEliminatedThisRound: null,
     ...overrides,
   };
@@ -431,5 +443,108 @@ describe("GameState.lastElimination (public elimination acknowledgment)", () => 
     eliminatePlayer(state, "p1", "second reason (should be ignored)");
     expect(state.lastElimination?.id).toBe(firstId);
     expect(state.lastElimination?.reason).toBe("first reason");
+  });
+});
+
+describe("Public effect popups (lastGuessEffect / lastForcedDiscard / lastEffectBlocked)", () => {
+  it("경비병: a hit stamps lastGuessEffect with hit:true AND still eliminates the target", () => {
+    const state = minimalState({
+      players: [
+        { id: "p1", displayName: "P1", isAI: false, hand: [], discardPile: [], eliminated: false, protected: false },
+        {
+          id: "p2",
+          displayName: "P2",
+          isAI: true,
+          hand: [{ instanceId: "p2c", name: "공주" }],
+          discardPile: [],
+          eliminated: false,
+          protected: false,
+        },
+      ],
+    });
+    applyEffect(state, {
+      actingPlayerId: "p1",
+      card: { instanceId: "c1", name: "경비병" },
+      targetId: "p2",
+      guess: "공주",
+    });
+    expect(state.lastGuessEffect).toEqual({
+      id: expect.any(String),
+      actingPlayerId: "p1",
+      targetPlayerId: "p2",
+      cardName: "경비병",
+      guess: "공주",
+      hit: true,
+    });
+    expect(state.players[1].eliminated).toBe(true);
+    expect(state.lastElimination?.playerId).toBe("p2");
+  });
+
+  it("경비병: a miss stamps lastGuessEffect with hit:false and doesn't eliminate anyone", () => {
+    const state = minimalState({
+      players: [
+        { id: "p1", displayName: "P1", isAI: false, hand: [], discardPile: [], eliminated: false, protected: false },
+        {
+          id: "p2",
+          displayName: "P2",
+          isAI: true,
+          hand: [{ instanceId: "p2c", name: "장군" }],
+          discardPile: [],
+          eliminated: false,
+          protected: false,
+        },
+      ],
+    });
+    applyEffect(state, {
+      actingPlayerId: "p1",
+      card: { instanceId: "c1", name: "경비병" },
+      targetId: "p2",
+      guess: "공주",
+    });
+    expect(state.lastGuessEffect?.hit).toBe(false);
+    expect(state.players[1].eliminated).toBe(false);
+    expect(state.lastElimination).toBeNull();
+  });
+
+  it("마술사: forcing a discard stamps lastForcedDiscard with the actual discarded card name", () => {
+    const state = minimalState({
+      deck: [{ instanceId: "d1", name: "경비병" }],
+      players: [
+        { id: "p1", displayName: "P1", isAI: false, hand: [], discardPile: [], eliminated: false, protected: false },
+        {
+          id: "p2",
+          displayName: "P2",
+          isAI: true,
+          hand: [{ instanceId: "p2c", name: "장군" }],
+          discardPile: [],
+          eliminated: false,
+          protected: false,
+        },
+      ],
+    });
+    applyEffect(state, { actingPlayerId: "p1", card: { instanceId: "c1", name: "마술사" }, targetId: "p2" });
+    expect(state.lastForcedDiscard).toEqual({
+      id: expect.any(String),
+      actingPlayerId: "p1",
+      targetPlayerId: "p2",
+      cardName: "마술사",
+      discardedCardName: "장군",
+    });
+  });
+
+  it("경비병 with no eligible target (opponent 승려-protected) stamps lastEffectBlocked instead of a guess", () => {
+    const state = minimalState({
+      players: [
+        { id: "p1", displayName: "P1", isAI: false, hand: [], discardPile: [], eliminated: false, protected: false },
+        { id: "p2", displayName: "P2", isAI: true, hand: [], discardPile: [], eliminated: false, protected: true },
+      ],
+    });
+    applyEffect(state, { actingPlayerId: "p1", card: { instanceId: "c1", name: "경비병" } });
+    expect(state.lastEffectBlocked).toEqual({
+      id: expect.any(String),
+      actingPlayerId: "p1",
+      cardName: "경비병",
+    });
+    expect(state.lastGuessEffect).toBeNull();
   });
 });

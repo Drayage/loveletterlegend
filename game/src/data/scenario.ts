@@ -124,10 +124,11 @@ export interface ArchiveCardSeed {
   id: string;
   name: string;
   /** Matches the real card's data/cards.json "category" -- drives the
-   * 캐릭터/시나리오 split in the story archive UI. Character cards show a
-   * portrait alongside their text; scenario cards don't. */
-  category: "character" | "scenario";
-  /** Portrait shown next to character cards (character-only). */
+   * 캐릭터/정체/시나리오 split in the story archive UI (see types.ts's
+   * ArchiveCardState.category). Character/identity cards show a portrait
+   * alongside their text; scenario cards don't. */
+  category: "character" | "scenario" | "identity";
+  /** Portrait shown next to character/identity cards. */
   art?: string;
   flavor: string;
   /** Real [조건] tag holder (053) -- see types.ts ArchiveCardState. */
@@ -270,7 +271,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
   "033": {
     id: "033",
     name: "농부 / 양치기",
-    category: "character",
+    category: "identity",
     art: farmer,
     flavor: "각 라운드 중에 한 번, 자기 차례를 시작할 때 손에 든 카드와 비공개 카드를 서로 바꿀 수 있습니다.",
     conditions: [],
@@ -278,7 +279,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
   "034": {
     id: "034",
     name: "사냥꾼 / 약초꾼",
-    category: "character",
+    category: "identity",
     art: hunter,
     flavor: "각 라운드 중에 한 번, 다른 플레이어가 자신에게 사용한 효과를 취소할 수 있습니다.",
     conditions: [],
@@ -286,7 +287,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
   "035": {
     id: "035",
     name: "견습기사 / 호위",
-    category: "character",
+    category: "identity",
     art: squire,
     flavor: "카드의 숫자를 비교할 때와 라운드 종료시에 손에 든 카드의 숫자에 2를 더합니다.",
     conditions: [],
@@ -294,7 +295,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
   "036": {
     id: "036",
     name: "학생 / 여학생",
-    category: "character",
+    category: "identity",
     art: student,
     flavor:
       "각 라운드 중에 한 번, 플레이한 카드의 「플레이:」효과를 버림 더미에 있는 카드의 「플레이:」효과로 대신할 수 있습니다.",
@@ -303,7 +304,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
   "037": {
     id: "037",
     name: "여행자 / 순례자",
-    category: "character",
+    category: "identity",
     art: traveler,
     flavor: "전체 게임 중에 단 한 번, 차례 종료시에 한 번 더 차례를 가질 수 있습니다.",
     conditions: [],
@@ -311,7 +312,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
   "038": {
     id: "038",
     name: "남작 / 여자작",
-    category: "character",
+    category: "identity",
     art: baron,
     flavor: "이 카드를 획득할 때, 자신의 [편지] 2개를 원하는 캐릭터에 배치하거나 이동시킬 수 있습니다.",
     conditions: [],
