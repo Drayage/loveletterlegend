@@ -11,7 +11,24 @@ export type CardName =
    * 0 -- 실제 카드는 "X"로 순위 비교에 참여하지 않는 특수 취급이며, 이
    * 카드는 손에 들고 있으면 즉시 탈락하는 패시브뿐이라 순위 비교 지점에
    * 아예 도달하지 않는다). */
-  | "왕";
+  | "왕"
+  // 023의 나머지 7개 분기(광대/기사/승려/장군/대신) 아래에서 실카드의
+  // [등장] 태그로 기존 base 카드 중 일부를 대체/추가하는 새 게임 카드들
+  // (see data/scenario.ts's ArchiveCardSeed.deckEffect). 마술사/공주 분기
+  // (142/188)는 각각 기존 마술사의도제 시스템과의 충돌, 라운드별 토글
+  // 복잡도 때문에 flavor-only로 남겨 새 CardName이 없다.
+  | "신병"
+  | "광대의제자"
+  | "점술사"
+  | "복면기사"
+  | "상인"
+  | "수사"
+  | "수녀"
+  | "여장군"
+  | "군사"
+  | "정무관남"
+  | "정무관여"
+  | "여후작";
 
 export interface CardDef {
   name: CardName;
@@ -43,6 +60,10 @@ export interface PlayerState {
   discardPile: CardInstance[];
   eliminated: boolean;
   protected: boolean;
+  /** 정무관(남자/여자)[175/179]의 "플레이: 당신은 이번 라운드에서 탈락하지
+   * 않습니다." -- 승려의 "다음 차례까지"보다 강하게, 라운드가 끝날 때까지
+   * 유지된다. See effects.ts's eliminatePlayer. */
+  immuneThisRound?: boolean;
 }
 
 export interface LogEntry {
@@ -153,11 +174,25 @@ export interface GameState {
 }
 
 export type SessionEvent =
-  | { type: "guardGuessResolved"; actingPlayerId: string; hit: boolean }
+  /** `cardName`: 「경비병」/「신병」 둘 다 이 이벤트를 쓰므로(같은 효과
+   * 로직 공유, see effects.ts), 어느 카드였는지 구분해 053/057 중 맞는
+   * 쪽에 [성공]/[실패]를 적립해야 한다 (see engine/session.ts). */
+  | { type: "guardGuessResolved"; actingPlayerId: string; hit: boolean; cardName: CardName }
   | { type: "wizardForcedDiscard"; actingPlayerId: string; targetPlayerId: string; discardedCardName: CardName }
   /** 025 「국왕 랜들 3세」의 "도중" tag: 《왕》 효과로 탈락한 플레이어의 총
    * [편지]가 8개 이상이면 025에 [실패] +1 (see engine/session.ts). */
-  | { type: "kingElimination"; playerId: string };
+  | { type: "kingElimination"; playerId: string }
+  /** 「기사」/「복면기사」 비교 결과 -- 103/108에 각각 필요한 "이 카드로
+   * 상대를 탈락시킴"/"이 카드로 자기 자신이 탈락함" 적립에 쓰인다 (see
+   * engine/session.ts). `cardName`은 어느 카드였는지(공유 로직이라
+   * 구분 필요), `outcome`은 대결 결과. */
+  | {
+      type: "compareResolved";
+      actingPlayerId: string;
+      targetPlayerId: string;
+      cardName: CardName;
+      outcome: "actorLoses" | "targetLoses" | "tie";
+    };
 
 /** Runtime state of one card sitting in the "이야기 보관소" (story archive).
  * Lives here (not engine/session.ts) so both session.ts and ai.ts can import
@@ -204,6 +239,16 @@ export type ArchiveConditionTiming = "roundStart" | "roundEnd";
 export function conditionTiming(kind: ArchiveCondition["kind"]): ArchiveConditionTiming {
   return kind === "clockThreshold" ? "roundStart" : "roundEnd";
 }
+
+/** 실카드의 [등장] "《X》[ID]를 덱에 추가/제거" -- 카드가 처음 공개되는
+ * 순간 세션의 덱 구성이 영구적으로 바뀐다 (see engine/session.ts's
+ * applyDeckEffect). "replace"는 non-exclusive 「선택 적용」 조건 두 개가
+ * 같은 base 카드를 동시에 노리는 경우(e.g. 164/168 -> 「장군」) 먼저
+ * 발동한 쪽만 적용되고 나머지는 조용히 무시된다. */
+export type DeckEffect =
+  | { kind: "add"; cardName: CardName }
+  | { kind: "replace"; removeName: CardName; addName: CardName; count?: number }
+  | { kind: "revert"; removedName: CardName; restoreName: CardName };
 
 export interface ArchiveCardState {
   id: string;

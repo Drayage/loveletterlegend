@@ -9,6 +9,7 @@ import {
   chooseLetterTargetAI,
   chooseRouteAI,
   chooseIdentityAI,
+  chooseArchiveChoiceAI,
 } from "./engine/ai";
 import { computeRemainingCounts } from "./engine/remaining";
 import {
@@ -19,6 +20,7 @@ import {
   skipArchivePlacement,
   resolveLetterChoice,
   chooseIdentity,
+  resolveArchiveChoice,
   nextRoundLeader,
   ROUTE_SLOT,
 } from "./engine/session";
@@ -39,6 +41,7 @@ import { SessionEndScreen } from "./ui/SessionEndScreen";
 import { StoryArchiveModal } from "./ui/StoryArchiveModal";
 import { ArchiveTokenModal } from "./ui/ArchiveTokenModal";
 import { IdentityChoiceModal } from "./ui/IdentityChoiceModal";
+import { ArchiveChoiceModal } from "./ui/ArchiveChoiceModal";
 import { StoryEventModal } from "./ui/StoryEventModal";
 import { ARCHIVE_CARD_SEEDS } from "./data/scenario";
 import "./App.css";
@@ -84,6 +87,7 @@ export default function App() {
   const handledArchiveRef = useRef<SessionState["pendingArchivePlacement"]>(null);
   const handledLetterChoiceRef = useRef<SessionState["pendingLetterChoice"]>(null);
   const handledIdentityRef = useRef<SessionState["pendingIdentityChoice"]>(null);
+  const handledChoiceRef = useRef<SessionState["pendingChoice"]>(null);
   const seenArchiveIdsRef = useRef<Set<string>>(new Set());
 
   const round = session?.round ?? null;
@@ -205,6 +209,32 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [session, pendingHumanReveal, pendingStoryEvent]);
 
+  // AI's 실카드 "선택" 분기 결정, when the eligible player (round winner) is the AI.
+  useEffect(() => {
+    if (!session?.pendingChoice) {
+      handledChoiceRef.current = null;
+      return;
+    }
+    const pending = session.pendingChoice;
+    if (pendingHumanReveal || pendingStoryEvent) {
+      handledChoiceRef.current = null;
+      return;
+    }
+    const actor = session.playerConfigs.find((p) => p.id === pending.eligiblePlayerId);
+    if (!actor?.isAI) return;
+    if (handledChoiceRef.current === pending) return;
+    handledChoiceRef.current = pending;
+
+    const timer = setTimeout(() => {
+      setSession((prev) => {
+        if (!prev || prev.pendingChoice !== pending) return prev;
+        const optionId = chooseArchiveChoiceAI(pending.options);
+        return safely(() => resolveArchiveChoice(prev, pending.eligiblePlayerId, optionId)) ?? prev;
+      });
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [session, pendingHumanReveal, pendingStoryEvent]);
+
   // Show a readable popup (with full flavor text + conditions) whenever new
   // cards appear in the story archive.
   useEffect(() => {
@@ -222,6 +252,7 @@ export default function App() {
     handledArchiveRef.current = null;
     handledLetterChoiceRef.current = null;
     handledIdentityRef.current = null;
+    handledChoiceRef.current = null;
     seenArchiveIdsRef.current = new Set();
     setDismissedRevealId(null);
     setShowRouteSwitch(false);
@@ -260,6 +291,10 @@ export default function App() {
     setSession((prev) => (prev ? safely(() => chooseIdentity(prev, HUMAN_ID, identityId)) ?? prev : prev));
   }
 
+  function handleChooseArchiveOption(optionId: string) {
+    setSession((prev) => (prev ? safely(() => resolveArchiveChoice(prev, HUMAN_ID, optionId)) ?? prev : prev));
+  }
+
   if (!session || !round) {
     return (
       <div className="start-screen">
@@ -287,6 +322,8 @@ export default function App() {
   const needsIdentityChoice = Boolean(session.pendingIdentityChoice);
   const humanNeedsIdentityChoice =
     needsIdentityChoice && session.pendingIdentityChoice!.eligiblePlayerId === HUMAN_ID;
+  const needsArchiveChoice = Boolean(session.pendingChoice);
+  const humanNeedsArchiveChoice = needsArchiveChoice && session.pendingChoice!.eligiblePlayerId === HUMAN_ID;
   const humanLetterTokens = Object.fromEntries(
     (["잉그리드공주", "아레스왕자", "마술사의도제"] as CharacterSlotId[]).map((slot) => [
       slot,
@@ -410,6 +447,15 @@ export default function App() {
         !pendingStoryEvent &&
         !needsLetterChoice &&
         !needsIdentityChoice &&
+        humanNeedsArchiveChoice && (
+          <ArchiveChoiceModal options={session.pendingChoice!.options} onChoose={handleChooseArchiveOption} />
+        )}
+
+      {!pendingHumanReveal &&
+        !pendingStoryEvent &&
+        !needsLetterChoice &&
+        !needsIdentityChoice &&
+        !needsArchiveChoice &&
         humanNeedsArchivePlacement && (
           <ArchiveTokenModal
             archive={session.storyArchive}
@@ -422,6 +468,7 @@ export default function App() {
         !pendingStoryEvent &&
         !needsLetterChoice &&
         !needsIdentityChoice &&
+        !needsArchiveChoice &&
         roundOver &&
         !needsArchivePlacement &&
         session.lastRoundSummary &&
@@ -451,6 +498,7 @@ export default function App() {
         !pendingStoryEvent &&
         !needsLetterChoice &&
         !needsIdentityChoice &&
+        !needsArchiveChoice &&
         roundOver &&
         !needsArchivePlacement &&
         !session.ended &&

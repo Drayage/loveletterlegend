@@ -28,9 +28,10 @@ export type { PlayerConfig } from "./types";
 export function setupRound(
   playerConfigs: PlayerConfig[],
   startingPlayerId?: string,
-  extraCardNames?: CardName[]
+  extraCardNames?: CardName[],
+  removedBaseCardNames?: CardName[]
 ): GameState {
-  const deck = shuffledDeck(extraCardNames);
+  const deck = shuffledDeck(extraCardNames, removedBaseCardNames);
   const hiddenRemovedCard = deck.shift() ?? null;
   const faceUpRemovedCards: CardInstance[] = [];
   if (playerConfigs.length === 2) {
@@ -79,6 +80,26 @@ export function setupRound(
   return state;
 }
 
+/** Two base cards restrict which of the player's 2 hand cards may actually
+ * be chosen this turn, rather than being caught by a simple elimination
+ * passive:
+ * - 「여후작」[184]: 손패 합 12 이상이면 반드시 이 카드를 내야 한다.
+ * - 「여장군」[165]: "이 카드는 내려놓을 수 없습니다" -- 다른 카드가 있는
+ *   한 절대 선택지에 들어가지 않는다.
+ * Falls back to the full hand if applying a rule would leave zero options
+ * (e.g. both cards are somehow the same restricted name). */
+function restrictedPlayOptions(hand: CardInstance[]): CardInstance[] {
+  if (hand.length >= 2) {
+    const marchioness = hand.find((c) => c.name === "여후작");
+    if (marchioness) {
+      const sum = hand.reduce((acc, c) => acc + cardRank(c.name), 0);
+      if (sum >= 12) return [marchioness];
+    }
+  }
+  const withoutLadyGeneral = hand.filter((c) => c.name !== "여장군");
+  return withoutLadyGeneral.length > 0 ? withoutLadyGeneral : hand;
+}
+
 export function beginTurn(state: GameState): GameState {
   const draft = cloneState(state);
   const player = draft.players[draft.currentPlayerIndex];
@@ -101,7 +122,7 @@ export function beginTurn(state: GameState): GameState {
   draft.pendingDecision = {
     kind: "playCard",
     playerId: player.id,
-    options: player.hand,
+    options: restrictedPlayOptions(player.hand),
   };
   return draft;
 }

@@ -9,6 +9,7 @@ import type {
   CardName,
   CharacterSlotId,
   CharacterUpgradeTier,
+  DeckEffect,
   GameState,
   PlayerConfig,
 } from "./types";
@@ -100,6 +101,13 @@ export interface SessionState {
    * 뽑아 그 라운드의 GameState.activeFestivalCardId로 넘기고, 라운드
    * 종료시 맨 아래로 되돌린다 (see beginNextRound/applySessionRoundEnd). */
   festivalDeck: string[];
+  /** 023의 나머지 분기들이 실카드의 [등장] 태그로 기존 base 카드를 영구히
+   * 대체할 때, 제거된 쪽의 이름을 하나씩 쌓아둔다 (see engine/deck.ts's
+   * shuffledDeck, engine/session.ts's applyDeckEffect). */
+  removedBaseCardNames: CardName[];
+  /** 실카드의 "선택" 분기 카드가 공개되면 그 라운드 승자가 옵션 중 하나를
+   * 골라야 하는 차례 -- see resolveArchiveChoice. */
+  pendingChoice: { cardId: string; eligiblePlayerId: string; options: Array<{ id: string; label: string }> } | null;
 }
 
 function seedArchiveCard(id: string): ArchiveCardState {
@@ -152,6 +160,8 @@ export function startSession(playerConfigs: PlayerConfig[], initialRoute: Route 
     playerIdentities,
     pendingIdentityChoice: null,
     festivalDeck: [],
+    removedBaseCardNames: [],
+    pendingChoice: null,
   });
 }
 
@@ -284,15 +294,65 @@ function resolveArchiveConditions(
   return everRevealed;
 }
 
-/** Runs one-time setup that a specific card's reveal triggers -- deck
- * injection (025 -> 「왕」), identity-pool seeding (032), festival-deck
- * seeding (039). Idempotent no-ops if called again for an id already
- * revealed (e.g. resolveArchiveConditions returning it a second time can't
- * actually happen since it only reports NEW reveals, but the individual
- * checks below are defensive anyway). */
-function applyRevealSideEffects(session: SessionState, newlyRevealedIds: Set<string>): void {
-  if (newlyRevealedIds.has("025") && !session.extraDeckCardNames.includes("왕")) {
-    session.extraDeckCardNames.push("왕");
+/** 실카드의 [등장] "《X》[ID]를 덱에 추가/제거" -- ArchiveCardSeed.deckEffect
+ * 데이터를 그대로 세션의 덱 구성에 반영한다. "replace"는 non-exclusive
+ * 「선택 적용」조건 두 개가 같은 base 카드를 동시에 노리는 경우(e.g.
+ * 164/168 -> 「장군」) 먼저 발동한 쪽만 적용되고 나머지는 조용히
+ * 무시된다 (removedBaseCardNames에 이미 있으면 스킵). */
+function applyDeckEffect(session: SessionState, effect: DeckEffect): void {
+  if (effect.kind === "add") {
+    if (!session.extraDeckCardNames.includes(effect.cardName)) session.extraDeckCardNames.push(effect.cardName);
+  } else if (effect.kind === "replace") {
+    if (session.removedBaseCardNames.includes(effect.removeName)) return;
+    for (let i = 0; i < (effect.count ?? 1); i++) {
+      session.removedBaseCardNames.push(effect.removeName);
+      session.extraDeckCardNames.push(effect.addName);
+    }
+  } else {
+    const idx = session.extraDeckCardNames.indexOf(effect.removedName);
+    if (idx !== -1) session.extraDeckCardNames.splice(idx, 1);
+    const ridx = session.removedBaseCardNames.indexOf(effect.restoreName);
+    if (ridx !== -1) session.removedBaseCardNames.splice(ridx, 1);
+  }
+}
+
+/** `choiceEligiblePlayerId` -- who gets to pick if a 「선택」 card is newly
+ * revealed this call. Every choice card in this v1 slice is only ever
+ * reached via a round-end condition, so callers pass that round's winner
+ * (falling back to the session's first player for the rare no-winner
+ * callers, e.g. 017's own round-start clock table, which never itself
+ * reveals a choice card). */
+function applyRevealSideEffects(
+  session: SessionState,
+  newlyRevealedIds: Set<string>,
+  choiceEligiblePlayerId: string = session.playerConfigs[0].id
+): void {
+  // autoRevealIds cards (e.g. 113) can themselves reveal further cards that
+  // are also autoRevealIds/deckEffect/choices holders, so this runs to a
+  // fixed point rather than a single pass over the initial set.
+  let pending = [...newlyRevealedIds];
+  while (pending.length > 0) {
+    const id = pending.shift()!;
+    const seed = ARCHIVE_CARD_SEEDS[id];
+    if (seed?.deckEffect) applyDeckEffect(session, seed.deckEffect);
+    // 여러 선택 카드가 같은 패스에서 동시에 공개될 일은 이 v1 슬라이스엔
+    // 없어 마지막 것으로 덮어써도 무방하다.
+    if (seed?.choices) {
+      session.pendingChoice = {
+        cardId: id,
+        eligiblePlayerId: choiceEligiblePlayerId,
+        options: seed.choices.map((c) => ({ id: c.id, label: c.label })),
+      };
+    }
+    if (seed?.autoRevealIds) {
+      session.storyArchive = session.storyArchive.filter((c) => c.id !== id);
+      for (const revealId of seed.autoRevealIds) {
+        if (!session.storyArchive.some((c) => c.id === revealId)) {
+          session.storyArchive.push(seedArchiveCard(revealId));
+          pending.push(revealId);
+        }
+      }
+    }
   }
   if (newlyRevealedIds.has("032")) {
     // 실카드: "033~038 (6장)을 공개하고 옆으로 치워 둡니다" -- 풀 전체가
@@ -334,7 +394,11 @@ function applySessionRoundEnd(session: SessionState): SessionState {
   // v1에서는 이 재확인을 별도로 억제하지 않는다 -- 같은 라운드에 정확히
   // 임계값에 도달하는 경우는 드물고, 억제 로직을 넣을 만큼 가치가 크지
   // 않다고 판단.)
-  applyRevealSideEffects(next, resolveArchiveConditions(next, "roundEnd", winnerCard?.name ?? null));
+  applyRevealSideEffects(
+    next,
+    resolveArchiveConditions(next, "roundEnd", winnerCard?.name ?? null),
+    winnerId ?? undefined
+  );
 
   if (winnerId) {
     // 카드 017 「시간」: 라운드 승리 -> 공개된 공주/왕자 중 하나를 골라
@@ -365,10 +429,50 @@ function applySessionRoundEnd(session: SessionState): SessionState {
       if (applied > 0) letterGains.push({ playerId: winnerId, slot: "마술사의도제", amount: applied });
     }
 
-    // 053 "고지식한 병사 1" -- 경비병을 들고/버리고 승리: 공유 [성공] +1.
+    // 053 "고지식한 병사"/057 "풋풋한 신병" -- 경비병/신병을 들고/버리고
+    // 승리: 각 공유 [성공] +1.
     const heldOrDiscardedGuard =
       winner?.hand.some((c) => c.name === "경비병") || winner?.discardPile.some((c) => c.name === "경비병");
     if (heldOrDiscardedGuard) addArchiveToken(next, "053", "성공", 1);
+    const heldOrDiscardedRecruit =
+      winner?.hand.some((c) => c.name === "신병") || winner?.discardPile.some((c) => c.name === "신병");
+    if (heldOrDiscardedRecruit) addArchiveToken(next, "057", "성공", 1);
+
+    // 103 "성실한 기사"/108 "전신 갑옷 기사" -- 기사/복면기사를 손에 들고
+    // 승리 (실카드는 "들고"만 명시, 버림더미는 포함하지 않는다).
+    if (winner?.hand.some((c) => c.name === "기사")) addArchiveToken(next, "103", "성공", 1);
+    if (winner?.hand.some((c) => c.name === "복면기사")) addArchiveToken(next, "108", "성공", 1);
+    // 114 "수완 좋은 여상인" -- 상인을 손에 들고 승리.
+    if (winner?.hand.some((c) => c.name === "상인")) addArchiveToken(next, "114", "성공", 1);
+
+    // 119 "경건한 여승려"/123 "안색이 나쁜 수사" -- 승려/수사를 들고/버리고
+    // 승리.
+    if (winner?.hand.some((c) => c.name === "승려") || winner?.discardPile.some((c) => c.name === "승려")) {
+      addArchiveToken(next, "119", "성공", 1);
+    }
+    if (winner?.hand.some((c) => c.name === "수사") || winner?.discardPile.some((c) => c.name === "수사")) {
+      addArchiveToken(next, "123", "성공", 1);
+    }
+
+    // 162 "고민하는 장군" -- 실카드는 "버림더미에 남은 채로 승리"만 본다
+    // (장군의 효과 자체가 손 교환이라 승리 시점엔 이미 버림더미에 있다).
+    if (winner?.discardPile.some((c) => c.name === "장군")) addArchiveToken(next, "162", "성공", 1);
+    // 164 "떠넘기기" -- 여장군을 손에 들고 승리 (일회성 확인이지만
+    // sharedToken threshold=1로 모델링해 기존 공개/제거 메커니즘을 재사용).
+    if (winner?.hand.some((c) => c.name === "여장군")) addArchiveToken(next, "164", "성공", 1);
+    // 168 "표표한 군사" -- 군사를 들고/버리고 승리.
+    if (winner?.hand.some((c) => c.name === "군사") || winner?.discardPile.some((c) => c.name === "군사")) {
+      addArchiveToken(next, "168", "성공", 1);
+    }
+
+    // 172 "우려하는 대신"/182 "분주한 여후작" -- 대신/여후작을 들고/버리고
+    // 승리.
+    if (winner?.hand.some((c) => c.name === "대신") || winner?.discardPile.some((c) => c.name === "대신")) {
+      addArchiveToken(next, "172", "성공", 1);
+    }
+    if (winner?.hand.some((c) => c.name === "여후작") || winner?.discardPile.some((c) => c.name === "여후작")) {
+      addArchiveToken(next, "182", "성공", 1);
+    }
   }
 
   for (const event of next.round.sessionEvents ?? []) {
@@ -376,23 +480,58 @@ function applySessionRoundEnd(session: SessionState): SessionState {
       const applied = addLetterTokenCapped(next, "마술사의도제", event.actingPlayerId, 1);
       if (applied > 0) letterGains.push({ playerId: event.actingPlayerId, slot: "마술사의도제", amount: applied });
     } else if (event.type === "guardGuessResolved") {
-      addArchiveToken(next, "053", event.hit ? "성공" : "실패", 1);
+      // 「경비병」/「신병」이 같은 효과 로직을 공유하므로(see effects.ts),
+      // 어느 카드였는지에 따라 053/057 중 맞는 쪽에 적립한다.
+      const targetCardId = event.cardName === "신병" ? "057" : "053";
+      addArchiveToken(next, targetCardId, event.hit ? "성공" : "실패", 1);
     } else if (event.type === "kingElimination") {
       // 025 "도중": 《왕》 효과로 탈락한 플레이어의 총 [편지]가 8개 이상이면
       // 025에 [실패] +1.
       if (totalLetterTokens(next, event.playerId) >= 8) addArchiveToken(next, "025", "실패", 1);
+    } else if (event.type === "compareResolved") {
+      // 「기사」/「복면기사」가 같은 비교 로직을 공유하므로(see effects.ts),
+      // 어느 카드였는지에 따라 103/108 중 맞는 쪽에 적립한다. 103만 "자기
+      // 자신탈락" 실패 조항이 있다 (108의 실카드는 그 조항이 없음).
+      if (event.cardName === "기사" || event.cardName === "복면기사") {
+        const targetCardId = event.cardName === "기사" ? "103" : "108";
+        if (event.outcome === "targetLoses") addArchiveToken(next, targetCardId, "성공", 1);
+        else if (event.outcome === "actorLoses" && event.cardName === "기사") {
+          addArchiveToken(next, "103", "실패", 1);
+        }
+      }
     }
   }
 
-  // 053: 경비병을 손에 들고 탈락 -> 공유 [실패] +1.
+  // 053/057: 경비병/신병을 손에 들고 탈락 -> 각 공유 [실패] +1.
+  // 103/119/123/130: 기사/승려/수사/수녀를 손에 들고 탈락 -> 각 [실패] +1.
+  // 162/178/182: 장군/정무관여/여후작을 들고(또는 버리고) 탈락 -> [실패] +1.
+  // 172: 대신을 손에 들고 탈락 -> [실패] +1 (실카드는 "대신 효과로 탈락"만
+  // 명시하지만, v1은 원인을 구분하지 않고 "대신을 들고 탈락"으로
+  // 단순화한다 -- 대신은 활성 효과가 없어 대부분 이 패시브가 원인이다).
   for (const p of next.round.players) {
-    if (p.eliminated && p.hand.some((c) => c.name === "경비병")) {
-      addArchiveToken(next, "053", "실패", 1);
+    if (!p.eliminated) continue;
+    if (p.hand.some((c) => c.name === "경비병")) addArchiveToken(next, "053", "실패", 1);
+    if (p.hand.some((c) => c.name === "신병")) addArchiveToken(next, "057", "실패", 1);
+    if (p.hand.some((c) => c.name === "기사")) addArchiveToken(next, "103", "실패", 1);
+    if (p.hand.some((c) => c.name === "승려")) addArchiveToken(next, "119", "실패", 1);
+    if (p.hand.some((c) => c.name === "수사")) addArchiveToken(next, "123", "실패", 1);
+    if (p.hand.some((c) => c.name === "수녀")) addArchiveToken(next, "130", "실패", 1);
+    if (p.discardPile.some((c) => c.name === "장군")) addArchiveToken(next, "162", "실패", 1);
+    if (p.hand.some((c) => c.name === "대신")) addArchiveToken(next, "172", "실패", 1);
+    if (p.hand.some((c) => c.name === "정무관여") || p.discardPile.some((c) => c.name === "정무관여")) {
+      addArchiveToken(next, "178", "실패", 1);
+    }
+    if (p.hand.some((c) => c.name === "여후작") || p.discardPile.some((c) => c.name === "여후작")) {
+      addArchiveToken(next, "182", "실패", 1);
     }
   }
 
   // Re-check now that this round's [성공]/[실패] grants are in.
-  applyRevealSideEffects(next, resolveArchiveConditions(next, "roundEnd", winnerCard?.name ?? null));
+  applyRevealSideEffects(
+    next,
+    resolveArchiveConditions(next, "roundEnd", winnerCard?.name ?? null),
+    winnerId ?? undefined
+  );
 
   // 만료 처리 -- "[시계] N개: 이 카드를 제거합니다." 실카드 종료 태그.
   // 같은 라운드의 공개 조건을 먼저 처리한 뒤에 제거한다 (시계가 4가 되는
@@ -572,6 +711,7 @@ export function beginNextRound(session: SessionState, route: Route): SessionStat
   if (session.pendingLetterChoice) throw new Error("편지 토큰 배치가 끝나지 않았습니다.");
   if (session.pendingArchivePlacement) throw new Error("이야기 보관소 토큰 배치가 끝나지 않았습니다.");
   if (session.pendingIdentityChoice) throw new Error("정체 카드 선택이 끝나지 않았습니다.");
+  if (session.pendingChoice) throw new Error("이야기 보관소 선택이 끝나지 않았습니다.");
   const next: SessionState = structuredClone(session);
   const leaderId = nextRoundLeader(next);
   next.currentRoute = route;
@@ -591,7 +731,7 @@ export function beginNextRound(session: SessionState, route: Route): SessionStat
       ? (next.festivalDeck.shift() ?? null)
       : null;
   next.round = {
-    ...setupRound(next.playerConfigs, leaderId, next.extraDeckCardNames),
+    ...setupRound(next.playerConfigs, leaderId, next.extraDeckCardNames, next.removedBaseCardNames),
     activeCardUpgrades: upgrades,
     activeIdentities,
     activeFestivalCardId,
@@ -638,6 +778,33 @@ export function chooseIdentity(session: SessionState, playerId: string, identity
   }
 
   if (next.pendingLetterChoice) return next;
+  return finalizeRoundEndDecisions(next, next.round.roundResult?.winnerId ?? null);
+}
+
+/** Resolves a pending 실카드 "선택" 분기 (052/079/105/122/173 등) -- 고른
+ * 옵션이 가리키는 카드들을 공개하고, 그 옵션이 스스로의 [등장] deckEffect를
+ * 가진 경우 즉시 반영한다 (see applyRevealSideEffects). 카드 자신은 실카드
+ * 문구 "선택을 마친 후에 이 카드를 제거합니다."대로 보관소에서 제거된다. */
+export function resolveArchiveChoice(session: SessionState, playerId: string, optionId: string): SessionState {
+  if (!session.pendingChoice || session.pendingChoice.eligiblePlayerId !== playerId) {
+    throw new Error("지금은 이 플레이어가 선택할 차례가 아닙니다.");
+  }
+  const { cardId } = session.pendingChoice;
+  const seed = ARCHIVE_CARD_SEEDS[cardId];
+  const option = seed?.choices?.find((o) => o.id === optionId);
+  if (!option) throw new Error("존재하지 않는 선택지입니다.");
+
+  const next: SessionState = structuredClone(session);
+  next.pendingChoice = null;
+  next.storyArchive = next.storyArchive.filter((c) => c.id !== cardId);
+  const newlyRevealed = new Set<string>();
+  for (const id of option.revealIds) {
+    if (!next.storyArchive.some((c) => c.id === id)) {
+      next.storyArchive.push(seedArchiveCard(id));
+      newlyRevealed.add(id);
+    }
+  }
+  applyRevealSideEffects(next, newlyRevealed, playerId);
   return finalizeRoundEndDecisions(next, next.round.roundResult?.winnerId ?? null);
 }
 

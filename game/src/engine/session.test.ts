@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chooseCardToPlay, chooseTarget, chooseGuess } from "./rules";
+import { chooseCardToPlay, chooseTarget, chooseGuess, beginTurn } from "./rules";
 import { chooseCardToPlayAI, chooseGuessAI, chooseTargetAI, chooseRouteAI, chooseLetterTargetAI } from "./ai";
 import { needsTarget, targetsFor, applyEffect } from "./effects";
 import {
@@ -10,6 +10,7 @@ import {
   skipArchivePlacement,
   resolveLetterChoice,
   chooseIdentity,
+  resolveArchiveChoice,
   nextRoundLeader,
   ROUTE_SLOT,
 } from "./session";
@@ -86,7 +87,7 @@ function driveSessionToEnd(session: SessionState, maxRounds = 20): SessionState 
     s = driveOneSessionRound(s);
     // 038 「남작/여자작」을 고르면 새 pendingLetterChoice가 생길 수 있어
     // 세 가지 세션 결정이 전부 해소될 때까지 반복한다.
-    while (s.pendingLetterChoice || s.pendingArchivePlacement || s.pendingIdentityChoice) {
+    while (s.pendingLetterChoice || s.pendingArchivePlacement || s.pendingIdentityChoice || s.pendingChoice) {
       if (s.pendingLetterChoice) {
         const choice = chooseLetterTargetAI(ROUTE_SLOT[s.currentRoute], s.pendingLetterChoice.atCap);
         s = resolveLetterChoice(s, s.pendingLetterChoice.playerId, choice);
@@ -96,6 +97,9 @@ function driveSessionToEnd(session: SessionState, maxRounds = 20): SessionState 
       }
       if (s.pendingIdentityChoice) {
         s = chooseIdentity(s, s.pendingIdentityChoice.eligiblePlayerId, s.pendingIdentityChoice.options[0]);
+      }
+      if (s.pendingChoice) {
+        s = resolveArchiveChoice(s, s.pendingChoice.eligiblePlayerId, s.pendingChoice.options[0].id);
       }
     }
     if (!s.ended) {
@@ -133,6 +137,10 @@ function forceImmediateWin(
   s.storyArchive = [...pristineStoryArchive(), ...extraArchiveCards];
   s.pendingLetterChoice = null;
   s.pendingArchivePlacement = null;
+  s.pendingChoice = null;
+  s.pendingIdentityChoice = null;
+  s.extraDeckCardNames = [];
+  s.removedBaseCardNames = [];
   const winner = s.round.players.find((p) => p.id === winnerId)!;
   for (const p of s.round.players) {
     p.eliminated = p.id !== winnerId;
@@ -172,20 +180,25 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
     expect(session.storyArchive.some((c) => c.id === "031")).toBe(false);
   });
 
-  it("023's winnerHeldCard condition reveals 053 only when the winner held 「경비병」", () => {
+  it("023's winnerHeldCard condition reveals 052 (-> 053 via choice) only when the winner held 「경비병」", () => {
     let session = startSession(PLAYERS);
     session = forceImmediateWin(session, "p1", [
       { instanceId: "c1", name: "대신" },
       { instanceId: "c2", name: "경비병" },
     ]);
-    expect(session.storyArchive.some((c) => c.id === "053")).toBe(true);
+    expect(session.storyArchive.some((c) => c.id === "052")).toBe(true);
     // Only the 경비병 branch of 023's 8-branch table fired.
     const card023 = session.storyArchive.find((c) => c.id === "023")!;
     expect(card023.conditions.find((c) => c.id === "023-guard")?.fired).toBe(true);
     expect(card023.conditions.find((c) => c.id === "023-clown")?.fired).toBe(false);
+    // 052's own "선택" resolves to reveal 053 (merged 053/054).
+    expect(session.pendingChoice?.cardId).toBe("052");
+    session = resolveArchiveChoice(session, session.pendingChoice!.eligiblePlayerId, "052-familiar");
+    expect(session.storyArchive.some((c) => c.id === "053")).toBe(true);
+    expect(session.storyArchive.some((c) => c.id === "052")).toBe(false);
   });
 
-  it("checks off 023's non-경비병 branches without revealing anything", () => {
+  it("checks off 023's non-경비병 branches and reveals that branch's own scenario card", () => {
     let session = startSession(PLAYERS);
     session = forceImmediateWin(session, "p1", [
       { instanceId: "c1", name: "대신" },
@@ -193,9 +206,8 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
     ]);
     const card023 = session.storyArchive.find((c) => c.id === "023")!;
     expect(card023.conditions.find((c) => c.id === "023-clown")?.fired).toBe(true);
-    // 광대 branch reveals [079] in the real game -- outside this v1 slice,
-    // so nothing new appears in the archive.
-    expect(session.storyArchive.map((c) => c.id).sort()).toEqual(["017", "018", "020", "023"]);
+    // 광대 branch reveals [079] ("광대의 초대"), which is now wired in v1.
+    expect(session.storyArchive.map((c) => c.id).sort()).toEqual(["017", "018", "020", "023", "079"]);
   });
 
   it("does not reveal 053 when the winner held a different card", () => {
@@ -347,7 +359,14 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
     );
     session.festivalDeck = ["040", "041", "042"];
     session = resolveLetterChoice(session, "p1", { type: "place", slot: "잉그리드공주" });
-    session = beginNextRound(session, "공주");
+    // Round 2's own fresh initial deal can also rarely (~2-3%) auto-end via
+    // 「대신」, which would immediately recycle "040" back into festivalDeck
+    // before these assertions run -- retry from scratch when that happens.
+    let session2 = session;
+    do {
+      session2 = beginNextRound(session, "공주");
+    } while (session2.round.roundResult);
+    session = session2;
     expect(session.round.activeFestivalCardId).toBe("040");
     expect(session.festivalDeck).toEqual(["041", "042"]);
 
@@ -533,9 +552,13 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
     session = forceImmediateWin(
       session,
       "p1",
+      // "신병" isn't one of 023's 8 tracked base cards, so its
+      // winnerHeldCard branch doesn't fire and no [조건] card gets
+      // introduced as a side effect (unlike e.g. 「장군」, which now reveals
+      // conditionTag-bearing 162 via 023-general).
       [
         { instanceId: "c1", name: "대신" },
-        { instanceId: "c2", name: "장군" },
+        { instanceId: "c2", name: "신병" },
       ],
       [card031]
     );
@@ -808,5 +831,123 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
     let session = startSession(PLAYERS);
     session.pendingArchivePlacement = { eligiblePlayerId: "p1" };
     expect(() => beginNextRound(session, "공주")).toThrow();
+  });
+
+  describe("ROOT B: 023's remaining 6 wired branches", () => {
+    it("resolves 052's choice to the 낯선 여자 병사 branch, revealing 057 (conditionTag) with a 신병 deckEffect", () => {
+      let session = startSession(PLAYERS);
+      session = forceImmediateWin(session, "p1", [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "경비병" },
+      ]);
+      expect(session.pendingChoice?.cardId).toBe("052");
+      session = resolveArchiveChoice(session, session.pendingChoice!.eligiblePlayerId, "052-stranger");
+      expect(session.storyArchive.some((c) => c.id === "052")).toBe(false);
+      const card057 = session.storyArchive.find((c) => c.id === "057");
+      expect(card057?.conditionTag).toBe(true);
+      expect(session.extraDeckCardNames).toContain("신병");
+    });
+
+    it("103's [실패] threshold reveals 113, whose autoRevealIds cascades straight to 114 (conditionTag, deckEffect replaces 기사 with 상인 x2) with no condition/choice gate of its own", () => {
+      let session = startSession(PLAYERS);
+      session = forceImmediateWin(
+        session,
+        "p1",
+        [
+          { instanceId: "c1", name: "대신" },
+          { instanceId: "c2", name: "기사" },
+        ],
+        [],
+        0,
+        [
+          { type: "compareResolved", actingPlayerId: "p1", targetPlayerId: "p2", cardName: "기사", outcome: "actorLoses" },
+          { type: "compareResolved", actingPlayerId: "p1", targetPlayerId: "p2", cardName: "기사", outcome: "actorLoses" },
+        ]
+      );
+      const card103 = session.storyArchive.find((c) => c.id === "103");
+      expect(card103?.conditions.find((c) => c.id === "103-fail")?.fired).toBe(true);
+      // 113 itself never lingers -- its autoRevealIds fires and removes it
+      // in the same pass that reveals 114.
+      expect(session.storyArchive.some((c) => c.id === "113")).toBe(false);
+      const card114 = session.storyArchive.find((c) => c.id === "114");
+      expect(card114?.conditionTag).toBe(true);
+      expect(session.removedBaseCardNames.filter((n) => n === "기사").length).toBe(2);
+      expect(session.extraDeckCardNames.filter((n) => n === "상인").length).toBe(2);
+    });
+
+    it("compareResolved 기사 targetLoses credits 103's [성공]; actorLoses credits its own [실패] separately from the general 들고탈락 check", () => {
+      let session = startSession(PLAYERS);
+      // Seed 103 directly (pristine) so the win check below (winner holds
+      // 「신병」, not 「기사」) doesn't also grant it a [성공] via the "held
+      // 기사 and won" path -- isolates compareResolved's own contribution.
+      const card103 = { ...ARCHIVE_CARD_SEEDS["103"], conditions: ARCHIVE_CARD_SEEDS["103"].conditions.map((c) => ({ ...c, fired: false })), successTokens: 0, failTokens: 0 };
+      // p2 (eliminated) gets a random hand from the initial deal --
+      // pin it away from 「기사」 so the post-hoc "eliminated while holding
+      // 기사" check can't also add a [실패] and break this test's isolation.
+      const p2 = session.round.players.find((p) => p.id === "p2")!;
+      p2.hand = [{ instanceId: "p2-hand", name: "대신" }];
+      session = forceImmediateWin(
+        session,
+        "p1",
+        [
+          { instanceId: "c1", name: "대신" },
+          { instanceId: "c2", name: "신병" },
+        ],
+        [card103],
+        0,
+        [{ type: "compareResolved", actingPlayerId: "p1", targetPlayerId: "p2", cardName: "기사", outcome: "targetLoses" }]
+      );
+      const updated103 = session.storyArchive.find((c) => c.id === "103")!;
+      expect(updated103.successTokens).toBe(1);
+      expect(updated103.failTokens).toBe(0);
+    });
+
+    it("정무관's immunity blocking eliminatePlayer doesn't strand the player's turn (checkKingElimination/checkMinisterElimination regression)", () => {
+      // Regression test for a real bug found during ROOT B fuzzing: when
+      // eliminatePlayer no-ops due to immuneThisRound, checkKingElimination/
+      // checkMinisterElimination used to still report "true" (trigger
+      // fired), which made beginTurn skip setting pendingDecision for that
+      // player entirely -- advanceTurn then cycled back to them on their
+      // next turn, redrawing without ever having played, growing their
+      // hand without bound. Uses a hand-built GameState (not a real
+      // session round) so the deck/draw are fully deterministic: p1 starts
+      // with exactly 1 card (holding 대신, immune, sum with the 공주 about
+      // to be drawn is >= 12) and beginTurn draws the 2nd.
+      const state: GameState = {
+        players: [
+          {
+            id: "p1",
+            displayName: "P1",
+            isAI: false,
+            hand: [{ instanceId: "x1", name: "대신" }],
+            discardPile: [],
+            eliminated: false,
+            protected: false,
+            immuneThisRound: true,
+          },
+          { id: "p2", displayName: "P2", isAI: true, hand: [{ instanceId: "y1", name: "신병" }], discardPile: [], eliminated: false, protected: false },
+        ],
+        deck: [{ instanceId: "x2", name: "공주" }],
+        hiddenRemovedCard: null,
+        faceUpRemovedCards: [],
+        currentPlayerIndex: 0,
+        log: [],
+        pendingDecision: null,
+        roundResult: null,
+        resolvingCard: null,
+        resolvingPlayerId: null,
+        deckExhaustedThisTurn: false,
+        lastPlayedCard: null,
+        lastReveal: null,
+        firstEliminatedThisRound: null,
+      };
+      const next = beginTurn(state);
+      // Immune despite holding 대신 with hand sum >= 12 (7 + 8) -- must
+      // still reach a normal playCard decision (not get silently skipped).
+      expect(next.pendingDecision?.kind).toBe("playCard");
+      expect(next.pendingDecision?.playerId).toBe("p1");
+      expect(next.players.find((p) => p.id === "p1")?.eliminated).toBe(false);
+      expect(next.players.find((p) => p.id === "p1")?.hand.length).toBe(2);
+    });
   });
 });

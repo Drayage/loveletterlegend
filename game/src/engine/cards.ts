@@ -78,6 +78,118 @@ export const CARD_DEFS: Record<CardName, CardDef> = {
     shortAbility: "손에 들고 있으면 즉시 탈락 (패시브)",
     ability: "당신은 라운드에서 탈락합니다.",
   },
+  // 023의 나머지 분기들이 실카드의 [등장] 태그로 기존 base 카드 일부를
+  // 대체/추가하는 새 카드들 (see data/scenario.ts's deckEffect, engine/
+  // session.ts's applyDeckEffect). CARD_ORDER에는 포함되지 않으며, 세션의
+  // extraDeckCardNames/removedBaseCardNames를 통해 조건부로만 덱에 들어간다.
+  신병: {
+    name: "신병",
+    rank: 1,
+    count: 1,
+    englishAlias: "Recruit",
+    shortAbility: "「1을 제외한 홀수」또는 「짝수」로 추측, 적중하면 상대 탈락",
+    ability:
+      "다른 플레이어를 지목한 뒤, 「1을 제외한 홀수」또는 「짝수」를 하나 댑니다. 만약 지목된 플레이어가 그 숫자 카드를 갖고 있다면 라운드에서 탈락합니다.",
+  },
+  광대의제자: {
+    name: "광대의제자",
+    rank: 2,
+    count: 1,
+    englishAlias: "Clown's Apprentice",
+    shortAbility: "상대 한 명의 손패를 확인 (광대와 동일)",
+    ability: "다른 플레이어 한 명을 지목하여 그 플레이어가 손에 든 카드를 봅니다.",
+  },
+  점술사: {
+    name: "점술사",
+    rank: 2,
+    count: 1,
+    englishAlias: "Fortune Teller",
+    // 실카드는 "덱 위 카드를 보고 교환할지 선택" 또는 "다른 플레이어를
+    // 지목해 그가 승리하면 같이 승리" 중 선택이지만, v1은 앞쪽 선택지만
+    // 확인(peek)으로 단순화하고 뒤쪽(공동 승리) 선택지는 구현하지 않는다.
+    shortAbility: "덱 맨 위 카드 확인 (v1: 확인만, 교환/공동승리 미구현)",
+    ability:
+      "플레이: 아래에서 하나를 선택합니다.\n1. 덱 맨 위 카드를 봅니다. 당신은 손에 든 카드와 그 카드를 바꿀 수 있습니다.\n2. 다른 플레이어 한 명을 지목합니다. 그 플레이어가 라운드에서 승리하면 당신도 같이 승리합니다.",
+  },
+  복면기사: {
+    name: "복면기사",
+    rank: 3,
+    count: 1,
+    englishAlias: "Masked Knight",
+    shortAbility: "상대와 카드 숫자 비교, 높으면 탈락 (기사와 반대)",
+    ability:
+      "당신은 다른 플레이어 한 명과 손에 든 카드의 숫자를 서로 비밀리에 비교합니다. 이때 숫자가 더 큰 카드를 가진 플레이어는 라운드에서 탈락합니다.",
+  },
+  상인: {
+    name: "상인",
+    rank: 3,
+    count: 2,
+    englishAlias: "Merchant",
+    shortAbility: "상대 지목, 손패 숫자 3 이하면 탈락",
+    ability: "다른 플레이어 한 명을 지목합니다. 그 플레이어가 손에 든 카드의 숫자가 3 이하라면 라운드에서 탈락합니다.",
+  },
+  수사: {
+    name: "수사",
+    rank: 4,
+    count: 2,
+    englishAlias: "Friar",
+    // 실카드는 어느 버림 더미 카드를 쓸지 직접 고르지만, v1은 새 선택
+    // 흐름을 추가하는 대신 유효한(재사용 가능한) 버린 카드 중 무작위로
+    // 하나를 골라 그 효과를 재사용한다.
+    shortAbility: "버린 카드 1장의 효과 재사용 (v1: 무작위 선택)",
+    ability: "플레이: 버림 더미에 있는 카드 1장을 선택합니다. 그 카드의 「플레이:」효과를 사용합니다.",
+  },
+  수녀: {
+    name: "수녀",
+    rank: 4,
+    count: 2,
+    englishAlias: "Nun",
+    shortAbility: "버린 카드 1장의 효과 재사용 (v1: 무작위 선택)",
+    ability: "플레이: 버림 더미에 있는 카드 1장을 선택합니다. 그 카드의 「플레이:」효과를 사용합니다.",
+  },
+  여장군: {
+    name: "여장군",
+    rank: 6,
+    count: 1,
+    englishAlias: "Lady General",
+    shortAbility: "이 카드는 스스로 낼 수 없음 (패시브)",
+    ability: "이 카드는 내려놓을 수 없습니다.",
+  },
+  군사: {
+    name: "군사",
+    rank: 6,
+    count: 1,
+    englishAlias: "Tactician",
+    // 실카드는 확인 후 교환 여부를 선택할 수 있지만, v1은 장군처럼 항상
+    // 교환하는 것으로 단순화한다 (확인 결과는 그대로 보여준다).
+    shortAbility: "상대 손패 확인 후 교환 (v1: 항상 교환)",
+    ability:
+      "플레이: 다른 플레이어 한 명을 지목합니다. 그 플레이어가 손에 든 카드를 봅니다. 그 카드와 당신의 카드를 교환할 수 있습니다.",
+  },
+  정무관남: {
+    name: "정무관남",
+    rank: 7,
+    count: 1,
+    englishAlias: "Regent (Male)",
+    shortAbility: "플레이하면 이번 라운드 동안 탈락하지 않음",
+    ability: "플레이: 당신은 이번 라운드에서 탈락하지 않습니다.",
+  },
+  정무관여: {
+    name: "정무관여",
+    rank: 7,
+    count: 1,
+    englishAlias: "Regent (Female)",
+    shortAbility: "플레이하면 이번 라운드 동안 탈락하지 않음",
+    ability: "플레이: 당신은 이번 라운드에서 탈락하지 않습니다.",
+  },
+  여후작: {
+    name: "여후작",
+    rank: 7,
+    count: 1,
+    englishAlias: "Marchioness",
+    shortAbility: "손패 합계 12 이상이면 이 카드를 반드시 냄 (패시브)",
+    ability: "당신이 손에 든 카드 숫자의 합이 12 이상이라면 반드시 이 카드를 내려놓아야 합니다.",
+  },
 };
 
 export const CARD_ORDER: CardName[] = [

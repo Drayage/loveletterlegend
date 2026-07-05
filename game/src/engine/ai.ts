@@ -145,6 +145,11 @@ export function chooseArchiveTokenAI(
   return { cardId: card.id, token };
 }
 
+// v1: no strategic preference among a "선택" 카드의 옵션들 -- pick uniformly.
+export function chooseArchiveChoiceAI(options: Array<{ id: string }>): string {
+  return options[Math.floor(Math.random() * options.length)].id;
+}
+
 // v1: no strategic preference among 정체 cards -- pick uniformly among
 // whatever's still unclaimed in the pool. A richer policy (e.g. favoring
 // 038's immediate [편지] bonus) is future work.

@@ -1,0 +1,36 @@
+.archive-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.archive-choice__prompt {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.archive-choice__options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.archive-choice__option {
+  font-family: inherit;
+  text-align: left;
+  font-size: 13px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.archive-choice__option:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
