@@ -164,8 +164,8 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       const targetCard = target.hand[0];
       if (!actorCard || !targetCard) return;
       log(draft, `${actor.displayName}과(와) ${target.displayName}이(가) 「기사」로 카드를 비교합니다.`);
-      const actorRank = cardRank(actorCard.name);
-      const targetRank = cardRank(targetCard.name);
+      const actorRank = effectiveCardRank(draft, actingPlayerId, actorCard.name);
+      const targetRank = effectiveCardRank(draft, targetId, targetCard.name);
       draft.lastReveal = {
         id: nextLogId(),
         viewerPlayerId: actingPlayerId,
@@ -278,6 +278,15 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
   }
 }
 
+/** 035 「견습기사/호위」의 [지속] +2 순위 보정 -- "카드의 숫자를 비교할
+ * 때와 라운드 종료시" (기사 비교, 덱 소진 시 승자 결정) 두 지점에서만
+ * 적용된다. 손패 합계를 쓰는 대신 「12 이상」 판정(대신)에는 적용되지
+ * 않는다 (실카드 문구가 "비교"만 명시). */
+export function effectiveCardRank(draft: GameState, playerId: string, name: CardName): number {
+  const base = cardRank(name);
+  return draft.activeIdentities?.[playerId] === "035" ? base + 2 : base;
+}
+
 export function cardRank(name: CardName): number {
   const ranks: Record<CardName, number> = {
     경비병: 1,
@@ -288,6 +297,9 @@ export function cardRank(name: CardName): number {
     장군: 6,
     대신: 7,
     공주: 8,
+    // 실카드는 숫자 없이 "X" -- checkKingElimination이 순위 비교 지점에
+    // 도달하기 전에 항상 먼저 탈락시키므로 이 값이 실제로 쓰일 일은 없다.
+    왕: 0,
   };
   return ranks[name];
 }
@@ -305,4 +317,16 @@ export function checkMinisterElimination(draft: GameState, playerId: string): bo
     return true;
   }
   return false;
+}
+
+// 025/026 「왕」 passive: unconditionally eliminated the moment it's held
+// (025's deck-injected trap card). Checked at the same choke point as
+// 대신's passive, before the player gets to choose a card to play.
+export function checkKingElimination(draft: GameState, playerId: string): boolean {
+  const player = getPlayer(draft, playerId);
+  const hasKing = player.hand.some((c) => c.name === "왕");
+  if (!hasKing) return false;
+  eliminatePlayer(draft, playerId, "「왕」을 들고 있어");
+  draft.sessionEvents?.push({ type: "kingElimination", playerId });
+  return true;
 }

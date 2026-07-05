@@ -27,12 +27,27 @@
 // - 시나리오 cards themselves expire: real 종료 tags "[시계] N개: 이 카드를
 //   제거합니다." (023: 4, 024: 5, 031: 6) -- modeled as `expiresAtClock`,
 //   processed at round end after that round's reveal conditions.
-// - 025/032/039 (「국왕 랜들 3세」/「역사 4」/「역사 5」) each gate a real NEW
-//   base-game mechanic (025 adds a playable 「왕」 card to the deck; 032
-//   hands out a persistent per-player "정체" identity card with its own
-//   passive ability; 039 adds a "축제" sub-deck) that this v1 slice doesn't
-//   implement -- so 025 stays a flavor-only leaf (no further reveals wired
-//   up), and 032/039 aren't seeded here at all yet (Phase 3 follow-up).
+// - 025 「국왕 랜들 3세」의 [등장] "《X 왕》[026]을 덱에 추가" -> engine/cards.ts's
+//   "왕" CardName (deck-injected once 025 is revealed, see
+//   engine/session.ts's applyRevealSideEffects). Its own [조건] ([실패]
+//   1개 이상 -> [027] 공개) is modeled but 027 is outside this v1 slice, so
+//   revealIds stays empty (checked off, nothing revealed) -- same pattern
+//   as 023's 7 minor branches below.
+// - 032 「역사 4」의 [등장]이 033~038 (6장 "게임:정체" 카드 풀)을 공개하고,
+//   탈락했지만 정체가 없는 플레이어가 라운드 종료마다 하나씩 골라 영구히
+//   갖는다 (engine/session.ts's identityPool/playerIdentities/
+//   pendingIdentityChoice, chooseIdentity). 전원이 정체를 보유하면 039
+//   공개 + 032 제거 (post-selection 상태가 필요해 bespoke 체크, 050->051과
+//   동일 패턴). 6장 모두 실카드 능력 텍스트는 살아있지만, v1에서 실제
+//   기계적으로 연결하는 건 이 중 자기 차례 조작이나 리액티브 취소 없이
+//   단순 수치 보정/획득 시점 훅만으로 충분한 2장뿐 -- 035(+2 패시브,
+//   engine/effects.ts의 순위 비교 지점) 및 038(획득 시 편지 2개 배치, 기존
+//   pendingLetterChoice 재사용). 033(손패↔비공개 교환)/034(효과 무효화)/
+//   036(플레이 효과 교체)/037(추가 차례)은 각각 새로운 자기 차례 액션이나
+//   리액티브 프롬프트가 필요해 flavor 텍스트만 보여주고 미연결로 둔다
+//   (056/060/061 등 기존 [지속] 보너스 처리와 동일한 선례).
+// - 039 「역사 5」의 "축제 덱"(040~047)은 별도로 구현 (engine/session.ts's
+//   festivalDeck/activeFestivalCardId, rules.ts's endRound 승자 결정 로직).
 // - 049/050 (「역사 7」/「역사 8」) don't gate new mechanics -- their real
 //   "중요" tags are optional bonus [편지] grants layered on top of 017's
 //   own round-win award, applied automatically once revealed (see
@@ -45,6 +60,15 @@
 import type { CardName } from "../engine/types";
 import { ROUTE_DEFS } from "./routes";
 import guard from "../assets/cards/guard.jpg";
+// 정체(identity) 카드 6장 -- 실카드는 남/여 변형 각 2장씩 존재하지만
+// (성별에 따른 효과 차이 없음), UI는 카드 1장당 초상화 1개만 보여주므로
+// 각 쌍 중 하나만 대표로 쓴다.
+import farmer from "../assets/cards/extra/정체. 농부.jpg";
+import hunter from "../assets/cards/extra/정체. 사냥꾼.jpg";
+import squire from "../assets/cards/extra/정체. 견습기사.jpg";
+import student from "../assets/cards/extra/정체. 학생.jpg";
+import traveler from "../assets/cards/extra/정체. 여행자.jpg";
+import baron from "../assets/cards/extra/정체. 남작.jpg";
 
 export type ArchiveConditionSeed =
   | {
@@ -171,7 +195,25 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     name: "국왕 랜들 3세",
     category: "scenario",
     flavor: "「무엄하도다!」",
-    conditions: [],
+    // 실카드: [등장] 《X 왕》[026]을 덱에 추가 (see engine/session.ts's
+    // reveal side-effect handler -- 026 카드 자체는 engine/cards.ts에 "왕"
+    // CardName으로 구현됨). [도중] 《왕》 효과로 탈락 + [편지]8개 이상 시
+    // 이 카드에 [실패] -- addArchiveToken 호출은 session.ts의
+    // kingElimination 이벤트 처리에서. [조건] [실패] 1개 이상 -> [027]
+    // 공개인데 027은 이 v1 슬라이스 범위 밖이라 revealIds를 비워 체크만
+    // 되고 아무것도 공개하지 않는다 (023의 소소한 7개 분기와 동일 패턴).
+    conditionsTitle: "라운드 종료 시 확인",
+    conditions: [
+      {
+        id: "025-fail",
+        kind: "sharedToken",
+        label: "[실패] 1개 이상",
+        token: "실패",
+        threshold: 1,
+        revealIds: [],
+        removeIds: ["025"],
+      },
+    ],
   },
   "032": {
     id: "032",
@@ -179,6 +221,62 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     category: "scenario",
     flavor:
       "수많은 역사책을 읽어내려 가자, 러브 레터를 보내는 사람들의 신상이 어렴풋이나마 드러납니다. 출신도 나이도 성별도 다양한 그들, 그녀들은 도대체 어떤 사람들이었을까요.",
+    conditions: [],
+  },
+  "033": {
+    id: "033",
+    name: "농부 / 양치기",
+    category: "character",
+    art: farmer,
+    flavor: "각 라운드 중에 한 번, 자기 차례를 시작할 때 손에 든 카드와 비공개 카드를 서로 바꿀 수 있습니다.",
+    conditions: [],
+  },
+  "034": {
+    id: "034",
+    name: "사냥꾼 / 약초꾼",
+    category: "character",
+    art: hunter,
+    flavor: "각 라운드 중에 한 번, 다른 플레이어가 자신에게 사용한 효과를 취소할 수 있습니다.",
+    conditions: [],
+  },
+  "035": {
+    id: "035",
+    name: "견습기사 / 호위",
+    category: "character",
+    art: squire,
+    flavor: "카드의 숫자를 비교할 때와 라운드 종료시에 손에 든 카드의 숫자에 2를 더합니다.",
+    conditions: [],
+  },
+  "036": {
+    id: "036",
+    name: "학생 / 여학생",
+    category: "character",
+    art: student,
+    flavor:
+      "각 라운드 중에 한 번, 플레이한 카드의 「플레이:」효과를 버림 더미에 있는 카드의 「플레이:」효과로 대신할 수 있습니다.",
+    conditions: [],
+  },
+  "037": {
+    id: "037",
+    name: "여행자 / 순례자",
+    category: "character",
+    art: traveler,
+    flavor: "전체 게임 중에 단 한 번, 차례 종료시에 한 번 더 차례를 가질 수 있습니다.",
+    conditions: [],
+  },
+  "038": {
+    id: "038",
+    name: "남작 / 여자작",
+    category: "character",
+    art: baron,
+    flavor: "이 카드를 획득할 때, 자신의 [편지] 2개를 원하는 캐릭터에 배치하거나 이동시킬 수 있습니다.",
+    conditions: [],
+  },
+  "039": {
+    id: "039",
+    name: "역사 5 축제의 나날들",
+    category: "scenario",
+    flavor: "여름이 끝나면, 수확제를 비롯한 여러 행사가 왕국을 떠들썩하게 합니다. 평소와는 다른 분위기 속에서 사람들의 기분은 몹시 고조되어 갑니다.",
     conditions: [],
   },
   "049": {

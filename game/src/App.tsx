@@ -8,6 +8,7 @@ import {
   chooseArchiveTokenAI,
   chooseLetterTargetAI,
   chooseRouteAI,
+  chooseIdentityAI,
 } from "./engine/ai";
 import { computeRemainingCounts } from "./engine/remaining";
 import {
@@ -17,6 +18,7 @@ import {
   placeArchiveToken,
   skipArchivePlacement,
   resolveLetterChoice,
+  chooseIdentity,
   nextRoundLeader,
   ROUTE_SLOT,
 } from "./engine/session";
@@ -36,7 +38,9 @@ import { RoundEndSummary } from "./ui/RoundEndSummary";
 import { SessionEndScreen } from "./ui/SessionEndScreen";
 import { StoryArchiveModal } from "./ui/StoryArchiveModal";
 import { ArchiveTokenModal } from "./ui/ArchiveTokenModal";
+import { IdentityChoiceModal } from "./ui/IdentityChoiceModal";
 import { StoryEventModal } from "./ui/StoryEventModal";
+import { ARCHIVE_CARD_SEEDS } from "./data/scenario";
 import "./App.css";
 
 const HUMAN_ID = "human";
@@ -79,6 +83,7 @@ export default function App() {
   const handledDecisionRef = useRef<PendingDecision | null>(null);
   const handledArchiveRef = useRef<SessionState["pendingArchivePlacement"]>(null);
   const handledLetterChoiceRef = useRef<SessionState["pendingLetterChoice"]>(null);
+  const handledIdentityRef = useRef<SessionState["pendingIdentityChoice"]>(null);
   const seenArchiveIdsRef = useRef<Set<string>>(new Set());
 
   const round = session?.round ?? null;
@@ -174,6 +179,32 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [session, pendingHumanReveal, pendingStoryEvent]);
 
+  // AI's 032 「정체」 card selection, when the AI was eliminated without one.
+  useEffect(() => {
+    if (!session?.pendingIdentityChoice) {
+      handledIdentityRef.current = null;
+      return;
+    }
+    const pending = session.pendingIdentityChoice;
+    if (pendingHumanReveal || pendingStoryEvent) {
+      handledIdentityRef.current = null;
+      return;
+    }
+    const actor = session.playerConfigs.find((p) => p.id === pending.eligiblePlayerId);
+    if (!actor?.isAI) return;
+    if (handledIdentityRef.current === pending) return;
+    handledIdentityRef.current = pending;
+
+    const timer = setTimeout(() => {
+      setSession((prev) => {
+        if (!prev || prev.pendingIdentityChoice !== pending) return prev;
+        const identityId = chooseIdentityAI(pending.options);
+        return safely(() => chooseIdentity(prev, pending.eligiblePlayerId, identityId)) ?? prev;
+      });
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [session, pendingHumanReveal, pendingStoryEvent]);
+
   // Show a readable popup (with full flavor text + conditions) whenever new
   // cards appear in the story archive.
   useEffect(() => {
@@ -190,6 +221,7 @@ export default function App() {
     handledDecisionRef.current = null;
     handledArchiveRef.current = null;
     handledLetterChoiceRef.current = null;
+    handledIdentityRef.current = null;
     seenArchiveIdsRef.current = new Set();
     setDismissedRevealId(null);
     setShowRouteSwitch(false);
@@ -224,6 +256,10 @@ export default function App() {
     setSession((prev) => (prev ? safely(() => resolveLetterChoice(prev, HUMAN_ID, choice)) ?? prev : prev));
   }
 
+  function handleChooseIdentity(identityId: string) {
+    setSession((prev) => (prev ? safely(() => chooseIdentity(prev, HUMAN_ID, identityId)) ?? prev : prev));
+  }
+
   if (!session || !round) {
     return (
       <div className="start-screen">
@@ -248,6 +284,9 @@ export default function App() {
     needsArchivePlacement && session.pendingArchivePlacement!.eligiblePlayerId === HUMAN_ID;
   const needsLetterChoice = Boolean(session.pendingLetterChoice);
   const humanNeedsLetterChoice = needsLetterChoice && session.pendingLetterChoice!.playerId === HUMAN_ID;
+  const needsIdentityChoice = Boolean(session.pendingIdentityChoice);
+  const humanNeedsIdentityChoice =
+    needsIdentityChoice && session.pendingIdentityChoice!.eligiblePlayerId === HUMAN_ID;
   const humanLetterTokens = Object.fromEntries(
     (["잉그리드공주", "아레스왕자", "마술사의도제"] as CharacterSlotId[]).map((slot) => [
       slot,
@@ -282,6 +321,13 @@ export default function App() {
           이번 게임 카드 확인
         </button>
       </div>
+
+      {round.activeFestivalCardId && (
+        <div className="festival-banner">
+          이번 라운드 축제: <strong>{ARCHIVE_CARD_SEEDS[round.activeFestivalCardId]?.name}</strong> --{" "}
+          {ARCHIVE_CARD_SEEDS[round.activeFestivalCardId]?.flavor}
+        </div>
+      )}
 
       {showCardReference && (
         <CardReferenceModal session={session} onClose={() => setShowCardReference(false)} />
@@ -356,17 +402,26 @@ export default function App() {
         />
       )}
 
-      {!pendingHumanReveal && !pendingStoryEvent && !needsLetterChoice && humanNeedsArchivePlacement && (
-        <ArchiveTokenModal
-          archive={session.storyArchive}
-          onPlace={handlePlaceArchiveToken}
-          onSkip={handleSkipArchivePlacement}
-        />
+      {!pendingHumanReveal && !pendingStoryEvent && !needsLetterChoice && humanNeedsIdentityChoice && (
+        <IdentityChoiceModal options={session.pendingIdentityChoice!.options} onChoose={handleChooseIdentity} />
       )}
 
       {!pendingHumanReveal &&
         !pendingStoryEvent &&
         !needsLetterChoice &&
+        !needsIdentityChoice &&
+        humanNeedsArchivePlacement && (
+          <ArchiveTokenModal
+            archive={session.storyArchive}
+            onPlace={handlePlaceArchiveToken}
+            onSkip={handleSkipArchivePlacement}
+          />
+        )}
+
+      {!pendingHumanReveal &&
+        !pendingStoryEvent &&
+        !needsLetterChoice &&
+        !needsIdentityChoice &&
         roundOver &&
         !needsArchivePlacement &&
         session.lastRoundSummary &&
@@ -395,6 +450,7 @@ export default function App() {
       {!pendingHumanReveal &&
         !pendingStoryEvent &&
         !needsLetterChoice &&
+        !needsIdentityChoice &&
         roundOver &&
         !needsArchivePlacement &&
         !session.ended &&

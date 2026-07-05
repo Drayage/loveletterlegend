@@ -9,6 +9,7 @@ import {
   placeArchiveToken,
   skipArchivePlacement,
   resolveLetterChoice,
+  chooseIdentity,
   nextRoundLeader,
   ROUTE_SLOT,
 } from "./session";
@@ -43,6 +44,17 @@ function pristineStoryArchive(): SessionState["storyArchive"] {
   });
 }
 
+// startSession's random initial deal can rarely (~2-3%) already trigger
+// 「대신」's passive elimination, ending round 1 before a test that wants to
+// call beginNextRound directly (without going through forceImmediateWin's
+// own reset-to-pristine logic) ever gets to run. Retry until round 1 is
+// still genuinely in progress.
+function freshSession(): SessionState {
+  let session = startSession(PLAYERS);
+  while (session.round.roundResult) session = startSession(PLAYERS);
+  return session;
+}
+
 function driveOneSessionRound(session: SessionState): SessionState {
   let s = session;
   let steps = 0;
@@ -72,12 +84,19 @@ function driveSessionToEnd(session: SessionState, maxRounds = 20): SessionState 
     rounds += 1;
     if (rounds > maxRounds) throw new Error("세션이 끝나지 않습니다 (무한 루프 의심)");
     s = driveOneSessionRound(s);
-    if (s.pendingLetterChoice) {
-      const choice = chooseLetterTargetAI(ROUTE_SLOT[s.currentRoute], s.pendingLetterChoice.atCap);
-      s = resolveLetterChoice(s, s.pendingLetterChoice.playerId, choice);
-    }
-    if (s.pendingArchivePlacement) {
-      s = skipArchivePlacement(s, s.pendingArchivePlacement.eligiblePlayerId);
+    // 038 「남작/여자작」을 고르면 새 pendingLetterChoice가 생길 수 있어
+    // 세 가지 세션 결정이 전부 해소될 때까지 반복한다.
+    while (s.pendingLetterChoice || s.pendingArchivePlacement || s.pendingIdentityChoice) {
+      if (s.pendingLetterChoice) {
+        const choice = chooseLetterTargetAI(ROUTE_SLOT[s.currentRoute], s.pendingLetterChoice.atCap);
+        s = resolveLetterChoice(s, s.pendingLetterChoice.playerId, choice);
+      }
+      if (s.pendingArchivePlacement) {
+        s = skipArchivePlacement(s, s.pendingArchivePlacement.eligiblePlayerId);
+      }
+      if (s.pendingIdentityChoice) {
+        s = chooseIdentity(s, s.pendingIdentityChoice.eligiblePlayerId, s.pendingIdentityChoice.options[0]);
+      }
     }
     if (!s.ended) {
       s = beginNextRound(s, chooseRouteAI(s.currentRoute));
@@ -94,7 +113,8 @@ function forceImmediateWin(
   winnerId: string,
   winnerHand?: GameState["players"][number]["hand"],
   extraArchiveCards: SessionState["storyArchive"] = [],
-  presetClock = 0
+  presetClock = 0,
+  extraSessionEvents: NonNullable<GameState["sessionEvents"]> = []
 ): SessionState {
   const s: SessionState = structuredClone(session);
   // The random initial deal can occasionally (~2-3% of the time) already
@@ -123,6 +143,7 @@ function forceImmediateWin(
   // targetable card (마술사) instead, which leaves the round mid-decision.
   winner.hand = winnerHand ?? [{ instanceId: "force-win-card", name: "대신" }];
   s.round.currentPlayerIndex = s.round.players.findIndex((p) => p.id === winnerId);
+  s.round.sessionEvents = [...extraSessionEvents];
   const card = winner.hand[0];
   s.round.pendingDecision = { kind: "playCard", playerId: winnerId, options: winner.hand };
   return applyToRound(s, (r) => chooseCardToPlay(r, card.instanceId));
@@ -187,12 +208,212 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
   });
 
   it("017's clockThreshold conditions fire at ROUND START (beginNextRound), unlocking by accumulated clock", () => {
-    let session = startSession(PLAYERS);
-    session.clockTokens = 6;
-    session = beginNextRound(session, "공주");
+    // Round 2's own fresh initial deal can also rarely (~2-3%) auto-end
+    // via 「대신」 -- that runs a full round-END pass on top (clockTokens+1,
+    // possibly expiring/revealing unrelated cards), so retry from scratch
+    // whenever that degenerate case shows up, same spirit as freshSession().
+    let session: SessionState;
+    do {
+      session = freshSession();
+      session.clockTokens = 6;
+      session = beginNextRound(session, "공주");
+    } while (session.round.roundResult);
     const ids = session.storyArchive.map((c) => c.id);
     expect(ids).toEqual(expect.arrayContaining(["024", "025", "032", "049"]));
     expect(ids).not.toContain("050");
+  });
+
+  it("025's reveal injects 「왕」 into the session's extra deck-card pool, and the next round's deck includes it", () => {
+    let session = freshSession();
+    expect(session.extraDeckCardNames).not.toContain("왕");
+    session.clockTokens = 2;
+    session = beginNextRound(session, "공주");
+    expect(session.storyArchive.some((c) => c.id === "025")).toBe(true);
+    expect(session.extraDeckCardNames).toContain("왕");
+    const totalCards =
+      session.round.deck.length +
+      session.round.faceUpRemovedCards.length +
+      (session.round.hiddenRemovedCard ? 1 : 0) +
+      session.round.players.reduce((sum, p) => sum + p.hand.length, 0);
+    // Base 16-card deck + the injected 「왕」 = 17 cards in play this round.
+    expect(totalCards).toBe(17);
+  });
+
+  it("032's reveal seeds the identity pool with all 6 ids and null player assignments", () => {
+    let session: SessionState;
+    do {
+      session = freshSession();
+      session.clockTokens = 3;
+      session = beginNextRound(session, "공주");
+    } while (session.round.roundResult);
+    expect(session.storyArchive.some((c) => c.id === "032")).toBe(true);
+    expect(session.identityPool.sort()).toEqual(["033", "034", "035", "036", "037", "038"]);
+    // 실카드: 032의 [등장]은 정체 풀 6장 전체를 즉시 보관소에 공개한다.
+    for (const id of ["033", "034", "035", "036", "037", "038"]) {
+      expect(session.storyArchive.some((c) => c.id === id)).toBe(true);
+    }
+    expect(session.playerIdentities["p1"]).toBeNull();
+    expect(session.playerIdentities["p2"]).toBeNull();
+  });
+
+  it("an eliminated player without an identity gets pendingIdentityChoice once 032 is revealed", () => {
+    let session = startSession(PLAYERS);
+    session = forceImmediateWin(
+      session,
+      "p1",
+      [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "장군" },
+      ],
+      [{ id: "032", name: ARCHIVE_CARD_SEEDS["032"].name, category: "scenario", flavor: "", conditions: [], successTokens: 0, failTokens: 0 }]
+    );
+    session.identityPool = ["033", "034", "035", "036", "037", "038"];
+    session = resolveLetterChoice(session, "p1", { type: "place", slot: "잉그리드공주" });
+    expect(session.pendingIdentityChoice?.eligiblePlayerId).toBe("p2");
+    expect(session.pendingIdentityChoice?.options).toEqual(["033", "034", "035", "036", "037", "038"]);
+  });
+
+  it("chooseIdentity assigns permanently and removes the id from the pool", () => {
+    let session = startSession(PLAYERS);
+    session = forceImmediateWin(
+      session,
+      "p1",
+      [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "장군" },
+      ],
+      [{ id: "032", name: ARCHIVE_CARD_SEEDS["032"].name, category: "scenario", flavor: "", conditions: [], successTokens: 0, failTokens: 0 }]
+    );
+    session.identityPool = ["033", "034", "035", "036", "037", "038"];
+    session = resolveLetterChoice(session, "p1", { type: "place", slot: "잉그리드공주" });
+    session = chooseIdentity(session, "p2", "035");
+    expect(session.playerIdentities["p2"]).toBe("035");
+    expect(session.identityPool).not.toContain("035");
+    expect(session.pendingIdentityChoice).toBeNull();
+  });
+
+  it("choosing 038 grants a +2 letter-placement choice on acquisition", () => {
+    let session = startSession(PLAYERS);
+    session = forceImmediateWin(
+      session,
+      "p1",
+      [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "장군" },
+      ],
+      [{ id: "032", name: ARCHIVE_CARD_SEEDS["032"].name, category: "scenario", flavor: "", conditions: [], successTokens: 0, failTokens: 0 }]
+    );
+    session.identityPool = ["033", "034", "035", "036", "037", "038"];
+    session = resolveLetterChoice(session, "p1", { type: "place", slot: "잉그리드공주" });
+    session = chooseIdentity(session, "p2", "038");
+    expect(session.pendingLetterChoice?.playerId).toBe("p2");
+    expect(session.pendingLetterChoice?.amount).toBe(2);
+    session = resolveLetterChoice(session, "p2", { type: "place", slot: "아레스왕자" });
+    expect(session.letterTokens["아레스왕자"]["p2"]).toBe(2);
+  });
+
+  it("032 reveals 039 and removes itself once every player has an identity", () => {
+    let session = startSession(PLAYERS);
+    session = forceImmediateWin(
+      session,
+      "p1",
+      [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "장군" },
+      ],
+      [{ id: "032", name: ARCHIVE_CARD_SEEDS["032"].name, category: "scenario", flavor: "", conditions: [], successTokens: 0, failTokens: 0 }]
+    );
+    session.identityPool = ["033", "034", "035", "036", "037", "038"];
+    session.playerIdentities["p1"] = "033"; // winner already has one from an earlier round
+    session = resolveLetterChoice(session, "p1", { type: "place", slot: "잉그리드공주" });
+    expect(session.pendingIdentityChoice?.eligiblePlayerId).toBe("p2");
+    session = chooseIdentity(session, "p2", "034");
+    expect(session.storyArchive.some((c) => c.id === "032")).toBe(false);
+    expect(session.storyArchive.some((c) => c.id === "039")).toBe(true);
+    // 039의 [등장]: 축제 덱 8장이 즉시 채워진다.
+    expect(session.festivalDeck.slice().sort()).toEqual(["040", "041", "042", "043", "044", "045", "046", "047"]);
+  });
+
+  it("beginNextRound draws the top festival card, and round end recycles it to the bottom", () => {
+    let session = startSession(PLAYERS);
+    session = forceImmediateWin(
+      session,
+      "p1",
+      [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "장군" },
+      ],
+      [{ id: "039", name: ARCHIVE_CARD_SEEDS["039"].name, category: "scenario", flavor: "", conditions: [], successTokens: 0, failTokens: 0 }]
+    );
+    session.festivalDeck = ["040", "041", "042"];
+    session = resolveLetterChoice(session, "p1", { type: "place", slot: "잉그리드공주" });
+    session = beginNextRound(session, "공주");
+    expect(session.round.activeFestivalCardId).toBe("040");
+    expect(session.festivalDeck).toEqual(["041", "042"]);
+
+    // Round-end recycling only reads round.activeFestivalCardId (already set
+    // to "040" above), independent of 039's storyArchive presence -- so it
+    // still applies even though forceImmediateWin resets storyArchive to
+    // pristine (039 no longer listed there).
+    session = forceImmediateWin(session, "p1", [
+      { instanceId: "c3", name: "대신" },
+      { instanceId: "c4", name: "장군" },
+    ]);
+    expect(session.festivalDeck).toEqual(["041", "042", "040"]);
+  });
+
+  it("025's [실패] threshold (kingElimination + 8+ 편지) removes 025 from the archive", () => {
+    let session = startSession(PLAYERS);
+    session.letterTokens["잉그리드공주"]["p2"] = 8;
+    session = forceImmediateWin(
+      session,
+      "p1",
+      [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "장군" },
+      ],
+      [
+        {
+          id: "025",
+          name: ARCHIVE_CARD_SEEDS["025"].name,
+          category: "scenario",
+          flavor: "",
+          conditions: ARCHIVE_CARD_SEEDS["025"].conditions.map((c) => ({ ...c, fired: false })),
+          successTokens: 0,
+          failTokens: 0,
+        },
+      ],
+      0,
+      [{ type: "kingElimination", playerId: "p2" }]
+    );
+    expect(session.storyArchive.some((c) => c.id === "025")).toBe(false);
+  });
+
+  it("025's [실패] threshold does NOT fire when the eliminated player has under 8 편지", () => {
+    let session = startSession(PLAYERS);
+    session.letterTokens["잉그리드공주"]["p2"] = 3;
+    session = forceImmediateWin(
+      session,
+      "p1",
+      [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "장군" },
+      ],
+      [
+        {
+          id: "025",
+          name: ARCHIVE_CARD_SEEDS["025"].name,
+          category: "scenario",
+          flavor: "",
+          conditions: ARCHIVE_CARD_SEEDS["025"].conditions.map((c) => ({ ...c, fired: false })),
+          successTokens: 0,
+          failTokens: 0,
+        },
+      ],
+      0,
+      [{ type: "kingElimination", playerId: "p2" }]
+    );
+    expect(session.storyArchive.some((c) => c.id === "025")).toBe(true);
   });
 
   it("does NOT reveal 024 at round 1's end -- only at round 2's start (시작/종료 timing split)", () => {

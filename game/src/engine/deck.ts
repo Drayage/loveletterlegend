@@ -1,5 +1,5 @@
-import { buildFullDeckDefs } from "./cards";
-import type { CardInstance } from "./types";
+import { buildFullDeckDefs, CARD_DEFS } from "./cards";
+import type { CardInstance, CardName } from "./types";
 
 let instanceCounter = 0;
 function nextInstanceId(): string {
@@ -7,9 +7,11 @@ function nextInstanceId(): string {
   return `card-${instanceCounter}`;
 }
 
-export function shuffledDeck(): CardInstance[] {
+/** `extraCardNames` -- session-revealed cards outside the base 16 (e.g. 025
+ * injecting 「왕」) get appended, one instance per name, before the shuffle. */
+export function shuffledDeck(extraCardNames: CardName[] = []): CardInstance[] {
   const defs = buildFullDeckDefs();
-  const deck: CardInstance[] = defs.map((def) => ({
+  const deck: CardInstance[] = [...defs, ...extraCardNames.map((name) => CARD_DEFS[name])].map((def) => ({
     instanceId: nextInstanceId(),
     name: def.name,
   }));

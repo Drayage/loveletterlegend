@@ -145,6 +145,13 @@ export function chooseArchiveTokenAI(
   return { cardId: card.id, token };
 }
 
+// v1: no strategic preference among 정체 cards -- pick uniformly among
+// whatever's still unclaimed in the pool. A richer policy (e.g. favoring
+// 038's immediate [편지] bonus) is future work.
+export function chooseIdentityAI(options: string[]): string {
+  return options[Math.floor(Math.random() * options.length)];
+}
+
 export function chooseCardToPlayAI(state: GameState, playerId: string): CardInstance {
   const player = state.players.find((p) => p.id === playerId);
   if (!player || player.hand.length !== 2) {

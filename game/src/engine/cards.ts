@@ -69,6 +69,15 @@ export const CARD_DEFS: Record<CardName, CardDef> = {
     shortAbility: "버리게 되면 즉시 탈락",
     ability: "이 카드를 버려야 하는 상황이 생기면, 당신은 즉시 라운드에서 탈락합니다.",
   },
+  왕: {
+    name: "왕",
+    // 실카드는 숫자 대신 "X" -- 순위 비교에 참여하지 않으므로 임의로 0.
+    rank: 0,
+    count: 1,
+    englishAlias: "King",
+    shortAbility: "손에 들고 있으면 즉시 탈락 (패시브)",
+    ability: "당신은 라운드에서 탈락합니다.",
+  },
 };
 
 export const CARD_ORDER: CardName[] = [

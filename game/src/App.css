@@ -87,6 +87,15 @@
   white-space: nowrap;
 }
 
+.festival-banner {
+  font-size: 12px;
+  color: var(--text);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 6px 12px;
+}
+
 .removed-row__cards {
   display: flex;
   gap: 6px;

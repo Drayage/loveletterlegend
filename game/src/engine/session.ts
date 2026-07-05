@@ -49,6 +49,20 @@ export type LetterChoice =
   | { type: "move"; from: CharacterSlotId; to: CharacterSlotId }
   | { type: "decline" };
 
+/** 032 「역사 4」가 공개하는 6장의 "게임:정체" 카드 id 풀. */
+const IDENTITY_CARD_IDS = ["033", "034", "035", "036", "037", "038"];
+/** 039 「역사 5」가 공개하는 8장의 "게임:축제" 카드 id 풀. */
+const FESTIVAL_CARD_IDS = ["040", "041", "042", "043", "044", "045", "046", "047"];
+
+function shuffledCopy<T>(items: T[]): T[] {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
 export interface SessionState {
   playerConfigs: PlayerConfig[];
   round: GameState; // current single-round engine state, shape unchanged
@@ -70,6 +84,22 @@ export interface SessionState {
    * 차례 -- amount는 놓일 토큰 수(공주를 들고 승리했다면 2), atCap이면
    * 놓을 자리가 없어 "이동" 또는 "이동하지 않음"만 선택 가능하다. */
   pendingLetterChoice: { playerId: string; amount: number; atCap: boolean } | null;
+  /** 025 「국왕 랜들 3세」가 등장하면 덱에 추가되는 「왕」처럼, 세션 진행 중
+   * 이야기 보관소 공개로 인해 기본 16장 덱에 permanently 추가되는 카드
+   * 이름 목록 -- 매 라운드 setupRound에 그대로 넘긴다. */
+  extraDeckCardNames: CardName[];
+  /** 032가 공개하면 채워지는, 아직 아무도 고르지 않은 「정체」 카드 id 풀
+   * (033~038). 032가 아직 공개되지 않았다면 빈 배열. */
+  identityPool: string[];
+  /** playerId -> 배정된 「정체」 카드 id (아직 없으면 null). */
+  playerIdentities: Record<string, string | null>;
+  /** 탈락했지만 아직 「정체」가 없는 플레이어가 라운드 종료 시 하나를 골라야
+   * 하는 차례 -- see chooseIdentity. */
+  pendingIdentityChoice: { eligiblePlayerId: string; options: string[] } | null;
+  /** 039가 공개하면 채워지는 "축제 덱" -- 매 라운드 시작시 맨 위 카드를
+   * 뽑아 그 라운드의 GameState.activeFestivalCardId로 넘기고, 라운드
+   * 종료시 맨 아래로 되돌린다 (see beginNextRound/applySessionRoundEnd). */
+  festivalDeck: string[];
 }
 
 function seedArchiveCard(id: string): ArchiveCardState {
@@ -96,6 +126,8 @@ export function startSession(playerConfigs: PlayerConfig[], initialRoute: Route 
     letterTokens[slot] = {};
     for (const cfg of playerConfigs) letterTokens[slot][cfg.id] = 0;
   }
+  const playerIdentities: Record<string, string | null> = {};
+  for (const cfg of playerConfigs) playerIdentities[cfg.id] = null;
 
   return finalizeFreshRound({
     playerConfigs,
@@ -115,6 +147,11 @@ export function startSession(playerConfigs: PlayerConfig[], initialRoute: Route 
     storyArchive: [seedArchiveCard("017"), seedArchiveCard("018"), seedArchiveCard("020"), seedArchiveCard("023")],
     pendingArchivePlacement: null,
     pendingLetterChoice: null,
+    extraDeckCardNames: [],
+    identityPool: [],
+    playerIdentities,
+    pendingIdentityChoice: null,
+    festivalDeck: [],
   });
 }
 
@@ -190,12 +227,17 @@ function addArchiveToken(session: SessionState, cardId: string, token: "성공" 
  * satisfy another card's condition, e.g. 023 revealing 053 lets 024's
  * "2+ [조건] cards" check see it in the same pass), which also matches
  * the rulebook's "ascending card-id" processing for this small dataset
- * since 023 < 024. */
+ * since 023 < 024.
+ *
+ * Returns every id newly pushed into the archive this call, so callers can
+ * react to specific reveals (e.g. 025 injecting 「왕」 into the deck, 032
+ * seeding the 정체 pool, 039 seeding the 축제 덱) via applyRevealSideEffects. */
 function resolveArchiveConditions(
   session: SessionState,
   timing: ArchiveConditionTiming,
   winnerCardName?: CardName | null
-): void {
+): Set<string> {
+  const everRevealed = new Set<string>();
   let changed = true;
   while (changed) {
     changed = false;
@@ -234,10 +276,39 @@ function resolveArchiveConditions(
       for (const id of toReveal) {
         if (!session.storyArchive.some((c) => c.id === id)) {
           session.storyArchive.push(seedArchiveCard(id));
+          everRevealed.add(id);
         }
       }
     }
   }
+  return everRevealed;
+}
+
+/** Runs one-time setup that a specific card's reveal triggers -- deck
+ * injection (025 -> 「왕」), identity-pool seeding (032), festival-deck
+ * seeding (039). Idempotent no-ops if called again for an id already
+ * revealed (e.g. resolveArchiveConditions returning it a second time can't
+ * actually happen since it only reports NEW reveals, but the individual
+ * checks below are defensive anyway). */
+function applyRevealSideEffects(session: SessionState, newlyRevealedIds: Set<string>): void {
+  if (newlyRevealedIds.has("025") && !session.extraDeckCardNames.includes("왕")) {
+    session.extraDeckCardNames.push("왕");
+  }
+  if (newlyRevealedIds.has("032")) {
+    // 실카드: "033~038 (6장)을 공개하고 옆으로 치워 둡니다" -- 풀 전체가
+    // 즉시 보관소에 드러나며, identityPool은 그중 "아직 안 고른" 것만
+    // 추적하는 별도 북키핑이다 (둘 다 필요: 보관소는 표시용, 풀은 로직용).
+    session.identityPool = [...IDENTITY_CARD_IDS];
+    for (const id of IDENTITY_CARD_IDS) {
+      if (!session.storyArchive.some((c) => c.id === id)) session.storyArchive.push(seedArchiveCard(id));
+    }
+    for (const cfg of session.playerConfigs) {
+      if (!(cfg.id in session.playerIdentities)) session.playerIdentities[cfg.id] = null;
+    }
+  }
+  // 039는 이 generic 경로로 공개되지 않는다 -- 032의 "전원 정체 보유"
+  // 종료 조건은 배정 직후 상태가 필요해 chooseIdentity 안의 bespoke
+  // 체크에서 직접 처리한다 (거기서 festivalDeck도 함께 시딩).
 }
 
 function applySessionRoundEnd(session: SessionState): SessionState {
@@ -249,6 +320,12 @@ function applySessionRoundEnd(session: SessionState): SessionState {
 
   next.clockTokens += 1;
 
+  // 039 「역사 5」의 "종료" 태그: 이번 라운드에 사용한 축제 덱 카드를 맨
+  // 아래로 되돌린다.
+  if (next.round.activeFestivalCardId) {
+    next.festivalDeck.push(next.round.activeFestivalCardId);
+  }
+
   // 023 「역사 1」의 "승자가 든 카드 확인" 조건 등을 이번 라운드의 [성공]/
   // [실패] 부여보다 먼저 처리한다 -- 그래야 이번 라운드에 새로 공개되는
   // 카드(예: 053)가 존재하는 상태에서 그 아래쪽 addArchiveToken 호출이
@@ -257,7 +334,7 @@ function applySessionRoundEnd(session: SessionState): SessionState {
   // v1에서는 이 재확인을 별도로 억제하지 않는다 -- 같은 라운드에 정확히
   // 임계값에 도달하는 경우는 드물고, 억제 로직을 넣을 만큼 가치가 크지
   // 않다고 판단.)
-  resolveArchiveConditions(next, "roundEnd", winnerCard?.name ?? null);
+  applyRevealSideEffects(next, resolveArchiveConditions(next, "roundEnd", winnerCard?.name ?? null));
 
   if (winnerId) {
     // 카드 017 「시간」: 라운드 승리 -> 공개된 공주/왕자 중 하나를 골라
@@ -300,6 +377,10 @@ function applySessionRoundEnd(session: SessionState): SessionState {
       if (applied > 0) letterGains.push({ playerId: event.actingPlayerId, slot: "마술사의도제", amount: applied });
     } else if (event.type === "guardGuessResolved") {
       addArchiveToken(next, "053", event.hit ? "성공" : "실패", 1);
+    } else if (event.type === "kingElimination") {
+      // 025 "도중": 《왕》 효과로 탈락한 플레이어의 총 [편지]가 8개 이상이면
+      // 025에 [실패] +1.
+      if (totalLetterTokens(next, event.playerId) >= 8) addArchiveToken(next, "025", "실패", 1);
     }
   }
 
@@ -311,7 +392,7 @@ function applySessionRoundEnd(session: SessionState): SessionState {
   }
 
   // Re-check now that this round's [성공]/[실패] grants are in.
-  resolveArchiveConditions(next, "roundEnd", winnerCard?.name ?? null);
+  applyRevealSideEffects(next, resolveArchiveConditions(next, "roundEnd", winnerCard?.name ?? null));
 
   // 만료 처리 -- "[시계] N개: 이 카드를 제거합니다." 실카드 종료 태그.
   // 같은 라운드의 공개 조건을 먼저 처리한 뒤에 제거한다 (시계가 4가 되는
@@ -376,6 +457,15 @@ function finalizeRoundEndDecisions(session: SessionState, winnerId: string | nul
       ...next.playerConfigs.filter((c) => c.id !== winnerId).map((c) => next.letterTokens[slot][c.id] ?? 0)
     );
     if (mine > othersMax) next.storyArchive.push(seedArchiveCard("051"));
+  }
+
+  // 032 「역사 4」의 "중요" tag: 이번 라운드에 탈락했지만 아직 「정체」가
+  // 없는 플레이어는 남은 풀에서 하나를 골라 영구히 갖는다.
+  if (next.storyArchive.some((c) => c.id === "032") && next.identityPool.length > 0) {
+    const needsIdentity = next.round.players.find((p) => p.eliminated && !next.playerIdentities[p.id]);
+    if (needsIdentity) {
+      next.pendingIdentityChoice = { eligiblePlayerId: needsIdentity.id, options: [...next.identityPool] };
+    }
   }
 
   // 역사 3[031]이 공개되기 전에는 "첫 탈락자가 조건 카드에 토큰을 놓을 수
@@ -481,6 +571,7 @@ export function beginNextRound(session: SessionState, route: Route): SessionStat
   if (session.ended) throw new Error("세션이 이미 종료되었습니다.");
   if (session.pendingLetterChoice) throw new Error("편지 토큰 배치가 끝나지 않았습니다.");
   if (session.pendingArchivePlacement) throw new Error("이야기 보관소 토큰 배치가 끝나지 않았습니다.");
+  if (session.pendingIdentityChoice) throw new Error("정체 카드 선택이 끝나지 않았습니다.");
   const next: SessionState = structuredClone(session);
   const leaderId = nextRoundLeader(next);
   next.currentRoute = route;
@@ -488,11 +579,66 @@ export function beginNextRound(session: SessionState, route: Route): SessionStat
   // 017 「시간」의 "시작" 태그: 라운드 시작 시 [시계] 개수를 확인해 공개.
   // 라운드 종료 이벤트와 순서가 섞이지 않도록 여기(다음 라운드가 실제로
   // 시작되는 시점)에서만 처리한다.
-  resolveArchiveConditions(next, "roundStart");
+  applyRevealSideEffects(next, resolveArchiveConditions(next, "roundStart"));
   const upgrades = resolveActiveUpgrades(next);
-  next.round = { ...setupRound(next.playerConfigs, leaderId), activeCardUpgrades: upgrades, sessionEvents: [] };
+  const activeIdentities: Record<string, string> = {};
+  for (const [pid, identityId] of Object.entries(next.playerIdentities)) {
+    if (identityId) activeIdentities[pid] = identityId;
+  }
+  // 039 「역사 5」의 "시작" 태그: 매 라운드 시작시 축제 덱에서 카드 1장 공개.
+  const activeFestivalCardId =
+    next.storyArchive.some((c) => c.id === "039") && next.festivalDeck.length > 0
+      ? (next.festivalDeck.shift() ?? null)
+      : null;
+  next.round = {
+    ...setupRound(next.playerConfigs, leaderId, next.extraDeckCardNames),
+    activeCardUpgrades: upgrades,
+    activeIdentities,
+    activeFestivalCardId,
+    sessionEvents: [],
+  };
   next.lastRoundSummary = null;
   return finalizeFreshRound(next);
+}
+
+/** Resolves a pending 032-triggered 「정체」 카드 선택 -- 배정은 영구적이며
+ * 이후 세션 내내 유지된다. 038 「남작/여자작」을 고르면 실카드의 "획득 시
+ * [편지] 2개 배치" 보너스도 함께 트리거 (기존 pendingLetterChoice 흐름
+ * 재사용). 032가 전원 배정으로 완료되면 039를 공개하고 032를 제거한다
+ * (배정 직후 상태가 필요해 bespoke 체크 -- 050->051과 동일 패턴). */
+export function chooseIdentity(session: SessionState, playerId: string, identityId: string): SessionState {
+  if (!session.pendingIdentityChoice || session.pendingIdentityChoice.eligiblePlayerId !== playerId) {
+    throw new Error("지금은 이 플레이어가 정체 카드를 고를 차례가 아닙니다.");
+  }
+  if (!session.identityPool.includes(identityId)) {
+    throw new Error("이미 선택되었거나 존재하지 않는 정체 카드입니다.");
+  }
+  const next: SessionState = structuredClone(session);
+  next.playerIdentities[playerId] = identityId;
+  next.identityPool = next.identityPool.filter((id) => id !== identityId);
+  next.pendingIdentityChoice = null;
+
+  if (identityId === "038") {
+    next.pendingLetterChoice = {
+      playerId,
+      amount: 2,
+      atCap: totalLetterTokens(next, playerId) >= LETTER_TOKEN_POOL,
+    };
+  }
+
+  if (
+    next.storyArchive.some((c) => c.id === "032") &&
+    next.playerConfigs.every((cfg) => next.playerIdentities[cfg.id])
+  ) {
+    next.storyArchive = next.storyArchive.filter((c) => c.id !== "032");
+    if (!next.storyArchive.some((c) => c.id === "039")) {
+      next.storyArchive.push(seedArchiveCard("039"));
+      next.festivalDeck = shuffledCopy(FESTIVAL_CARD_IDS);
+    }
+  }
+
+  if (next.pendingLetterChoice) return next;
+  return finalizeRoundEndDecisions(next, next.round.roundResult?.winnerId ?? null);
 }
 
 /** Resolves the round winner's pendingLetterChoice: a fresh placement when
@@ -550,7 +696,7 @@ export function placeArchiveToken(
   next.pendingArchivePlacement = null;
   // 이 배치는 라운드 종료 시퀀스의 일부 -- 시작 태그(017의 시계표)는 여기서
   // 발동시키지 않는다.
-  resolveArchiveConditions(next, "roundEnd");
+  applyRevealSideEffects(next, resolveArchiveConditions(next, "roundEnd"));
   return next;
 }
 

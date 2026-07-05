@@ -6,6 +6,7 @@ import wizard from "../assets/cards/wizard.jpg";
 import general from "../assets/cards/general.jpg";
 import minister from "../assets/cards/minister.jpg";
 import princess from "../assets/cards/princess.jpg";
+import king from "../assets/cards/extra/X. 왕.jpg";
 import type { CardName } from "../engine/types";
 
 // Custom illustrations (replacing the earlier PDF-cropped art) provided by
@@ -19,4 +20,5 @@ export const CARD_ART: Record<CardName, string> = {
   장군: general,
   대신: minister,
   공주: princess,
+  왕: king,
 };

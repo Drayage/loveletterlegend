@@ -4,9 +4,11 @@ import {
   alivePlayers,
   applyEffect,
   cardRank,
+  checkKingElimination,
   checkMinisterElimination,
   discardCard,
   drawCardFor,
+  effectiveCardRank,
   getPlayer,
   log,
   needsGuess,
@@ -15,7 +17,7 @@ import {
 } from "./effects";
 import { CARD_ORDER } from "./cards";
 import { resolveUpgradeTier } from "./upgrades";
-import type { CardInstance, CardName, GameState, PlayerConfig } from "./types";
+import type { CardInstance, CardName, GameState, PlayerConfig, PlayerState } from "./types";
 export type { PlayerConfig } from "./types";
 
 /** `startingPlayerId` -- the previous round's winner leads the new round
@@ -23,8 +25,12 @@ export type { PlayerConfig } from "./types";
  * 플레이어가 됩니다"). Defaults to the first configured player, which
  * also covers round 1 and plain single-round callers (e.g. rules.test.ts)
  * that don't care about session-level turn rotation. */
-export function setupRound(playerConfigs: PlayerConfig[], startingPlayerId?: string): GameState {
-  const deck = shuffledDeck();
+export function setupRound(
+  playerConfigs: PlayerConfig[],
+  startingPlayerId?: string,
+  extraCardNames?: CardName[]
+): GameState {
+  const deck = shuffledDeck(extraCardNames);
   const hiddenRemovedCard = deck.shift() ?? null;
   const faceUpRemovedCards: CardInstance[] = [];
   if (playerConfigs.length === 2) {
@@ -88,7 +94,7 @@ export function beginTurn(state: GameState): GameState {
   }
   log(draft, `${player.displayName}의 차례입니다. 카드를 뽑았습니다.`);
 
-  if (checkMinisterElimination(draft, player.id)) {
+  if (checkKingElimination(draft, player.id) || checkMinisterElimination(draft, player.id)) {
     return afterTurnResolved(draft);
   }
 
@@ -222,6 +228,87 @@ function advanceTurn(draft: GameState): GameState {
   return beginTurn(draft);
 }
 
+/** Ranks alive players into descending-value tiers (players sharing a value
+ * land in the same tier) -- shared by both the default "highest wins" rule
+ * and 039 「역사 5」의 축제 덱 대체 규칙(043/044) which pick a specific tier
+ * instead of always the top one. */
+function valueTiers(values: Array<{ id: string; value: number }>): string[][] {
+  const sorted = [...values].sort((a, b) => b.value - a.value);
+  const tiers: string[][] = [];
+  for (const { id, value } of sorted) {
+    if (tiers.length > 0 && sorted.find((v) => v.id === tiers[tiers.length - 1][0])!.value === value) {
+      tiers[tiers.length - 1].push(id);
+    } else {
+      tiers.push([id]);
+    }
+  }
+  return tiers;
+}
+
+/** 덱 소진 시 승자 결정 -- 기본은 "손에 든 카드 숫자가 가장 큰 플레이어
+ * 승리" (동점이면 무승부)지만, 039 「역사 5」가 공개되어 있다면 그 라운드
+ * 시작시 뽑은 축제 덱 카드(040~047)가 이 규칙을 통째로 바꿀 수 있다. */
+function determineDeckExhaustedWinner(draft: GameState, alive: PlayerState[]): string | null {
+  const festivalId = draft.activeFestivalCardId;
+
+  // 046 「별의 축복」: 덱이 소진되면 무조건 승자 없음 (오직 최후의 1인
+  // 생존으로만 승리 가능).
+  if (festivalId === "046") return null;
+
+  // 045 「건국제」: 버린 카드 숫자의 합이 가장 큰 플레이어 승리.
+  if (festivalId === "045") {
+    const values = alive.map((p) => ({
+      id: p.id,
+      value: p.discardPile.reduce((sum, c) => sum + effectiveCardRank(draft, p.id, c.name), 0),
+    }));
+    const tiers = valueTiers(values);
+    return tiers[0]?.length === 1 ? tiers[0][0] : null;
+  }
+
+  const values = alive
+    .map((p) => {
+      const c = p.hand[0];
+      if (!c) return null;
+      let value = effectiveCardRank(draft, p.id, c.name);
+      const base = cardRank(c.name);
+      // 041/042 「수확제/강탄제」: 실카드 숫자(035의 +2 보정 전) 기준 홀/짝에
+      // +8. 견습기사/호위의 보정은 그 위에 그대로 유지된다.
+      if (festivalId === "041" && base % 2 === 1) value += 8;
+      if (festivalId === "042" && base % 2 === 0) value += 8;
+      return { id: p.id, value };
+    })
+    .filter((v): v is { id: string; value: number } => v !== null);
+
+  // 047 「정원파티」: 비공개 카드도 비교 대상에 포함 -- 그게 유일한 최댓값
+  // 이면 승자 없음.
+  if (festivalId === "047" && draft.hiddenRemovedCard) {
+    const hiddenValue = effectiveCardRank(draft, "__hidden__", draft.hiddenRemovedCard.name);
+    const allValues = [...values, { id: "__hidden__", value: hiddenValue }];
+    const tiers = valueTiers(allValues);
+    if (tiers[0]?.length === 1 && tiers[0][0] === "__hidden__") return null;
+    return tiers[0]?.length === 1 ? tiers[0][0] : null;
+  }
+
+  const tiers = valueTiers(values);
+  if (festivalId === "043") {
+    // 「알현식」: 두 번째로 숫자가 큰 플레이어 승리 (2번째 tier가 없거나
+    // 단독이 아니면 승자 없음).
+    return tiers[1]?.length === 1 ? tiers[1][0] : null;
+  }
+  if (festivalId === "044") {
+    // 「원탁회의」: 가장 작은 값(tiers 배열의 끝)부터 훑어 단독인 tier를
+    // 찾는다 -- 동률이면 그다음으로 작은 값(한 단계 위 tier)으로 넘어간다
+    // (실카드 문구 "다음으로 숫자가 작은 플레이어"). tiers는 내림차순이므로
+    // 끝에서부터 앞으로 탐색.
+    for (let i = tiers.length - 1; i >= 0; i--) {
+      if (tiers[i].length === 1) return tiers[i][0];
+    }
+    return null;
+  }
+  // 기본(040 또는 축제 없음): 가장 큰 값의 tier가 단독일 때만 승리.
+  return tiers[0]?.length === 1 ? tiers[0][0] : null;
+}
+
 function endRound(
   draft: GameState,
   reason: "lastPlayerStanding" | "deckExhausted"
@@ -236,23 +323,15 @@ function endRound(
     }
   } else {
     log(draft, "덱이 소진되어 라운드가 종료됩니다. 남은 플레이어의 카드를 공개합니다.");
-    let best: { id: string; rank: number }[] = [];
     for (const p of alive) {
       const c = p.hand[0];
-      if (!c) continue;
-      const r = cardRank(c.name);
-      log(draft, `${p.displayName}: 「${c.name}」 (${r})`);
-      if (best.length === 0 || r > best[0].rank) {
-        best = [{ id: p.id, rank: r }];
-      } else if (r === best[0].rank) {
-        best.push({ id: p.id, rank: r });
-      }
+      if (c) log(draft, `${p.displayName}: 「${c.name}」 (${effectiveCardRank(draft, p.id, c.name)})`);
     }
-    if (best.length === 1) {
-      winnerId = best[0].id;
-      log(draft, `${getPlayer(draft, winnerId).displayName}이(가) 가장 높은 카드로 승리합니다!`);
+    winnerId = determineDeckExhaustedWinner(draft, alive);
+    if (winnerId) {
+      log(draft, `${getPlayer(draft, winnerId).displayName}이(가) 승리합니다!`);
     } else {
-      log(draft, "동점으로 무승부입니다.");
+      log(draft, "승자가 없습니다 (무승부).");
     }
   }
 

@@ -19,10 +19,12 @@ export function CardReferenceModal({ onClose, session }: CardReferenceModalProps
         ? WIZARD_APPRENTICE.tier1.abilityText
         : null;
 
+  const allNames = [...CARD_ORDER, ...(session?.extraDeckCardNames ?? [])];
+
   return (
     <Modal title="이번 게임 카드 목록" onClose={onClose}>
       <div className="card-reference">
-        {CARD_ORDER.map((name) => {
+        {allNames.map((name) => {
           const def = CARD_DEFS[name];
           const showUpgrade = name === "마술사" && upgradedAbility;
           return (

@@ -10,6 +10,10 @@ export function computeRemainingCounts(state: GameState): Record<CardName, numbe
   for (const name of CARD_ORDER) remaining[name] = CARD_DEFS[name].count;
 
   const subtract = (card: CardInstance) => {
+    // Session-revealed cards outside the base 16 (e.g. 「왕」) aren't in
+    // CARD_ORDER, so their count isn't pre-seeded above -- initialize
+    // lazily from CARD_DEFS on first sighting instead of assuming 0/undefined.
+    if (remaining[card.name] === undefined) remaining[card.name] = CARD_DEFS[card.name].count;
     remaining[card.name] = Math.max(0, remaining[card.name] - 1);
   };
   for (const p of state.players) {

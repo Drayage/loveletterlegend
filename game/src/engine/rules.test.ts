@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { setupRound, chooseCardToPlay, chooseTarget, chooseGuess } from "./rules";
 import { chooseCardToPlayAI, chooseGuessAI, chooseTargetAI } from "./ai";
-import { checkMinisterElimination } from "./effects";
-import type { GameState, PlayerConfig } from "./types";
+import { applyEffect, checkKingElimination, checkMinisterElimination } from "./effects";
+import type { CardName, GameState, PlayerConfig } from "./types";
 
 const PLAYERS: PlayerConfig[] = [
   { id: "p1", displayName: "플레이어", isAI: false },
@@ -115,5 +115,201 @@ describe("Love Letter engine", () => {
     const eliminated = checkMinisterElimination(state, "p1");
     expect(eliminated).toBe(false);
     expect(human.eliminated).toBe(false);
+  });
+
+  it("왕 auto-eliminates unconditionally the moment it's held", () => {
+    const state = setupRound(PLAYERS);
+    state.sessionEvents = [];
+    const human = state.players.find((p) => p.id === "p1")!;
+    human.hand = [
+      { instanceId: "test-king", name: "왕" },
+      { instanceId: "test-guard3", name: "경비병" },
+    ];
+    human.eliminated = false; // isolate from setupRound's own random initial deal
+    const eliminated = checkKingElimination(state, "p1");
+    expect(eliminated).toBe(true);
+    expect(human.eliminated).toBe(true);
+    expect(state.sessionEvents).toEqual([{ type: "kingElimination", playerId: "p1" }]);
+  });
+
+  it("왕 does not affect a player who isn't holding it", () => {
+    const state = setupRound(PLAYERS);
+    const human = state.players.find((p) => p.id === "p1")!;
+    human.hand = [
+      { instanceId: "test-guard4", name: "경비병" },
+      { instanceId: "test-clown", name: "광대" },
+    ];
+    human.eliminated = false; // isolate from setupRound's own random initial deal
+    const eliminated = checkKingElimination(state, "p1");
+    expect(eliminated).toBe(false);
+    expect(human.eliminated).toBe(false);
+  });
+
+  function knightMatchupState(activeIdentities?: Record<string, string>): GameState {
+    return {
+      // p1 holds 광대 (rank 2), p2 holds 기사 (rank 3) -- without any bonus,
+      // p1 loses (2 < 3).
+      players: [
+        { id: "p1", displayName: "P1", isAI: false, hand: [{ instanceId: "a", name: "광대" }], discardPile: [], eliminated: false, protected: false },
+        { id: "p2", displayName: "P2", isAI: false, hand: [{ instanceId: "b", name: "기사" }], discardPile: [], eliminated: false, protected: false },
+      ],
+      deck: [],
+      hiddenRemovedCard: null,
+      faceUpRemovedCards: [],
+      currentPlayerIndex: 1,
+      log: [],
+      pendingDecision: null,
+      roundResult: null,
+      resolvingCard: null,
+      resolvingPlayerId: null,
+      deckExhaustedThisTurn: false,
+      lastPlayedCard: null,
+      lastReveal: null,
+      firstEliminatedThisRound: null,
+      activeIdentities,
+    };
+  }
+
+  it("035 「견습기사/호위」의 +2 identity bonus flips a 기사 comparison the holder would otherwise lose", () => {
+    const state = knightMatchupState({ p1: "035" });
+    applyEffect(state, { actingPlayerId: "p2", card: { instanceId: "b", name: "기사" }, targetId: "p1" });
+    // p1's effective rank becomes 2+2=4, beating p2's 기사 (3) -- p2 is eliminated instead.
+    expect(state.players[0].eliminated).toBe(false);
+    expect(state.players[1].eliminated).toBe(true);
+  });
+
+  it("without the 035 bonus, the same matchup eliminates the lower-ranked player", () => {
+    const state = knightMatchupState();
+    applyEffect(state, { actingPlayerId: "p2", card: { instanceId: "b", name: "기사" }, targetId: "p1" });
+    expect(state.players[0].eliminated).toBe(true);
+    expect(state.players[1].eliminated).toBe(false);
+  });
+});
+
+describe("039 「역사 5」축제 덱 -- 덱 소진 시 승자 결정 규칙 대체", () => {
+  // p2 always plays 대신 (no target needed, no side effect), leaving
+  // `p2RemainingCard` as their hand for the deck-exhaustion comparison
+  // against p1's single card.
+  function deckExhaustionWinner(
+    p1Card: CardName,
+    p2RemainingCard: CardName,
+    activeFestivalCardId: string | null,
+    p1Discards: CardName[] = [],
+    p2Discards: CardName[] = []
+  ): string | null {
+    const state: GameState = {
+      players: [
+        {
+          id: "p1",
+          displayName: "P1",
+          isAI: false,
+          hand: [{ instanceId: "p1c", name: p1Card }],
+          discardPile: p1Discards.map((name, i) => ({ instanceId: `p1d${i}`, name })),
+          eliminated: false,
+          protected: false,
+        },
+        {
+          id: "p2",
+          displayName: "P2",
+          isAI: false,
+          hand: [
+            { instanceId: "p2c1", name: p2RemainingCard },
+            { instanceId: "p2c2", name: "대신" },
+          ],
+          discardPile: p2Discards.map((name, i) => ({ instanceId: `p2d${i}`, name })),
+          eliminated: false,
+          protected: false,
+        },
+      ],
+      deck: [],
+      hiddenRemovedCard: null,
+      faceUpRemovedCards: [],
+      currentPlayerIndex: 1,
+      log: [],
+      pendingDecision: null,
+      roundResult: null,
+      resolvingCard: null,
+      resolvingPlayerId: null,
+      deckExhaustedThisTurn: true,
+      lastPlayedCard: null,
+      lastReveal: null,
+      firstEliminatedThisRound: null,
+      activeFestivalCardId,
+    };
+    state.pendingDecision = { kind: "playCard", playerId: "p2", options: state.players[1].hand };
+    const result = chooseCardToPlay(state, "p2c2");
+    return result.roundResult!.winnerId;
+  }
+
+  it("041 「수확제」: 홀수 카드 숫자에 +8 -- 낮은 홀수 카드가 역전승", () => {
+    // p1: 경비병(1, 홀수) -> 9;  p2: 공주(8, 짝수) -> 8. p1 승리로 역전.
+    expect(deckExhaustionWinner("경비병", "공주", "041")).toBe("p1");
+    expect(deckExhaustionWinner("경비병", "공주", null)).toBe("p2"); // baseline (no festival card)
+  });
+
+  it("042 「강탄제」: 짝수 카드 숫자에 +8 -- 낮은 짝수 카드가 역전승", () => {
+    // p1: 기사(3, 홀수) -> 3;  p2: 광대(2, 짝수) -> 10. p2 승리로 역전.
+    expect(deckExhaustionWinner("기사", "광대", "042")).toBe("p2");
+    expect(deckExhaustionWinner("기사", "광대", null)).toBe("p1"); // baseline
+  });
+
+  it("043 「알현식」: 두 번째로 높은 카드가 승리 -- 2인전에서는 낮은 쪽이 승리", () => {
+    expect(deckExhaustionWinner("경비병", "공주", "043")).toBe("p1");
+  });
+
+  it("044 「원탁회의」: 가장 낮은 카드가 승리 (동률이면 무승부)", () => {
+    expect(deckExhaustionWinner("경비병", "공주", "044")).toBe("p1");
+    expect(deckExhaustionWinner("광대", "광대", "044")).toBeNull();
+  });
+
+  it("045 「건국제」: 손패가 아니라 버린 카드 숫자 합이 가장 큰 플레이어가 승리", () => {
+    // p1 hand is low (경비병=1) but discarded a lot; p2 hand is high (공주=8)
+    // but has a smaller discard sum -- 045 flips the comparison basis entirely.
+    expect(
+      deckExhaustionWinner("경비병", "공주", "045", ["장군", "대신"], ["광대"])
+    ).toBe("p1"); // p1 discard sum 6+7=13 > p2 discard sum 2
+  });
+
+  it("046 「별의 축복」: 덱 소진으로는 절대 승자가 나오지 않는다", () => {
+    expect(deckExhaustionWinner("경비병", "공주", "046")).toBeNull();
+  });
+
+  it("047 「정원파티」: 비공개 카드가 유일한 최댓값이면 승자 없음", () => {
+    const state: GameState = {
+      players: [
+        { id: "p1", displayName: "P1", isAI: false, hand: [{ instanceId: "p1c", name: "경비병" }], discardPile: [], eliminated: false, protected: false },
+        {
+          id: "p2",
+          displayName: "P2",
+          isAI: false,
+          hand: [
+            { instanceId: "p2c1", name: "장군" },
+            { instanceId: "p2c2", name: "대신" },
+          ],
+          discardPile: [],
+          eliminated: false,
+          protected: false,
+        },
+      ],
+      deck: [],
+      hiddenRemovedCard: { instanceId: "hidden", name: "공주" }, // rank 8, unique max
+      faceUpRemovedCards: [],
+      currentPlayerIndex: 1,
+      log: [],
+      pendingDecision: null,
+      roundResult: null,
+      resolvingCard: null,
+      resolvingPlayerId: null,
+      deckExhaustedThisTurn: true,
+      lastPlayedCard: null,
+      lastReveal: null,
+      firstEliminatedThisRound: null,
+      activeFestivalCardId: "047",
+    };
+    state.pendingDecision = { kind: "playCard", playerId: "p2", options: state.players[1].hand };
+    const result = chooseCardToPlay(state, "p2c2");
+    // p2's remaining card (장군, rank 6) would normally beat p1's 경비병 (1),
+    // but the hidden 공주 (8) is the unique max -> no winner.
+    expect(result.roundResult!.winnerId).toBeNull();
   });
 });

@@ -6,7 +6,12 @@ export type CardName =
   | "마술사"
   | "장군"
   | "대신"
-  | "공주";
+  | "공주"
+  /** 025 「국왕 랜들 3세」가 등장할 때 덱에 추가되는 함정 카드 (rank는 편의상
+   * 0 -- 실제 카드는 "X"로 순위 비교에 참여하지 않는 특수 취급이며, 이
+   * 카드는 손에 들고 있으면 즉시 탈락하는 패시브뿐이라 순위 비교 지점에
+   * 아예 도달하지 않는다). */
+  | "왕";
 
 export interface CardDef {
   name: CardName;
@@ -123,6 +128,16 @@ export interface GameState {
    * know about sessions (e.g. rules.test.ts) -- everything defaults to
    * base-card behavior when this is undefined. */
   activeCardUpgrades?: Partial<Record<CardName, CharacterUpgradeTier>>;
+  /** 032 「역사 4」로 배정된 「정체」 카드 id, playerId별 (see
+   * engine/session.ts's playerIdentities). Only 035's own [지속] +2 순위
+   * 보정이 이걸 참조한다 (see effects.ts's effectiveCardRank) -- 나머지
+   * 5장의 능력은 v1에서 flavor 텍스트만 표시되고 미연결. */
+  activeIdentities?: Record<string, string>;
+  /** 039 「역사 5」가 공개하면 매 라운드 시작시 뽑는 "축제 덱" 카드 id
+   * (040~047) -- 그 라운드의 덱 소진 승자 결정 규칙을 바꾼다 (see
+   * rules.ts's endRound). 종료 시 engine/session.ts가 세션의 festivalDeck
+   * 맨 아래로 되돌린다. */
+  activeFestivalCardId?: string | null;
   /** First player eliminated during this round, if any -- used by the
    * session layer's story-archive token placement (see engine/session.ts).
    * Set once per round by effects.ts's eliminatePlayer and never cleared
@@ -139,7 +154,10 @@ export interface GameState {
 
 export type SessionEvent =
   | { type: "guardGuessResolved"; actingPlayerId: string; hit: boolean }
-  | { type: "wizardForcedDiscard"; actingPlayerId: string; targetPlayerId: string; discardedCardName: CardName };
+  | { type: "wizardForcedDiscard"; actingPlayerId: string; targetPlayerId: string; discardedCardName: CardName }
+  /** 025 「국왕 랜들 3세」의 "도중" tag: 《왕》 효과로 탈락한 플레이어의 총
+   * [편지]가 8개 이상이면 025에 [실패] +1 (see engine/session.ts). */
+  | { type: "kingElimination"; playerId: string };
 
 /** Runtime state of one card sitting in the "이야기 보관소" (story archive).
  * Lives here (not engine/session.ts) so both session.ts and ai.ts can import
