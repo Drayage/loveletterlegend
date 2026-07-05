@@ -1029,4 +1029,78 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
       expect(session.storyArchive.some((c) => c.id === "203")).toBe(true);
     });
   });
+
+  describe("Reveal provenance + resolved-choice tracking (round-flow UX)", () => {
+    it("resolveArchiveChoice records lastResolvedChoice (all options + which was picked + by whom) and stamps revealedFrom on the resulting reveal", () => {
+      let session = startSession(PLAYERS);
+      session = forceImmediateWin(session, "p1", [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "경비병" },
+      ]);
+      expect(session.pendingChoice?.cardId).toBe("052");
+      session = resolveArchiveChoice(session, "p1", "052-familiar");
+
+      expect(session.lastResolvedChoice).toEqual({
+        cardId: "052",
+        cardName: "성문 앞에서",
+        options: [
+          { id: "052-familiar", label: "낯익은 남자 병사에게 건네줍니다" },
+          { id: "052-stranger", label: "낯선 여자 병사에게 건네줍니다" },
+        ],
+        chosenOptionId: "052-familiar",
+        chosenBy: "p1",
+      });
+      const card053 = session.storyArchive.find((c) => c.id === "053");
+      expect(card053?.revealedFrom).toEqual({ sourceName: "성문 앞에서", reason: "낯익은 남자 병사에게 건네줍니다" });
+    });
+
+    it("condition-driven reveals stamp revealedFrom with the source card's name and the condition's own label", () => {
+      let session = startSession(PLAYERS);
+      session = forceImmediateWin(session, "p1", [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "경비병" },
+      ]);
+      const card052 = session.storyArchive.find((c) => c.id === "052");
+      expect(card052?.revealedFrom).toEqual({ sourceName: "역사 1 이야기의 시작", reason: "《1 경비병》" });
+    });
+
+    it("017's clockThreshold reveals (round-start timing) also carry revealedFrom", () => {
+      let session = startSession(PLAYERS);
+      session = forceImmediateWin(session, "p1", [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "장군" },
+      ]);
+      session = resolveLetterChoice(session, "p1", { type: "place", slot: "잉그리드공주" });
+      session = beginNextRound(session, "공주");
+      const card024 = session.storyArchive.find((c) => c.id === "024");
+      expect(card024?.revealedFrom).toEqual({ sourceName: "시간", reason: "[시계] 1개" });
+    });
+
+    it("autoRevealIds cascades (113 -> 114) stamp revealedFrom with a generic '자동 공개' reason", () => {
+      let session = startSession(PLAYERS);
+      session = forceImmediateWin(
+        session,
+        "p1",
+        [
+          { instanceId: "c1", name: "대신" },
+          { instanceId: "c2", name: "기사" },
+        ],
+        [],
+        0,
+        [
+          { type: "compareResolved", actingPlayerId: "p1", targetPlayerId: "p2", cardName: "기사", outcome: "actorLoses" },
+          { type: "compareResolved", actingPlayerId: "p1", targetPlayerId: "p2", cardName: "기사", outcome: "actorLoses" },
+        ]
+      );
+      const card114 = session.storyArchive.find((c) => c.id === "114");
+      expect(card114?.revealedFrom).toEqual({ sourceName: "혹독한 훈련", reason: "등장과 동시에 자동 공개" });
+    });
+
+    it("session-start seeds (017/018/020/023) have no revealedFrom -- nothing revealed them", () => {
+      const session = startSession(PLAYERS);
+      for (const id of ["017", "018", "020", "023"]) {
+        expect(session.storyArchive.find((c) => c.id === id)?.revealedFrom).toBeUndefined();
+      }
+    });
+  });
 });

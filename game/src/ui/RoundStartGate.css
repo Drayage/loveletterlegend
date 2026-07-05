@@ -1,0 +1,25 @@
+.round-start-gate {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.round-start-gate__prompt {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.round-start-gate__start-btn {
+  align-self: flex-start;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+}

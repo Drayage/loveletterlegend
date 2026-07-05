@@ -36,6 +36,11 @@ export function ArchiveCardDetail({ card, clockTokens }: { card: ArchiveCardStat
             {card.name}
             {weeksLeft != null && <span className="archive-card-detail__expiry">남은 시간 ({weeksLeft}주)</span>}
           </p>
+          {card.revealedFrom && (
+            <p className="archive-card-detail__provenance">
+              「{card.revealedFrom.sourceName}」의 「{card.revealedFrom.reason}」(으)로 공개됨
+            </p>
+          )}
           <p className="archive-card-detail__flavor">{card.flavor}</p>
         </div>
       </div>

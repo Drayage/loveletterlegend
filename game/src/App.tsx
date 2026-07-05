@@ -24,7 +24,7 @@ import {
   nextRoundLeader,
   ROUTE_SLOT,
 } from "./engine/session";
-import type { CharacterSlotId, LetterChoice, Route, SessionState } from "./engine/session";
+import type { CharacterSlotId, LetterChoice, ResolvedChoiceInfo, Route, SessionState } from "./engine/session";
 import { LetterTokenChoiceModal } from "./ui/LetterTokenChoiceModal";
 import { Card } from "./ui/Card";
 import { PlayerArea } from "./ui/PlayerArea";
@@ -42,7 +42,9 @@ import { StoryArchiveModal } from "./ui/StoryArchiveModal";
 import { ArchiveTokenModal } from "./ui/ArchiveTokenModal";
 import { IdentityChoiceModal } from "./ui/IdentityChoiceModal";
 import { ArchiveChoiceModal } from "./ui/ArchiveChoiceModal";
+import { ChoiceResultModal } from "./ui/ChoiceResultModal";
 import { StoryEventModal } from "./ui/StoryEventModal";
+import { RoundStartGate } from "./ui/RoundStartGate";
 import { ARCHIVE_CARD_SEEDS } from "./data/scenario";
 import "./App.css";
 
@@ -83,12 +85,15 @@ export default function App() {
   const [showRouteSwitch, setShowRouteSwitch] = useState(false);
   const [endSummaryAcknowledged, setEndSummaryAcknowledged] = useState(false);
   const [pendingStoryEvent, setPendingStoryEvent] = useState<ArchiveCardState[] | null>(null);
+  const [pendingChoiceResult, setPendingChoiceResult] = useState<ResolvedChoiceInfo | null>(null);
+  const [pendingRoundStart, setPendingRoundStart] = useState<{ route: Route; chosenBy: string } | null>(null);
   const handledDecisionRef = useRef<PendingDecision | null>(null);
   const handledArchiveRef = useRef<SessionState["pendingArchivePlacement"]>(null);
   const handledLetterChoiceRef = useRef<SessionState["pendingLetterChoice"]>(null);
   const handledIdentityRef = useRef<SessionState["pendingIdentityChoice"]>(null);
   const handledChoiceRef = useRef<SessionState["pendingChoice"]>(null);
   const seenArchiveIdsRef = useRef<Set<string>>(new Set());
+  const shownChoiceResultRef = useRef<ResolvedChoiceInfo | null>(null);
 
   const round = session?.round ?? null;
 
@@ -128,7 +133,7 @@ export default function App() {
     // otherwise once those popups clear, the dependency-array re-run sees
     // handledLetterChoiceRef already pointing at this exact `pending`
     // object and skips rescheduling forever.
-    if (pendingHumanReveal || pendingStoryEvent) {
+    if (pendingHumanReveal || pendingChoiceResult || pendingStoryEvent) {
       handledLetterChoiceRef.current = null;
       return;
     }
@@ -146,7 +151,7 @@ export default function App() {
       });
     }, 700);
     return () => clearTimeout(timer);
-  }, [session, pendingHumanReveal, pendingStoryEvent]);
+  }, [session, pendingHumanReveal, pendingChoiceResult, pendingStoryEvent]);
 
   // AI's story-archive token placement, when it's the AI who was first
   // eliminated this round.
@@ -158,7 +163,7 @@ export default function App() {
     const placement = session.pendingArchivePlacement;
     // Same "don't get stuck" fix as the letter-choice effect above: clear
     // the marker rather than leaving it stale while blocked.
-    if (pendingHumanReveal || pendingStoryEvent) {
+    if (pendingHumanReveal || pendingChoiceResult || pendingStoryEvent) {
       handledArchiveRef.current = null;
       return;
     }
@@ -181,7 +186,7 @@ export default function App() {
       });
     }, 700);
     return () => clearTimeout(timer);
-  }, [session, pendingHumanReveal, pendingStoryEvent]);
+  }, [session, pendingHumanReveal, pendingChoiceResult, pendingStoryEvent]);
 
   // AI's 032 「정체」 card selection, when the AI was eliminated without one.
   useEffect(() => {
@@ -190,7 +195,7 @@ export default function App() {
       return;
     }
     const pending = session.pendingIdentityChoice;
-    if (pendingHumanReveal || pendingStoryEvent) {
+    if (pendingHumanReveal || pendingChoiceResult || pendingStoryEvent) {
       handledIdentityRef.current = null;
       return;
     }
@@ -207,7 +212,7 @@ export default function App() {
       });
     }, 700);
     return () => clearTimeout(timer);
-  }, [session, pendingHumanReveal, pendingStoryEvent]);
+  }, [session, pendingHumanReveal, pendingChoiceResult, pendingStoryEvent]);
 
   // AI's 실카드 "선택" 분기 결정, when the eligible player (round winner) is the AI.
   useEffect(() => {
@@ -216,7 +221,7 @@ export default function App() {
       return;
     }
     const pending = session.pendingChoice;
-    if (pendingHumanReveal || pendingStoryEvent) {
+    if (pendingHumanReveal || pendingChoiceResult || pendingStoryEvent) {
       handledChoiceRef.current = null;
       return;
     }
@@ -233,7 +238,7 @@ export default function App() {
       });
     }, 700);
     return () => clearTimeout(timer);
-  }, [session, pendingHumanReveal, pendingStoryEvent]);
+  }, [session, pendingHumanReveal, pendingChoiceResult, pendingStoryEvent]);
 
   // Show a readable popup (with full flavor text + conditions) whenever new
   // cards appear in the story archive.
@@ -247,6 +252,16 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.storyArchive.map((c) => c.id).join(",")]);
 
+  // Show which option was picked (and what the alternatives were) whenever
+  // a 실카드 "선택" 분기 resolves -- before the resulting reveals' own
+  // StoryEventModal pops up (see the render priority chain below).
+  useEffect(() => {
+    if (!session?.lastResolvedChoice) return;
+    if (shownChoiceResultRef.current === session.lastResolvedChoice) return;
+    shownChoiceResultRef.current = session.lastResolvedChoice;
+    setPendingChoiceResult(session.lastResolvedChoice);
+  }, [session?.lastResolvedChoice]);
+
   function startGame() {
     handledDecisionRef.current = null;
     handledArchiveRef.current = null;
@@ -254,10 +269,13 @@ export default function App() {
     handledIdentityRef.current = null;
     handledChoiceRef.current = null;
     seenArchiveIdsRef.current = new Set();
+    shownChoiceResultRef.current = null;
     setDismissedRevealId(null);
     setShowRouteSwitch(false);
     setEndSummaryAcknowledged(false);
     setPendingStoryEvent(null);
+    setPendingChoiceResult(null);
+    setPendingRoundStart(null);
     setSession(startSession(PLAYERS));
   }
 
@@ -274,6 +292,16 @@ export default function App() {
   function proceedToNextRound(route: Route) {
     setSession((prev) => (prev ? safely(() => beginNextRound(prev, route)) ?? prev : prev));
     setShowRouteSwitch(false);
+    setPendingRoundStart(null);
+  }
+
+  // Route is decided (by the human via RouteSwitchPrompt, or automatically
+  // for the AI leader) but `beginNextRound` doesn't run yet -- RoundStartGate
+  // shows first, so round-end and round-start never blur into one instant
+  // cascade. Only its own "N주차 시작" click actually calls proceedToNextRound.
+  function requestRoundStart(route: Route, chosenBy: string) {
+    setShowRouteSwitch(false);
+    setPendingRoundStart({ route, chosenBy });
   }
 
   function handlePlaceArchiveToken(cardId: string, token: "성공" | "실패") {
@@ -309,6 +337,7 @@ export default function App() {
 
   const human = round.players.find((p) => p.id === HUMAN_ID)!;
   const ai = round.players.find((p) => p.id === AI_ID)!;
+  const displayNameFor = (playerId: string) => (playerId === HUMAN_ID ? human.displayName : ai.displayName);
   const decision = round.pendingDecision;
   const isHumanDecision = decision?.playerId === HUMAN_ID;
   const remaining = computeRemainingCounts(round);
@@ -417,12 +446,24 @@ export default function App() {
 
       {/* Priority when several session-level popups could be true at once:
           pendingHumanReveal (in-round private info from the card that just
-          ended the round) must be read first, then pendingStoryEvent (what
-          got revealed as a result), then the winner's letter-token choice,
-          then archive placement, then the round-transition screens. Each
-          gate below explicitly excludes the ones before it so at most one
-          full-screen modal is ever mounted at a time. */}
-      {!pendingHumanReveal && pendingStoryEvent && (
+          ended the round) must be read first, then pendingChoiceResult
+          (which 선택 옵션 was just picked, and by whom), then
+          pendingStoryEvent (what got revealed as a result of that pick or
+          any other condition), then the winner's letter-token choice, then
+          archive placement, then the round-transition screens -- ending
+          with an explicit RoundStartGate breather before the next round's
+          hands are actually dealt. Each gate below explicitly excludes the
+          ones before it so at most one full-screen modal is ever mounted
+          at a time. */}
+      {!pendingHumanReveal && pendingChoiceResult && (
+        <ChoiceResultModal
+          info={pendingChoiceResult}
+          chooserName={displayNameFor(pendingChoiceResult.chosenBy)}
+          onDismiss={() => setPendingChoiceResult(null)}
+        />
+      )}
+
+      {!pendingHumanReveal && !pendingChoiceResult && pendingStoryEvent && (
         <StoryEventModal
           cards={pendingStoryEvent}
           clockTokens={session.clockTokens}
@@ -430,7 +471,7 @@ export default function App() {
         />
       )}
 
-      {!pendingHumanReveal && !pendingStoryEvent && humanNeedsLetterChoice && (
+      {!pendingHumanReveal && !pendingChoiceResult && !pendingStoryEvent && humanNeedsLetterChoice && (
         <LetterTokenChoiceModal
           amount={session.pendingLetterChoice!.amount}
           atCap={session.pendingLetterChoice!.atCap}
@@ -439,11 +480,16 @@ export default function App() {
         />
       )}
 
-      {!pendingHumanReveal && !pendingStoryEvent && !needsLetterChoice && humanNeedsIdentityChoice && (
-        <IdentityChoiceModal options={session.pendingIdentityChoice!.options} onChoose={handleChooseIdentity} />
-      )}
+      {!pendingHumanReveal &&
+        !pendingChoiceResult &&
+        !pendingStoryEvent &&
+        !needsLetterChoice &&
+        humanNeedsIdentityChoice && (
+          <IdentityChoiceModal options={session.pendingIdentityChoice!.options} onChoose={handleChooseIdentity} />
+        )}
 
       {!pendingHumanReveal &&
+        !pendingChoiceResult &&
         !pendingStoryEvent &&
         !needsLetterChoice &&
         !needsIdentityChoice &&
@@ -452,6 +498,7 @@ export default function App() {
         )}
 
       {!pendingHumanReveal &&
+        !pendingChoiceResult &&
         !pendingStoryEvent &&
         !needsLetterChoice &&
         !needsIdentityChoice &&
@@ -465,6 +512,7 @@ export default function App() {
         )}
 
       {!pendingHumanReveal &&
+        !pendingChoiceResult &&
         !pendingStoryEvent &&
         !needsLetterChoice &&
         !needsIdentityChoice &&
@@ -473,7 +521,8 @@ export default function App() {
         !needsArchivePlacement &&
         session.lastRoundSummary &&
         !endSummaryAcknowledged &&
-        !showRouteSwitch && (
+        !showRouteSwitch &&
+        !pendingRoundStart && (
           <RoundEndSummary
             summary={session.lastRoundSummary}
             players={session.playerConfigs}
@@ -484,17 +533,20 @@ export default function App() {
                 return;
               }
               // 다음 라운드의 선플레이어(직전 라운드 승자)만 라우트 전환을
-              // 결정한다 -- AI가 이겼다면 사람에게 묻지 않고 바로 진행.
+              // 결정한다 -- AI가 이겼다면 사람에게 묻지 않고 바로 진행,
+              // 다만 실제 라운드 시작은 RoundStartGate에서 한 번 더
+              // 확인받는다 (라운드 종료/시작 사이에 쉬는 타임을 둠).
               if (nextRoundLeader(session) === HUMAN_ID) {
                 setShowRouteSwitch(true);
               } else {
-                proceedToNextRound(chooseRouteAI(session.currentRoute));
+                requestRoundStart(chooseRouteAI(session.currentRoute), AI_ID);
               }
             }}
           />
         )}
 
       {!pendingHumanReveal &&
+        !pendingChoiceResult &&
         !pendingStoryEvent &&
         !needsLetterChoice &&
         !needsIdentityChoice &&
@@ -503,10 +555,27 @@ export default function App() {
         !needsArchivePlacement &&
         !session.ended &&
         showRouteSwitch && (
-          <RouteSwitchPrompt currentRoute={session.currentRoute} onChoose={proceedToNextRound} />
+          <RouteSwitchPrompt
+            currentRoute={session.currentRoute}
+            onChoose={(route) => requestRoundStart(route, HUMAN_ID)}
+          />
         )}
 
-      {!pendingHumanReveal && !pendingStoryEvent && roundOver && session.ended && endSummaryAcknowledged && (
+      {!pendingHumanReveal &&
+        !pendingChoiceResult &&
+        !pendingStoryEvent &&
+        roundOver &&
+        !session.ended &&
+        pendingRoundStart && (
+          <RoundStartGate
+            upcomingRoundNumber={session.roundNumber + 1}
+            route={pendingRoundStart.route}
+            chooserName={displayNameFor(pendingRoundStart.chosenBy)}
+            onStart={() => proceedToNextRound(pendingRoundStart.route)}
+          />
+        )}
+
+      {!pendingHumanReveal && !pendingChoiceResult && !pendingStoryEvent && roundOver && session.ended && endSummaryAcknowledged && (
         <SessionEndScreen session={session} players={session.playerConfigs} onNewGame={startGame} />
       )}
 

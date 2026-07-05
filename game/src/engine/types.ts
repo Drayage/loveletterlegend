@@ -290,6 +290,11 @@ export interface ArchiveCardState {
   conditions: ArchiveCondition[];
   successTokens: number;
   failTokens: number;
+  /** Runtime provenance: which prior card/condition/choice caused this card
+   * to be revealed, for display purposes only (see engine/session.ts's
+   * seedArchiveCard). Undefined for the small set of session-start seeds
+   * (017/018/020/023), which aren't "revealed" by anything. */
+  revealedFrom?: { sourceName: string; reason: string };
 }
 
 /** Character "slots" whose [편지] we track for v1 (see engine/session.ts,

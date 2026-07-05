@@ -108,9 +108,23 @@ export interface SessionState {
   /** 실카드의 "선택" 분기 카드가 공개되면 그 라운드 승자가 옵션 중 하나를
    * 골라야 하는 차례 -- see resolveArchiveChoice. */
   pendingChoice: { cardId: string; eligiblePlayerId: string; options: Array<{ id: string; label: string }> } | null;
+  /** 가장 최근에 해소된 "선택" 결과 -- 어떤 선택지들이 있었고 그중 무엇을
+   * 누가 골랐는지 UI에 보여주기 위한 것 (see resolveArchiveChoice). 다음
+   * 선택이 해소될 때까지 유지되며, 세션이 끝나도 지워지지 않는다 --
+   * App.tsx는 참조 동일성으로 "이미 보여준 결과"를 구분한다. */
+  lastResolvedChoice: ResolvedChoiceInfo | null;
 }
 
-function seedArchiveCard(id: string): ArchiveCardState {
+/** See SessionState.lastResolvedChoice. */
+export interface ResolvedChoiceInfo {
+  cardId: string;
+  cardName: string;
+  options: Array<{ id: string; label: string }>;
+  chosenOptionId: string;
+  chosenBy: string;
+}
+
+function seedArchiveCard(id: string, revealedFrom?: ArchiveCardState["revealedFrom"]): ArchiveCardState {
   const seed = ARCHIVE_CARD_SEEDS[id];
   if (!seed) throw new Error(`알 수 없는 이야기 보관소 카드 id: ${id}`);
   return {
@@ -125,6 +139,7 @@ function seedArchiveCard(id: string): ArchiveCardState {
     conditions: seed.conditions.map((c) => ({ ...c, fired: false })),
     successTokens: 0,
     failTokens: 0,
+    revealedFrom,
   };
 }
 
@@ -162,6 +177,7 @@ export function startSession(playerConfigs: PlayerConfig[], initialRoute: Route 
     festivalDeck: [],
     removedBaseCardNames: [],
     pendingChoice: null,
+    lastResolvedChoice: null,
   });
 }
 
@@ -251,7 +267,7 @@ function resolveArchiveConditions(
   let changed = true;
   while (changed) {
     changed = false;
-    const toReveal = new Set<string>();
+    const toReveal = new Map<string, { sourceName: string; reason: string }>();
     const toRemove = new Set<string>();
     for (const card of session.storyArchive) {
       for (const cond of card.conditions) {
@@ -276,16 +292,18 @@ function resolveArchiveConditions(
         if (met) {
           cond.fired = true;
           changed = true;
-          cond.revealIds.forEach((id) => toReveal.add(id));
+          cond.revealIds.forEach((id) => {
+            if (!toReveal.has(id)) toReveal.set(id, { sourceName: card.name, reason: cond.label });
+          });
           if (cond.kind === "sharedToken") (cond.removeIds ?? []).forEach((id) => toRemove.add(id));
         }
       }
     }
     if (changed) {
       session.storyArchive = session.storyArchive.filter((c) => !toRemove.has(c.id));
-      for (const id of toReveal) {
+      for (const [id, provenance] of toReveal) {
         if (!session.storyArchive.some((c) => c.id === id)) {
-          session.storyArchive.push(seedArchiveCard(id));
+          session.storyArchive.push(seedArchiveCard(id, provenance));
           everRevealed.add(id);
         }
       }
@@ -348,7 +366,9 @@ function applyRevealSideEffects(
       session.storyArchive = session.storyArchive.filter((c) => c.id !== id);
       for (const revealId of seed.autoRevealIds) {
         if (!session.storyArchive.some((c) => c.id === revealId)) {
-          session.storyArchive.push(seedArchiveCard(revealId));
+          session.storyArchive.push(
+            seedArchiveCard(revealId, { sourceName: seed.name, reason: "등장과 동시에 자동 공개" })
+          );
           pending.push(revealId);
         }
       }
@@ -359,8 +379,9 @@ function applyRevealSideEffects(
     // 즉시 보관소에 드러나며, identityPool은 그중 "아직 안 고른" 것만
     // 추적하는 별도 북키핑이다 (둘 다 필요: 보관소는 표시용, 풀은 로직용).
     session.identityPool = [...IDENTITY_CARD_IDS];
+    const provenance = { sourceName: ARCHIVE_CARD_SEEDS["032"].name, reason: "정체 후보 전원 공개" };
     for (const id of IDENTITY_CARD_IDS) {
-      if (!session.storyArchive.some((c) => c.id === id)) session.storyArchive.push(seedArchiveCard(id));
+      if (!session.storyArchive.some((c) => c.id === id)) session.storyArchive.push(seedArchiveCard(id, provenance));
     }
     for (const cfg of session.playerConfigs) {
       if (!(cfg.id in session.playerIdentities)) session.playerIdentities[cfg.id] = null;
@@ -608,7 +629,14 @@ function finalizeRoundEndDecisions(session: SessionState, winnerId: string | nul
       0,
       ...next.playerConfigs.filter((c) => c.id !== winnerId).map((c) => next.letterTokens[slot][c.id] ?? 0)
     );
-    if (mine > othersMax) next.storyArchive.push(seedArchiveCard("051"));
+    if (mine > othersMax) {
+      next.storyArchive.push(
+        seedArchiveCard("051", {
+          sourceName: ARCHIVE_CARD_SEEDS["050"].name,
+          reason: "《공주》를 들고 승리, 해당 캐릭터의 [편지]가 최다",
+        })
+      );
+    }
   }
 
   // 032 「역사 4」의 "중요" tag: 이번 라운드에 탈락했지만 아직 「정체」가
@@ -785,7 +813,9 @@ export function chooseIdentity(session: SessionState, playerId: string, identity
   ) {
     next.storyArchive = next.storyArchive.filter((c) => c.id !== "032");
     if (!next.storyArchive.some((c) => c.id === "039")) {
-      next.storyArchive.push(seedArchiveCard("039"));
+      next.storyArchive.push(
+        seedArchiveCard("039", { sourceName: ARCHIVE_CARD_SEEDS["032"].name, reason: "전원 정체 보유 완료" })
+      );
       next.festivalDeck = shuffledCopy(FESTIVAL_CARD_IDS);
     }
   }
@@ -809,11 +839,19 @@ export function resolveArchiveChoice(session: SessionState, playerId: string, op
 
   const next: SessionState = structuredClone(session);
   next.pendingChoice = null;
+  next.lastResolvedChoice = {
+    cardId,
+    cardName: seed.name,
+    options: seed.choices!.map((c) => ({ id: c.id, label: c.label })),
+    chosenOptionId: optionId,
+    chosenBy: playerId,
+  };
   next.storyArchive = next.storyArchive.filter((c) => c.id !== cardId);
   const newlyRevealed = new Set<string>();
+  const provenance = { sourceName: seed.name, reason: option.label };
   for (const id of option.revealIds) {
     if (!next.storyArchive.some((c) => c.id === id)) {
-      next.storyArchive.push(seedArchiveCard(id));
+      next.storyArchive.push(seedArchiveCard(id, provenance));
       newlyRevealed.add(id);
     }
   }
