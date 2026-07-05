@@ -949,5 +949,84 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
       expect(next.players.find((p) => p.id === "p1")?.eliminated).toBe(false);
       expect(next.players.find((p) => p.id === "p1")?.hand.length).toBe(2);
     });
+
+    it("142 「몹시 바쁜 마술사」's choice resolves to 143 (conditionTag, deckEffect replaces 마술사 with 마술사의도제)", () => {
+      let session = startSession(PLAYERS);
+      session = forceImmediateWin(session, "p1", [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "마술사" },
+      ]);
+      expect(session.pendingChoice?.cardId).toBe("142");
+      session = resolveArchiveChoice(session, session.pendingChoice!.eligiblePlayerId, "142-apprentice");
+      expect(session.storyArchive.some((c) => c.id === "142")).toBe(false);
+      const card143 = session.storyArchive.find((c) => c.id === "143");
+      expect(card143?.conditionTag).toBe(true);
+      expect(session.removedBaseCardNames).toContain("마술사");
+      expect(session.extraDeckCardNames).toContain("마술사의도제");
+    });
+
+    it("apprenticeForcedDiscard event credits 143's [성공], immediately clearing its threshold and revealing 146/147", () => {
+      // 143's threshold is 1, so a single event reaching it in the same
+      // round-end pass consumes the card right away (removeIds fires along
+      // with the reveal) -- matches the established same-round-consumption
+      // behavior already accepted elsewhere (e.g. 057). Assert on the
+      // reveal, not on lingering token state that's gone by the time this
+      // helper returns.
+      let session = startSession(PLAYERS);
+      const card143 = { ...ARCHIVE_CARD_SEEDS["143"], conditions: ARCHIVE_CARD_SEEDS["143"].conditions.map((c) => ({ ...c, fired: false })), successTokens: 0, failTokens: 0 };
+      const p2 = session.round.players.find((p) => p.id === "p2")!;
+      p2.hand = [{ instanceId: "p2-hand", name: "대신" }];
+      session = forceImmediateWin(
+        session,
+        "p1",
+        [
+          { instanceId: "c1", name: "대신" },
+          { instanceId: "c2", name: "신병" },
+        ],
+        [card143],
+        0,
+        [
+          {
+            type: "apprenticeForcedDiscard",
+            actingPlayerId: "p1",
+            targetPlayerId: "p2",
+            discardedCardName: "공주",
+          },
+        ]
+      );
+      expect(session.storyArchive.some((c) => c.id === "143")).toBe(false);
+      expect(session.storyArchive.some((c) => c.id === "146")).toBe(true);
+      expect(session.storyArchive.some((c) => c.id === "147")).toBe(true);
+    });
+
+    it("188 「공주님들」's 3rd choice resolves to 195 -> 200 「거만한 귀족 영애」 (deckEffect add, winnerHeldCard-style reveal to 202/203)", () => {
+      let session = startSession(PLAYERS);
+      session = forceImmediateWin(session, "p1", [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "공주" },
+      ]);
+      expect(session.pendingChoice?.cardId).toBe("188");
+      session = resolveArchiveChoice(session, session.pendingChoice!.eligiblePlayerId, "188-other");
+      expect(session.pendingChoice?.cardId).toBe("195");
+      session = resolveArchiveChoice(session, session.pendingChoice!.eligiblePlayerId, "195-noble");
+      expect(session.storyArchive.some((c) => c.id === "200")).toBe(true);
+      expect(session.extraDeckCardNames).toContain("귀족영애");
+
+      // Now force a win holding 귀족영애 to complete 200's own reveal.
+      session = resolveLetterChoice(session, "p1", { type: "place", slot: "잉그리드공주" });
+      session = beginNextRound(session, "공주");
+      session = forceImmediateWin(
+        session,
+        "p1",
+        [
+          { instanceId: "c3", name: "대신" },
+          { instanceId: "c4", name: "귀족영애" },
+        ],
+        session.storyArchive.filter((c) => c.id === "200")
+      );
+      expect(session.storyArchive.some((c) => c.id === "200")).toBe(false);
+      expect(session.storyArchive.some((c) => c.id === "202")).toBe(true);
+      expect(session.storyArchive.some((c) => c.id === "203")).toBe(true);
+    });
   });
 });

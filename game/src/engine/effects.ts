@@ -54,12 +54,23 @@ export function drawCardFor(draft: GameState, playerId: string): CardInstance | 
 }
 
 // Discards a card for a player (used for both normal end-of-turn discard and
-// forced discards from 마술사). Handles the 공주 auto-elimination rule.
+// forced discards from 마술사). Handles the 공주/귀족영애 auto-elimination
+// rules. 귀족영애's real text also has the discarded copy reshuffled back
+// into the deck (rather than sitting in the discard pile) if any cards
+// remain -- unlike 공주, which stays in the discard pile as normal.
 export function discardCard(draft: GameState, playerId: string, card: CardInstance): void {
   const player = getPlayer(draft, playerId);
   player.discardPile.push(card);
   if (card.name === "공주") {
     eliminatePlayer(draft, playerId, "「공주」를 버려서");
+  } else if (card.name === "귀족영애") {
+    eliminatePlayer(draft, playerId, "「귀족영애」를 버려서");
+    if (draft.deck.length > 0) {
+      player.discardPile.pop();
+      const insertAt = Math.floor(Math.random() * (draft.deck.length + 1));
+      draft.deck.splice(insertAt, 0, card);
+      log(draft, "「귀족영애」가 덱으로 되돌아가 다시 섞입니다.");
+    }
   }
 }
 
@@ -86,6 +97,7 @@ export function targetsFor(
     case "복면기사":
     case "상인":
     case "군사":
+    case "마술사의도제":
       return eligibleTargets(draft, actingPlayerId, false);
     case "마술사":
       // 「마술사의 도제」 편지 5개 이상 개정판: 대상 없이 스스로 카드를 교체.
@@ -108,7 +120,8 @@ export function needsTarget(cardName: CardName, upgrade?: CharacterUpgradeTier):
     cardName === "광대의제자" ||
     cardName === "복면기사" ||
     cardName === "상인" ||
-    cardName === "군사"
+    cardName === "군사" ||
+    cardName === "마술사의도제"
   );
 }
 
@@ -173,6 +186,24 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
           viewerPlayerId: actingPlayerId,
           cardName: card.name,
           targetDisplayName: `${target.displayName}의 손패`,
+          targetCard: seen.name,
+        };
+      }
+      return;
+    }
+    // 점술사: 실카드는 "덱 위 카드 확인 후 교환" 또는 "공동 승리" 중 선택이지만,
+    // v1은 앞쪽 선택지만 확인(peek)으로 단순화한다 (see cards.ts's comment).
+    // 자기 자신에게만 영향을 주므로 대상 지목이 필요 없다.
+    case "점술사": {
+      const seen = draft.deck[0];
+      log(draft, `${actor.displayName}: 「점술사」 효과로 덱 맨 위 카드를 확인합니다.`);
+      setPlayOutcome(draft, card.instanceId, "덱 맨 위 카드를 확인");
+      if (seen) {
+        draft.lastReveal = {
+          id: nextLogId(),
+          viewerPlayerId: actingPlayerId,
+          cardName: "점술사",
+          targetDisplayName: "덱 맨 위 카드",
           targetCard: seen.name,
         };
       }
@@ -408,6 +439,55 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       setPlayOutcome(draft, card.instanceId, `「공주」를 버려 ${actor.displayName} 탈락`);
       return;
     }
+    case "마술사의도제": {
+      // 실카드: 덱 맨 위를 먼저 확인한 뒤, "다른" 플레이어(자신 제외)를
+      // 지목해 그 손패를 버리게 하고 새로 뽑게 한다 -- 기존 「마술사」와
+      // 달리 자기 자신은 지목할 수 없다 (targetsFor에서 allowSelf: false).
+      const peek = draft.deck[0];
+      if (peek) {
+        log(draft, `${actor.displayName}: 「마술사의 도제」 효과로 덱 맨 위 카드를 확인합니다.`);
+      }
+      if (!targetId) {
+        log(draft, `${actor.displayName}: 지목할 상대가 없어 「마술사의 도제」 효과가 발동하지 않았습니다.`);
+        setPlayOutcome(draft, card.instanceId, "대상 없음 → 효과 불발");
+        return;
+      }
+      const target = getPlayer(draft, targetId);
+      const discarded = target.hand.pop();
+      if (!discarded) return;
+      log(draft, `${actor.displayName}: 「마술사의 도제」 효과로 ${target.displayName}이(가) 손패를 버립니다.`);
+      if (cardRank(discarded.name) >= 5) {
+        draft.sessionEvents?.push({
+          type: "apprenticeForcedDiscard",
+          actingPlayerId,
+          targetPlayerId: targetId,
+          discardedCardName: discarded.name,
+        });
+      }
+      discardCard(draft, targetId, discarded);
+      if (!getPlayer(draft, targetId).eliminated) {
+        drawCardFor(draft, targetId);
+        log(draft, `${target.displayName}이(가) 덱에서 새 카드를 뽑습니다.`);
+      }
+      setPlayOutcome(draft, card.instanceId, `덱 확인 후 ${target.displayName}의 손패를 버리게 함`);
+      if (peek) {
+        draft.lastReveal = {
+          id: nextLogId(),
+          viewerPlayerId: actingPlayerId,
+          cardName: "마술사의도제",
+          targetDisplayName: "덱 맨 위 카드",
+          targetCard: peek.name,
+        };
+      }
+      return;
+    }
+    case "귀족영애": {
+      // Discard-triggered elimination (+ reshuffle back into the deck) is
+      // handled by discardCard() right after applyEffect. Playing it
+      // directly (not forced to discard it) has no extra effect.
+      setPlayOutcome(draft, card.instanceId, "효과 없음");
+      return;
+    }
   }
 }
 
@@ -445,6 +525,8 @@ export function cardRank(name: CardName): number {
     정무관남: 7,
     정무관여: 7,
     여후작: 7,
+    마술사의도제: 5,
+    귀족영애: 8,
   };
   return ranks[name];
 }

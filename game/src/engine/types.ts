@@ -14,9 +14,7 @@ export type CardName =
   | "왕"
   // 023의 나머지 7개 분기(광대/기사/승려/장군/대신) 아래에서 실카드의
   // [등장] 태그로 기존 base 카드 중 일부를 대체/추가하는 새 게임 카드들
-  // (see data/scenario.ts's ArchiveCardSeed.deckEffect). 마술사/공주 분기
-  // (142/188)는 각각 기존 마술사의도제 시스템과의 충돌, 라운드별 토글
-  // 복잡도 때문에 flavor-only로 남겨 새 CardName이 없다.
+  // (see data/scenario.ts's ArchiveCardSeed.deckEffect).
   | "신병"
   | "광대의제자"
   | "점술사"
@@ -28,7 +26,19 @@ export type CardName =
   | "군사"
   | "정무관남"
   | "정무관여"
-  | "여후작";
+  | "여후작"
+  /** 142 「몹시 바쁜 마술사」 분기의 [143]이 마술사 1장을 이 카드로
+   * 대체한다. 실카드 이름이 마술사의 own 편지-등급 시스템을 추적하는
+   * `CharacterSlotId`("마술사의도제", engine/session.ts)와 우연히 같은
+   * 문자열이지만, 두 타입은 서로 다른 도메인(CardName vs
+   * CharacterSlotId)이라 런타임 충돌은 없다. */
+  | "마술사의도제"
+  /** 188 「공주님들」의 3번째 분기(195)가 마지막으로 도달하는 200 「거만한
+   * 귀족 영애」의 [등장]으로 덱에 추가되는 새 rank8 카드. 188의 다른
+   * 분기(루나 공주/마가렛 공주/백작부인)는 "매 라운드 시작시 선택적으로
+   * 토글" 하는 새 메커니즘이 필요해 flavor-only로 남지만, 이 분기는 실카드
+   * 등장 태그가 평범한 1회성 추가라 기존 deckEffect로 충분하다. */
+  | "귀족영애";
 
 export interface CardDef {
   name: CardName;
@@ -192,7 +202,13 @@ export type SessionEvent =
       targetPlayerId: string;
       cardName: CardName;
       outcome: "actorLoses" | "targetLoses" | "tie";
-    };
+    }
+  /** 144's "도중" tag: 「마술사의 도제」로 5 이상 숫자 카드를 버리게 함 ->
+   * 143(merged 144)에 [성공] +1. Kept separate from `wizardForcedDiscard`
+   * (which feeds the unrelated "마술사의도제" CharacterSlotId letter-token
+   * upgrade tier on the base 마술사 card) even though the two share a
+   * display name -- see types.ts's CardName comment on 마술사의도제. */
+  | { type: "apprenticeForcedDiscard"; actingPlayerId: string; targetPlayerId: string; discardedCardName: CardName };
 
 /** Runtime state of one card sitting in the "이야기 보관소" (story archive).
  * Lives here (not engine/session.ts) so both session.ts and ai.ts can import

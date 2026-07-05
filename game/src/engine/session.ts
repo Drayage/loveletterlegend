@@ -473,6 +473,14 @@ function applySessionRoundEnd(session: SessionState): SessionState {
     if (winner?.hand.some((c) => c.name === "여후작") || winner?.discardPile.some((c) => c.name === "여후작")) {
       addArchiveToken(next, "182", "성공", 1);
     }
+
+    // 153 "수수께끼의 아이" -- 마술사를 들고/버리고 승리 (일회성 확인,
+    // 164/168과 동일하게 sharedToken threshold=1로 모델링).
+    if (winner?.hand.some((c) => c.name === "마술사") || winner?.discardPile.some((c) => c.name === "마술사")) {
+      addArchiveToken(next, "153", "성공", 1);
+    }
+    // 200 "거만한 귀족 영애" -- 귀족영애를 손에 들고 승리.
+    if (winner?.hand.some((c) => c.name === "귀족영애")) addArchiveToken(next, "200", "성공", 1);
   }
 
   for (const event of next.round.sessionEvents ?? []) {
@@ -499,6 +507,10 @@ function applySessionRoundEnd(session: SessionState): SessionState {
           addArchiveToken(next, "103", "실패", 1);
         }
       }
+    } else if (event.type === "apprenticeForcedDiscard") {
+      // 144 "도중": 「마술사의 도제」로 5 이상 숫자 카드를 버리게 함 -> 143에
+      // [성공] +1 (event 자체가 이미 rank>=5 조건을 만족할 때만 push됨).
+      addArchiveToken(next, "143", "성공", 1);
     }
   }
 
@@ -521,6 +533,7 @@ function applySessionRoundEnd(session: SessionState): SessionState {
     if (p.hand.some((c) => c.name === "정무관여") || p.discardPile.some((c) => c.name === "정무관여")) {
       addArchiveToken(next, "178", "실패", 1);
     }
+    if (p.hand.some((c) => c.name === "마술사의도제")) addArchiveToken(next, "143", "실패", 1);
     if (p.hand.some((c) => c.name === "여후작") || p.discardPile.some((c) => c.name === "여후작")) {
       addArchiveToken(next, "182", "실패", 1);
     }

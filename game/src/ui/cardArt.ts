@@ -19,6 +19,8 @@ import tactician from "../assets/cards/extra/6. 군사.jpg";
 import regentMale from "../assets/cards/extra/7. 정무관(남자).jpg";
 import regentFemale from "../assets/cards/extra/7. 정무관(여자).jpg";
 import marchioness from "../assets/cards/extra/7. 여후작.jpg";
+import wizardApprenticeCard from "../assets/cards/extra/5. 마술사의 도제.jpg";
+import nobleLady from "../assets/cards/extra/8. 귀족영애.jpg";
 import type { CardName } from "../engine/types";
 
 // Custom illustrations (replacing the earlier PDF-cropped art) provided by
@@ -45,4 +47,6 @@ export const CARD_ART: Record<CardName, string> = {
   정무관남: regentMale,
   정무관여: regentFemale,
   여후작: marchioness,
+  마술사의도제: wizardApprenticeCard,
+  귀족영애: nobleLady,
 };

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { setupRound, chooseCardToPlay, chooseTarget, chooseGuess } from "./rules";
 import { chooseCardToPlayAI, chooseGuessAI, chooseTargetAI } from "./ai";
-import { applyEffect, checkKingElimination, checkMinisterElimination } from "./effects";
+import { applyEffect, checkKingElimination, checkMinisterElimination, discardCard } from "./effects";
 import type { CardName, GameState, PlayerConfig } from "./types";
 
 const PLAYERS: PlayerConfig[] = [
@@ -311,5 +311,94 @@ describe("039 「역사 5」축제 덱 -- 덱 소진 시 승자 결정 규칙 �
     // p2's remaining card (장군, rank 6) would normally beat p1's 경비병 (1),
     // but the hidden 공주 (8) is the unique max -> no winner.
     expect(result.roundResult!.winnerId).toBeNull();
+  });
+});
+
+function minimalState(overrides: Partial<GameState> = {}): GameState {
+  return {
+    players: [
+      { id: "p1", displayName: "P1", isAI: false, hand: [], discardPile: [], eliminated: false, protected: false },
+      { id: "p2", displayName: "P2", isAI: true, hand: [], discardPile: [], eliminated: false, protected: false },
+    ],
+    deck: [],
+    hiddenRemovedCard: null,
+    faceUpRemovedCards: [],
+    currentPlayerIndex: 0,
+    log: [],
+    pendingDecision: null,
+    roundResult: null,
+    resolvingCard: null,
+    resolvingPlayerId: null,
+    deckExhaustedThisTurn: false,
+    lastPlayedCard: null,
+    lastReveal: null,
+    firstEliminatedThisRound: null,
+    ...overrides,
+  };
+}
+
+describe("ROOT B: 142/188 new cards (마술사의도제, 점술사, 귀족영애)", () => {
+  it("점술사: peeks the deck's top card (self-directed, no target) -- regression for the missing applyEffect case found via 089's chain", () => {
+    const state = minimalState({ deck: [{ instanceId: "d1", name: "공주" }] });
+    applyEffect(state, { actingPlayerId: "p1", card: { instanceId: "c1", name: "점술사" } });
+    expect(state.lastReveal?.cardName).toBe("점술사");
+    expect(state.lastReveal?.targetCard).toBe("공주");
+    // Peeking doesn't consume the card -- it stays on top of the deck.
+    expect(state.deck).toHaveLength(1);
+  });
+
+  it("마술사의도제: peeks the deck top, then forces a DIFFERENT player (not self) to discard and redraw", () => {
+    const state = minimalState({
+      deck: [{ instanceId: "d1", name: "왕" }, { instanceId: "d2", name: "경비병" }],
+      players: [
+        { id: "p1", displayName: "P1", isAI: false, hand: [], discardPile: [], eliminated: false, protected: false },
+        {
+          id: "p2",
+          displayName: "P2",
+          isAI: true,
+          hand: [{ instanceId: "p2c", name: "마술사" }],
+          discardPile: [],
+          eliminated: false,
+          protected: false,
+        },
+      ],
+    });
+    applyEffect(state, {
+      actingPlayerId: "p1",
+      card: { instanceId: "c1", name: "마술사의도제" },
+      targetId: "p2",
+    });
+    expect(state.lastReveal?.cardName).toBe("마술사의도제");
+    expect(state.lastReveal?.targetCard).toBe("왕");
+    // p2 discarded 마술사 and drew from the deck top -- nothing else touches
+    // the deck between the peek and the forced draw, so it draws the exact
+    // card that was just peeked (왕), leaving 경비병 still on top.
+    expect(state.players[1].discardPile.map((c) => c.name)).toEqual(["마술사"]);
+    expect(state.players[1].hand.map((c) => c.name)).toEqual(["왕"]);
+    expect(state.deck.map((c) => c.name)).toEqual(["경비병"]);
+  });
+
+  it("귀족영애: forced discard eliminates the holder AND reshuffles the card back into the deck (unlike 공주, which stays in the discard pile)", () => {
+    const state = minimalState({ deck: [{ instanceId: "d1", name: "경비병" }] });
+    discardCard(state, "p1", { instanceId: "c1", name: "귀족영애" });
+    expect(state.players[0].eliminated).toBe(true);
+    expect(state.players[0].discardPile).toHaveLength(0);
+    expect(state.deck.map((c) => c.name).sort()).toEqual(["경비병", "귀족영애"]);
+  });
+
+  it("귀족영애: if the deck is already empty, it just stays in the discard pile (nothing left to reshuffle into)", () => {
+    const state = minimalState({ deck: [] });
+    discardCard(state, "p1", { instanceId: "c1", name: "귀족영애" });
+    expect(state.players[0].eliminated).toBe(true);
+    expect(state.players[0].discardPile.map((c) => c.name)).toEqual(["귀족영애"]);
+    expect(state.deck).toHaveLength(0);
+  });
+
+  it("공주's own discard still just eliminates without any reshuffle (규칙 차이 확인)", () => {
+    const state = minimalState({ deck: [{ instanceId: "d1", name: "경비병" }] });
+    discardCard(state, "p1", { instanceId: "c1", name: "공주" });
+    expect(state.players[0].eliminated).toBe(true);
+    expect(state.players[0].discardPile.map((c) => c.name)).toEqual(["공주"]);
+    expect(state.deck).toHaveLength(1);
   });
 });

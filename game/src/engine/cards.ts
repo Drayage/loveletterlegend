@@ -190,6 +190,24 @@ export const CARD_DEFS: Record<CardName, CardDef> = {
     shortAbility: "손패 합계 12 이상이면 이 카드를 반드시 냄 (패시브)",
     ability: "당신이 손에 든 카드 숫자의 합이 12 이상이라면 반드시 이 카드를 내려놓아야 합니다.",
   },
+  마술사의도제: {
+    name: "마술사의도제",
+    rank: 5,
+    count: 1,
+    englishAlias: "Wizard's Apprentice",
+    shortAbility: "덱 맨 위 확인 후, 다른 플레이어를 지목해 손패 교체시킴",
+    ability:
+      "덱 맨 위의 카드를 봅니다. 그 후, 다른 플레이어 한 명을 지목합니다. 그 플레이어는 손에 든 카드를 버리고 덱에서 새로 카드를 뽑습니다.",
+  },
+  귀족영애: {
+    name: "귀족영애",
+    rank: 8,
+    count: 1,
+    englishAlias: "Noble Lady",
+    shortAbility: "버리게 되면 즉시 탈락 (탈락 후 덱에 복귀)",
+    ability:
+      "이 카드를 버려야 하는 상황이 생기면, 당신은 즉시 라운드에서 탈락합니다. 그 후, 덱에 카드가 1장 이상 남아 있다면 이 카드를 덱에 넣고 섞습니다.",
+  },
 };
 
 export const CARD_ORDER: CardName[] = [

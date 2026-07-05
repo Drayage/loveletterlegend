@@ -12,22 +12,29 @@
 //   CLOCK_MILESTONES table.
 // - 053 「고지식한 병사」 (merged with the real 054, which has no content of
 //   its own beyond the reveal condition) is revealed by 023's real
-//   "라운드 종료시, 승자가 든 카드 확인" branch -- 《1 경비병》. The other 7
-//   branches (광대/기사/승려/마술사/장군/대신/공주, revealing
-//   [079]/[103]/[119]/[142]/[162]/[172]/[188]) are ALSO wired, all the way
-//   down each real card's own further "선택"/조건 chain, EXCEPT 마술사
-//   (142) and 공주/왕자 (188) which stay terminal flavor-only leaves (see
-//   comment on ARCHIVE_CARD_SEEDS["023"] below for why). Every deck-effect
-//   card those 6 live branches introduce (신병/광대의제자/점술사/복면기사/
-//   상인/수사/수녀/여장군/군사/정무관남/정무관여/여후작) is a fully
-//   playable CardName (engine/cards.ts) wired into effects.ts. Where a
-//   branch's own further reveal target sits outside this v1 slice (e.g.
-//   027, 082, 091/092, 110-112, 117/118, 126/127, 129, 134-136, 176/177,
-//   180/181), the condition is still modeled (checklist ✓ + self-removal)
-//   with an empty revealIds, exactly like 025's own [조건] below -- except
-//   for a few one-shot "종료 X들고승리 -> reveal" leaves (080/089/174) whose
-//   real text has no [조건] token-accumulation at all, which are left with
-//   an empty conditions array instead (nothing to check off).
+//   "라운드 종료시, 승자가 든 카드 확인" branch -- 《1 경비병》. All 8
+//   branches (광대/기사/승려/마술사/장군/대신/공주 too, revealing
+//   [079]/[103]/[119]/[142]/[162]/[172]/[188]) are wired all the way down
+//   each real card's own further "선택"/조건 chain, with ONE exception: 188
+//   「공주님들」의 3개 분기 중 2개(루나공주/마가렛공주, ids 189-194)와
+//   195's own 백작부인 분기(196-199)는 실카드가 "매 라운드 시작시 되돌릴
+//   수 있는 선택적 토글"로 대응 rank8 카드를 덱에 넣었다 뺐다 하는데, 이건
+//   v1 엔진에 없는 새 "라운드 시작 시점 결정" 메커니즘이 필요해 캐릭터
+//   리프까지만 공개하고 실제 덱 주입은 하지 않는다 (see comment on
+//   ARCHIVE_CARD_SEEDS["188"] below). 142(마술사)와 188의 3번째 분기
+//   (195 -> 200 「귀족 영애」)는 평범한 1회성 [등장] 태그라 끝까지
+//   구현했다. Every deck-effect card the live branches introduce (신병/
+//   광대의제자/점술사/복면기사/상인/수사/수녀/여장군/군사/정무관남/
+//   정무관여/여후작/마술사의도제/귀족영애) is a fully playable CardName
+//   (engine/cards.ts) wired into effects.ts. Where a branch's own further
+//   reveal target sits outside this v1 slice (e.g. 027, 082, 091/092,
+//   110-112, 117/118, 126/127, 129, 134-136, 149/150, 155-161, 176/177,
+//   180/181, 198/199), the condition is still modeled (checklist ✓ +
+//   self-removal) with an empty revealIds, exactly like 025's own [조건]
+//   below -- except for a few one-shot "종료 X들고승리 -> reveal" leaves
+//   (080/089/174/196) whose real text has no [조건] token-accumulation at
+//   all, which are left with an empty conditions array instead (nothing to
+//   check off).
 // - 031 「역사 3」 is revealed by 024's real condition ("이야기 보관소에
 //   「조건」을 가진 카드가 2장 이상 있다면"). 「조건」 is a specific tag on
 //   the real cards (053/054's threshold branches carry it; 017/023's
@@ -88,6 +95,10 @@ import recruit from "../assets/cards/extra/1. 신병.jpg";
 import ladyGeneral from "../assets/cards/extra/6. 여장군.jpg";
 import tactician from "../assets/cards/extra/6. 군사.jpg";
 import marchioness from "../assets/cards/extra/7. 여후작.jpg";
+import wizardApprentice from "../assets/cards/extra/5. 마술사의 도제.jpg";
+import princessSecond from "../assets/cards/extra/8. 공주(둘째).jpg";
+import princessThird from "../assets/cards/extra/8. 공주(셋째).jpg";
+import nobleLady from "../assets/cards/extra/8. 귀족영애.jpg";
 
 export type ArchiveConditionSeed =
   | {
@@ -181,13 +192,10 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     name: "역사 1 이야기의 시작",
     category: "scenario",
     flavor: "당신은 성 안의 귀인을 사랑하게 되고 말았습니다. 마음을 담은 러브 레터는 바라는 곳에 닿을 수 있을까요.",
-    // Real card: 8 winner-held-card branches, each firing once. 마술사(142)
-    // 와 공주/왕자(188) 두 분기는 자기 자신까지는 공개하되, 그 아래의 실제
-    // 「선택」 하위 분기는 구현하지 않는다 -- 142는 이미 구현된
-    // engine/upgrades.ts's 마술사의도제 시스템과 개념이 겹치고(별개의
-    // CardName으로 다시 만들면 혼란), 188은 라운드마다 다시 고를 수 있는
-    // 토글형 캐릭터 교체라 이 v1 엔진에 없는 새 메커니즘이 필요하기
-    // 때문이다. 나머지 6개 분기는 끝까지 실제로 연결되어 있다.
+    // Real card: 8 winner-held-card branches, each firing once, all wired
+    // all the way down to their real terminal leaves (see module header
+    // above for the one recurring exception: 188's reversible per-round
+    // deck-toggle sub-branches).
     // Real card also expires: "[시계] 4개: 이 카드를 제거합니다."
     expiresAtClock: 4,
     conditionsTitle: "라운드 종료 시, 승자가 든 카드 확인 (각 1회)",
@@ -769,13 +777,103 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     earnRules: ["「수녀」를 손에 들고 탈락함: 실패"],
   },
 
-  // ---- 023의 《5 마술사》 분기: 142 (flavor-only 종결, 위 모듈 헤더 참고) ----
+  // ---- 023의 《5 마술사》 분기: 142 -> 143(+144) -> 146/147 또는 148 / -> 153 -> 154 ----
   "142": {
     id: "142",
     name: "몹시 바쁜 마술사",
     category: "scenario",
     flavor:
       "당신은 일찍이 도움을 받았던 마술사에게 다시 의지하려 성 밖의 탑을 방문합니다. 하지만 지금 그는 중요한 연구와 대대적인 의식으로 도무지 손을 뗄 수 없는 듯합니다. 어떻게 할까요...",
+    conditions: [],
+    choices: [
+      { id: "142-apprentice", label: "구석에 있는, 할일 없어 보이는 마술사의 제자에게 물어봅니다", revealIds: ["143"] },
+      { id: "142-child", label: "어라, 이런 곳에 아이가?", revealIds: ["153"] },
+    ],
+  },
+  "143": {
+    id: "143",
+    name: "어둠을 걸친 자",
+    category: "scenario",
+    conditionTag: true,
+    conditionsTitle: "[조건] 라운드 종료 시 확인",
+    flavor:
+      "「하아.... 싫어요... 귀찮게... 왜 내가 그런...」밑져야 본전이라는 심정으로 그 제자에게 부탁해 봤지만, 의지가 되지 않습니다. 모자를 푹 눌러쓰고 고개를 숙인 탓에 남자인지 여자인지도 분명하지 않았지만, 목소리는 여성의 것입니다. 포기하려고 돌아가려고 했지만, 좀 찔린 모양인지 편지를 맡기는 했습니다.",
+    deckEffect: { kind: "replace", removeName: "마술사", addName: "마술사의도제" },
+    conditions: [
+      {
+        id: "143-success",
+        kind: "sharedToken",
+        label: "[성공] 1개 이상 (우선 적용)",
+        token: "성공",
+        threshold: 1,
+        revealIds: ["146", "147"],
+        removeIds: ["143"],
+      },
+      {
+        id: "143-fail",
+        kind: "sharedToken",
+        label: "[실패] 1개 이상",
+        token: "실패",
+        threshold: 1,
+        revealIds: ["148"],
+        removeIds: ["143"],
+      },
+    ],
+    earnRules: ["「마술사의 도제」로 5 이상 숫자 카드를 버리게 함: 성공", "「마술사의 도제」를 손에 들고 탈락함: 실패"],
+  },
+  "146": {
+    id: "146",
+    name: "마술사의 도제 지나",
+    category: "character",
+    art: wizardApprentice,
+    flavor: "「.....」",
+    conditions: [],
+  },
+  "147": {
+    id: "147",
+    name: "마술사의 도제 지나",
+    category: "character",
+    art: wizardApprentice,
+    flavor:
+      "《5 마술사의 도제》를 손에 들거나 버림더미에 놓은 채로 라운드 승리: +[편지] 2개. 「마술사의 도제」로 5 이상 숫자 카드를 버리게 함: +[편지] 1개.",
+    conditions: [],
+  },
+  "148": {
+    id: "148",
+    name: "감감무소식",
+    category: "scenario",
+    flavor:
+      "편지를 맡겨 보긴 했지만 그 제자조차 만날 수 없게 되고 말았습니다. 곤란해진 당신은 마술사와 관계가 있는 것 같은 성 아래 마법약 공방을 찾아가 보기로 합니다.",
+    // 실카드의 [등장] "[149][150] 공개, 이 카드를 제거합니다."는 대상이 v1
+    // 슬라이스 밖이라 생략한다.
+    conditions: [],
+  },
+  "153": {
+    id: "153",
+    name: "수수께끼의 아이",
+    category: "scenario",
+    flavor:
+      "이상한 아이에게 말을 걸어보니 상상도 못했던 어조의 대답이 돌아왔습니다.「흠, 흥미로운 이야기다. 하지만 이 모습으로는 그다지 도움이 될 수 없다.」 도대체, 이 아이는 누구일까요.",
+    conditionsTitle: "라운드 종료 시 확인",
+    conditions: [
+      {
+        id: "153-win",
+        kind: "sharedToken",
+        label: "「마술사」를 손에 들거나 버린 채로 라운드 승리",
+        token: "성공",
+        threshold: 1,
+        revealIds: ["154"],
+        removeIds: ["153"],
+      },
+    ],
+  },
+  "154": {
+    id: "154",
+    name: "수수께끼의 소년",
+    category: "scenario",
+    flavor: "「이런 건 어때?」",
+    // 실카드는 자체 "선택" 분기(155~158/156+159~161)를 갖지만 둘 다 v1
+    // 슬라이스 밖이라 choices 없이 flavor만 표시하는 종결 카드로 둔다.
     conditions: [],
   },
 
@@ -1014,13 +1112,119 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     conditions: [],
   },
 
-  // ---- 023의 《8 공주/왕자》 분기: 188 (flavor-only 종결, 위 모듈 헤더 참고) ----
+  // ---- 023의 《8 공주/왕자》 분기: 188 -> (189/190 루나공주) 또는
+  // (192/193 마가렛공주) 또는 (195 -> 196 백작부인 또는 200 -> 202/203
+  // 귀족영애) ----
+  // 루나공주/마가렛공주/백작부인(189/190, 192/193, 196) 세 캐릭터는 실카드가
+  // "매 라운드 시작시, 대응하는 rank8 카드를 덱에 넣었다 뺐다 할 수
+  // 있습니다"라는 되돌릴 수 있는 매 라운드 선택적 토글로 서로 다른 rank8
+  // 정체성 카드를 교체하는데, 이는 v1 엔진에 없는 새 "라운드 시작 시점
+  // 선택" 메커니즘이 필요해 각 캐릭터는 flavor 리프로만 공개하고 실제
+  // 덱 주입/추가 rank8 CardName은 만들지 않는다 (토글이 없어도 190/193의
+  // "편지 10개 -> 즉시 종료, [051] 공개" 조항은 018/020 「잉그리드공주/
+  // 아레스왕자」에 이미 있는 RANK8_SLOTS 얼리엔딩 체크로 동일하게 적용되어
+  // 별도 처리가 필요 없다). 3번째 분기(195 -> 200 -> 202/203 「귀족 영애」)는
+  // 실카드가 평범한 1회성 [등장] 태그를 쓰므로 끝까지 구현한다.
   "188": {
     id: "188",
     name: "공주님들",
     category: "scenario",
     flavor:
       "공주님이라고 한마디로 말하지만, 이 왕국에는 여러 명의 공주가 있습니다. 물론 자주 입에 오르내리는 것은 맏이인 잉그리드 공주입니다. 하지만 다른 공주들도 저마다 인기가 있습니다. 당신이 좋아하는 사람은 사실....",
+    conditions: [],
+    choices: [
+      { id: "188-luna", label: "차분한 둘째 공주 루나입니다", revealIds: ["189", "190"] },
+      { id: "188-margaret", label: "활기찬 셋째 공주 마가렛입니다", revealIds: ["192", "193"] },
+      { id: "188-other", label: "사실은 공주님이 아니라 다른 귀족에게 마음을 주고 있습니다", revealIds: ["195"] },
+    ],
+  },
+  "189": {
+    id: "189",
+    name: "루나 공주",
+    category: "character",
+    art: princessSecond,
+    flavor: "「저도 책 속에 나오는 것 같은 사랑을 해보고 싶어요.」",
+    conditions: [],
+  },
+  "190": {
+    id: "190",
+    name: "루나 공주",
+    category: "character",
+    art: princessSecond,
+    flavor:
+      "당신은 지적인 분위기를 풍기는 루나 공주를 마음에 두고 있습니다. 도대체 어떻게 해야 좀처럼 드러나지 않는 그녀의 마음을 얻을 수 있을까요?",
+    conditions: [],
+  },
+  "192": {
+    id: "192",
+    name: "마가렛 공주",
+    category: "character",
+    art: princessThird,
+    flavor: "「역시 백마 탄 왕자님이지! 빨리 데리러 와주었으면!」",
+    conditions: [],
+  },
+  "193": {
+    id: "193",
+    name: "마가렛 공주",
+    category: "character",
+    art: princessThird,
+    flavor:
+      "말괄량이로 유명한 마가렛 공주는 가끔 성 아래를 방문해서는 사람들과 다양한 교류를 하고 있습니다. 어느 날 그녀와 이야기할 기회를 얻은 당신은, 그녀의 천진난만한 매력에 끌리게 되었습니다.",
+    conditions: [],
+  },
+  "195": {
+    id: "195",
+    name: "높은 산 위에 핀 꽃",
+    category: "scenario",
+    flavor: "당신의 마음을 사로잡은 사람은 공주님과 마찬가지로 성 안에 들어가지 않으면 좀처럼 볼 수 없는 사람 중 하나입니다. 그 사람은....",
+    conditions: [],
+    choices: [
+      { id: "195-countess", label: "마차를 타고 외출하는 요염한 귀부인입니다", revealIds: ["196"] },
+      { id: "195-noble", label: "쇼핑할 생각에 들뜬, 수행원을 거느린 소녀입니다", revealIds: ["200"] },
+    ],
+  },
+  "196": {
+    id: "196",
+    name: "나른한 백작부인",
+    category: "scenario",
+    flavor:
+      "「어머, 귀여운 아이네...」마차의 창으로 나온 백작부인이 투명할 만큼 흰 손가락이 당신의 얼굴을 쓰다듬습니다. 그 오싹한 감각은 마치 사신에게 닿은 것처럼 느껴졌지만, 당신은 그녀에게 매료되어 움직일 수 없었습니다. 정말로, 이 사랑을 좇아도 되는 것일까요...",
+    conditions: [],
+  },
+  "200": {
+    id: "200",
+    name: "거만한 귀족 영애",
+    category: "scenario",
+    flavor:
+      "「오호홋! 이 몸의 매력을 알아채다니! 안목이 있네요! 그래요! 공주보다 내가 더 말이죠!」요란한 웃음소리를 내며 당신에게 손가락질하는 영애, 이 상황을 보면 당신이 그녀에게 단단히 빠진 것은 분명합니다. 그녀의 종이 되는 것은 어렵지 않을 겁니다. 허나 과연 그녀의 진정한 사랑을 손에 넣을 수 있겠습니까?",
+    deckEffect: { kind: "add", cardName: "귀족영애" },
+    conditionsTitle: "라운드 종료 시 확인",
+    conditions: [
+      {
+        id: "200-win",
+        kind: "sharedToken",
+        label: "「귀족영애」를 손에 들고 라운드 승리",
+        token: "성공",
+        threshold: 1,
+        revealIds: ["202", "203"],
+        removeIds: ["200"],
+      },
+    ],
+  },
+  "202": {
+    id: "202",
+    name: "공작의 영애 아나스타샤",
+    category: "character",
+    art: nobleLady,
+    flavor: "「당신의 헌신은 정말 대단하네요! 알겠죠, 앞으로도 저를 잘 모셔야 해요!」",
+    conditions: [],
+  },
+  "203": {
+    id: "203",
+    name: "공작의 영애 아나스타샤",
+    category: "character",
+    art: nobleLady,
+    flavor: "《8 귀족 영애》를 손에 들고 라운드 승리: +[편지] 4개.",
     conditions: [],
   },
 };
