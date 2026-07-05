@@ -93,7 +93,11 @@ export default function App() {
   const handledIdentityRef = useRef<SessionState["pendingIdentityChoice"]>(null);
   const handledChoiceRef = useRef<SessionState["pendingChoice"]>(null);
   const seenArchiveIdsRef = useRef<Set<string>>(new Set());
-  const shownChoiceResultRef = useRef<ResolvedChoiceInfo | null>(null);
+  // Tracks the cardId (not object reference -- SessionState gets
+  // structuredClone'd on every later round end, which mints a fresh
+  // lastResolvedChoice object with the SAME data, so reference equality
+  // would make this popup reappear on every subsequent round end).
+  const shownChoiceResultCardIdRef = useRef<string | null>(null);
 
   const round = session?.round ?? null;
 
@@ -257,8 +261,8 @@ export default function App() {
   // StoryEventModal pops up (see the render priority chain below).
   useEffect(() => {
     if (!session?.lastResolvedChoice) return;
-    if (shownChoiceResultRef.current === session.lastResolvedChoice) return;
-    shownChoiceResultRef.current = session.lastResolvedChoice;
+    if (shownChoiceResultCardIdRef.current === session.lastResolvedChoice.cardId) return;
+    shownChoiceResultCardIdRef.current = session.lastResolvedChoice.cardId;
     setPendingChoiceResult(session.lastResolvedChoice);
   }, [session?.lastResolvedChoice]);
 
@@ -269,7 +273,7 @@ export default function App() {
     handledIdentityRef.current = null;
     handledChoiceRef.current = null;
     seenArchiveIdsRef.current = new Set();
-    shownChoiceResultRef.current = null;
+    shownChoiceResultCardIdRef.current = null;
     setDismissedRevealId(null);
     setShowRouteSwitch(false);
     setEndSummaryAcknowledged(false);
