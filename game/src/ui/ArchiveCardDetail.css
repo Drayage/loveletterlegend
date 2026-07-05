@@ -38,6 +38,17 @@
   white-space: nowrap;
 }
 
+.archive-card-detail__done {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
 .archive-card-detail__provenance {
   margin: 0 0 4px;
   font-size: 11px;

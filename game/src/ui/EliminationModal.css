@@ -1,0 +1,32 @@
+.elimination-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.elimination-modal__headline {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.elimination-modal__reason {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.elimination-modal__confirm-btn {
+  align-self: flex-start;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+}

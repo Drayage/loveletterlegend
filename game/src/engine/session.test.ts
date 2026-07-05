@@ -816,6 +816,7 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
       deckExhaustedThisTurn: false,
       lastPlayedCard: null,
       lastReveal: null,
+      lastElimination: null,
       firstEliminatedThisRound: null,
     };
     applyEffect(state, {
@@ -939,6 +940,7 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
         deckExhaustedThisTurn: false,
         lastPlayedCard: null,
         lastReveal: null,
+        lastElimination: null,
         firstEliminatedThisRound: null,
       };
       const next = beginTurn(state);
@@ -1101,6 +1103,34 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
       for (const id of ["017", "018", "020", "023"]) {
         expect(session.storyArchive.find((c) => c.id === id)?.revealedFrom).toBeUndefined();
       }
+    });
+
+    it("archiveHistory keeps a consumed card visible after its condition fires and removes it from the live storyArchive", () => {
+      let session = startSession(PLAYERS);
+      session = forceImmediateWin(session, "p1", [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "경비병" },
+      ]);
+      session = resolveArchiveChoice(session, session.pendingChoice!.eligiblePlayerId, "052-familiar");
+      expect(session.storyArchive.some((c) => c.id === "053")).toBe(true);
+      expect(session.archiveHistory["053"]).toBeDefined();
+
+      // Push 053's own [성공] threshold over the top (mirrors the existing
+      // "reveals new archive cards once a shared token condition is met"
+      // test's technique) to remove it from the live archive.
+      const card053 = session.storyArchive.find((c) => c.id === "053")!;
+      card053.successTokens = 1;
+      session.pendingArchivePlacement = { eligiblePlayerId: "p1" };
+      session = placeArchiveToken(session, "p1", "053", "성공");
+
+      expect(session.storyArchive.some((c) => c.id === "053")).toBe(false);
+      // Gone from the live archive, but still remembered -- with its final
+      // (fired) condition state, not reset back to pristine.
+      const historyCard = session.archiveHistory["053"];
+      expect(historyCard).toBeDefined();
+      expect(historyCard.conditions.find((c) => c.id === "053-success")?.fired).toBe(true);
+      // 052 (already resolved earlier) is also still there.
+      expect(session.archiveHistory["052"]).toBeDefined();
     });
   });
 });

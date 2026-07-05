@@ -113,6 +113,14 @@ export interface SessionState {
    * 선택이 해소될 때까지 유지되며, 세션이 끝나도 지워지지 않는다 --
    * App.tsx는 참조 동일성으로 "이미 보여준 결과"를 구분한다. */
   lastResolvedChoice: ResolvedChoiceInfo | null;
+  /** Every archive card ever revealed this session, keyed by id -- an
+   * append-only companion to `storyArchive` (which only holds currently
+   * ACTIVE cards; entries leave `storyArchive` once consumed by a fired
+   * sharedToken condition, a resolved 선택, an autoRevealIds cascade, or
+   * expiry). Without this, the Story Archive UI would lose access to
+   * everything the player has already unlocked the moment it's consumed --
+   * see pushArchiveCard. */
+  archiveHistory: Record<string, ArchiveCardState>;
 }
 
 /** See SessionState.lastResolvedChoice. */
@@ -143,6 +151,20 @@ function seedArchiveCard(id: string, revealedFrom?: ArchiveCardState["revealedFr
   };
 }
 
+/** Reveals a new archive card: adds it to the live `storyArchive` AND
+ * records it into `archiveHistory` -- the SAME object reference on
+ * purpose, so later `addArchiveToken`/condition-firing mutations (which
+ * only touch the live `storyArchive` entry) stay visible through history
+ * too, even after the card is later filtered out of `storyArchive`.
+ * structuredClone (used throughout this module) preserves shared
+ * references within a single clone call, so this survives every clone
+ * boundary the engine creates. */
+function pushArchiveCard(session: SessionState, id: string, revealedFrom?: ArchiveCardState["revealedFrom"]): void {
+  const card = seedArchiveCard(id, revealedFrom);
+  session.storyArchive.push(card);
+  session.archiveHistory[id] = card;
+}
+
 export function startSession(playerConfigs: PlayerConfig[], initialRoute: Route = "공주"): SessionState {
   const letterTokens = {} as Record<CharacterSlotId, Record<string, number>>;
   for (const slot of ALL_SLOTS) {
@@ -151,6 +173,8 @@ export function startSession(playerConfigs: PlayerConfig[], initialRoute: Route 
   }
   const playerIdentities: Record<string, string | null> = {};
   for (const cfg of playerConfigs) playerIdentities[cfg.id] = null;
+
+  const initialArchive = [seedArchiveCard("017"), seedArchiveCard("018"), seedArchiveCard("020"), seedArchiveCard("023")];
 
   return finalizeFreshRound({
     playerConfigs,
@@ -167,7 +191,7 @@ export function startSession(playerConfigs: PlayerConfig[], initialRoute: Route 
     // 017 「시간」, 018/020(잉그리드공주/아레스왕자), 023(역사1) -- exactly
     // what the rulebook's worked example shows in the archive at session
     // start (before any round-end reveal has happened).
-    storyArchive: [seedArchiveCard("017"), seedArchiveCard("018"), seedArchiveCard("020"), seedArchiveCard("023")],
+    storyArchive: initialArchive,
     pendingArchivePlacement: null,
     pendingLetterChoice: null,
     extraDeckCardNames: [],
@@ -178,6 +202,7 @@ export function startSession(playerConfigs: PlayerConfig[], initialRoute: Route 
     removedBaseCardNames: [],
     pendingChoice: null,
     lastResolvedChoice: null,
+    archiveHistory: Object.fromEntries(initialArchive.map((c) => [c.id, c])),
   });
 }
 
@@ -303,7 +328,7 @@ function resolveArchiveConditions(
       session.storyArchive = session.storyArchive.filter((c) => !toRemove.has(c.id));
       for (const [id, provenance] of toReveal) {
         if (!session.storyArchive.some((c) => c.id === id)) {
-          session.storyArchive.push(seedArchiveCard(id, provenance));
+          pushArchiveCard(session, id, provenance);
           everRevealed.add(id);
         }
       }
@@ -366,9 +391,7 @@ function applyRevealSideEffects(
       session.storyArchive = session.storyArchive.filter((c) => c.id !== id);
       for (const revealId of seed.autoRevealIds) {
         if (!session.storyArchive.some((c) => c.id === revealId)) {
-          session.storyArchive.push(
-            seedArchiveCard(revealId, { sourceName: seed.name, reason: "등장과 동시에 자동 공개" })
-          );
+          pushArchiveCard(session, revealId, { sourceName: seed.name, reason: "등장과 동시에 자동 공개" });
           pending.push(revealId);
         }
       }
@@ -381,7 +404,7 @@ function applyRevealSideEffects(
     session.identityPool = [...IDENTITY_CARD_IDS];
     const provenance = { sourceName: ARCHIVE_CARD_SEEDS["032"].name, reason: "정체 후보 전원 공개" };
     for (const id of IDENTITY_CARD_IDS) {
-      if (!session.storyArchive.some((c) => c.id === id)) session.storyArchive.push(seedArchiveCard(id, provenance));
+      if (!session.storyArchive.some((c) => c.id === id)) pushArchiveCard(session, id, provenance);
     }
     for (const cfg of session.playerConfigs) {
       if (!(cfg.id in session.playerIdentities)) session.playerIdentities[cfg.id] = null;
@@ -630,12 +653,10 @@ function finalizeRoundEndDecisions(session: SessionState, winnerId: string | nul
       ...next.playerConfigs.filter((c) => c.id !== winnerId).map((c) => next.letterTokens[slot][c.id] ?? 0)
     );
     if (mine > othersMax) {
-      next.storyArchive.push(
-        seedArchiveCard("051", {
-          sourceName: ARCHIVE_CARD_SEEDS["050"].name,
-          reason: "《공주》를 들고 승리, 해당 캐릭터의 [편지]가 최다",
-        })
-      );
+      pushArchiveCard(next, "051", {
+        sourceName: ARCHIVE_CARD_SEEDS["050"].name,
+        reason: "《공주》를 들고 승리, 해당 캐릭터의 [편지]가 최다",
+      });
     }
   }
 
@@ -813,9 +834,7 @@ export function chooseIdentity(session: SessionState, playerId: string, identity
   ) {
     next.storyArchive = next.storyArchive.filter((c) => c.id !== "032");
     if (!next.storyArchive.some((c) => c.id === "039")) {
-      next.storyArchive.push(
-        seedArchiveCard("039", { sourceName: ARCHIVE_CARD_SEEDS["032"].name, reason: "전원 정체 보유 완료" })
-      );
+      pushArchiveCard(next, "039", { sourceName: ARCHIVE_CARD_SEEDS["032"].name, reason: "전원 정체 보유 완료" });
       next.festivalDeck = shuffledCopy(FESTIVAL_CARD_IDS);
     }
   }
@@ -851,7 +870,7 @@ export function resolveArchiveChoice(session: SessionState, playerId: string, op
   const provenance = { sourceName: seed.name, reason: option.label };
   for (const id of option.revealIds) {
     if (!next.storyArchive.some((c) => c.id === id)) {
-      next.storyArchive.push(seedArchiveCard(id, provenance));
+      pushArchiveCard(next, id, provenance);
       newlyRevealed.add(id);
     }
   }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { setupRound, chooseCardToPlay, chooseTarget, chooseGuess } from "./rules";
 import { chooseCardToPlayAI, chooseGuessAI, chooseTargetAI } from "./ai";
-import { applyEffect, checkKingElimination, checkMinisterElimination, discardCard } from "./effects";
+import { applyEffect, checkKingElimination, checkMinisterElimination, discardCard, eliminatePlayer } from "./effects";
 import type { CardName, GameState, PlayerConfig } from "./types";
 
 const PLAYERS: PlayerConfig[] = [
@@ -165,6 +165,7 @@ describe("Love Letter engine", () => {
       deckExhaustedThisTurn: false,
       lastPlayedCard: null,
       lastReveal: null,
+      lastElimination: null,
       firstEliminatedThisRound: null,
       activeIdentities,
     };
@@ -233,6 +234,7 @@ describe("039 「역사 5」축제 덱 -- 덱 소진 시 승자 결정 규칙 �
       deckExhaustedThisTurn: true,
       lastPlayedCard: null,
       lastReveal: null,
+      lastElimination: null,
       firstEliminatedThisRound: null,
       activeFestivalCardId,
     };
@@ -303,6 +305,7 @@ describe("039 「역사 5」축제 덱 -- 덱 소진 시 승자 결정 규칙 �
       deckExhaustedThisTurn: true,
       lastPlayedCard: null,
       lastReveal: null,
+      lastElimination: null,
       firstEliminatedThisRound: null,
       activeFestivalCardId: "047",
     };
@@ -332,6 +335,7 @@ function minimalState(overrides: Partial<GameState> = {}): GameState {
     deckExhaustedThisTurn: false,
     lastPlayedCard: null,
     lastReveal: null,
+    lastElimination: null,
     firstEliminatedThisRound: null,
     ...overrides,
   };
@@ -400,5 +404,32 @@ describe("ROOT B: 142/188 new cards (마술사의도제, 점술사, 귀족영애
     expect(state.players[0].eliminated).toBe(true);
     expect(state.players[0].discardPile.map((c) => c.name)).toEqual(["공주"]);
     expect(state.deck).toHaveLength(1);
+  });
+});
+
+describe("GameState.lastElimination (public elimination acknowledgment)", () => {
+  it("eliminatePlayer stamps lastElimination with the eliminated player's id and the reason", () => {
+    const state = minimalState();
+    eliminatePlayer(state, "p1", "「기사」 비교에서 패배");
+    expect(state.lastElimination?.playerId).toBe("p1");
+    expect(state.lastElimination?.reason).toBe("「기사」 비교에서 패배");
+    expect(state.lastElimination?.id).toBeTruthy();
+  });
+
+  it("does not stamp lastElimination when 정무관 immunity blocks the elimination", () => {
+    const state = minimalState();
+    state.players[0].immuneThisRound = true;
+    eliminatePlayer(state, "p1", "「대신」을 들고 손패 합계 15(12 이상)");
+    expect(state.players[0].eliminated).toBe(false);
+    expect(state.lastElimination).toBeNull();
+  });
+
+  it("does not re-stamp lastElimination for a player who's already eliminated", () => {
+    const state = minimalState();
+    eliminatePlayer(state, "p1", "first reason");
+    const firstId = state.lastElimination?.id;
+    eliminatePlayer(state, "p1", "second reason (should be ignored)");
+    expect(state.lastElimination?.id).toBe(firstId);
+    expect(state.lastElimination?.reason).toBe("first reason");
   });
 });

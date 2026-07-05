@@ -72,6 +72,7 @@ export function setupRound(
     deckExhaustedThisTurn: false,
     lastPlayedCard: null,
     lastReveal: null,
+    lastElimination: null,
     firstEliminatedThisRound: null,
     recentPlays: [],
   };

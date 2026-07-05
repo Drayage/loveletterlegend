@@ -35,6 +35,7 @@ export function eliminatePlayer(draft: GameState, playerId: string, reason: stri
   }
   player.eliminated = true;
   if (!draft.firstEliminatedThisRound) draft.firstEliminatedThisRound = playerId;
+  draft.lastElimination = { id: nextLogId(), playerId, reason };
   log(draft, `${player.displayName}: ${reason} → 라운드에서 탈락합니다.`);
 }
 

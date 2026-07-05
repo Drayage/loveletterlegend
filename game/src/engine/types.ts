@@ -154,6 +154,15 @@ export interface GameState {
   /** Private info revealed by the last-resolved effect, if any -- only
    * meaningful to whoever is named in viewerPlayerId. */
   lastReveal: RevealInfo | null;
+  /** Public info: the most recent player to actually become eliminated
+   * this round (not set for the 정무관 immunity no-op, nor for a player
+   * who was already eliminated) -- unlike lastReveal, this isn't private
+   * to a specific viewer, since who's eliminated and why is always public
+   * knowledge. Drives a dedicated acknowledgment popup so elimination
+   * doesn't feel like it happened off-screen when the local human wasn't
+   * the one who caused it. `id` is used (not object identity) for
+   * "already shown" tracking, since GameState gets structuredClone'd. */
+  lastElimination: { id: string; playerId: string; reason: string } | null;
   /** Session-driven ability upgrades active for this round (see
    * engine/session.ts / engine/upgrades.ts). Absent for callers that don't
    * know about sessions (e.g. rules.test.ts) -- everything defaults to

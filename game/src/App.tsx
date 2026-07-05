@@ -45,6 +45,7 @@ import { ArchiveChoiceModal } from "./ui/ArchiveChoiceModal";
 import { ChoiceResultModal } from "./ui/ChoiceResultModal";
 import { StoryEventModal } from "./ui/StoryEventModal";
 import { RoundStartGate } from "./ui/RoundStartGate";
+import { EliminationModal } from "./ui/EliminationModal";
 import { ARCHIVE_CARD_SEEDS } from "./data/scenario";
 import "./App.css";
 
@@ -82,6 +83,7 @@ export default function App() {
   const [showCardReference, setShowCardReference] = useState(false);
   const [showStoryArchive, setShowStoryArchive] = useState(false);
   const [dismissedRevealId, setDismissedRevealId] = useState<string | null>(null);
+  const [dismissedEliminationId, setDismissedEliminationId] = useState<string | null>(null);
   const [showRouteSwitch, setShowRouteSwitch] = useState(false);
   const [endSummaryAcknowledged, setEndSummaryAcknowledged] = useState(false);
   const [pendingStoryEvent, setPendingStoryEvent] = useState<ArchiveCardState[] | null>(null);
@@ -105,6 +107,11 @@ export default function App() {
     round?.lastReveal && round.lastReveal.viewerPlayerId === HUMAN_ID && round.lastReveal.id !== dismissedRevealId
       ? round.lastReveal
       : null;
+  // Public (not viewer-specific) -- shown regardless of who caused the
+  // elimination, right after any private reveal the actor needed to see
+  // first (see EliminationModal's doc comment).
+  const pendingElimination =
+    round?.lastElimination && round.lastElimination.id !== dismissedEliminationId ? round.lastElimination : null;
 
   // AI's normal in-round turn.
   useEffect(() => {
@@ -137,7 +144,7 @@ export default function App() {
     // otherwise once those popups clear, the dependency-array re-run sees
     // handledLetterChoiceRef already pointing at this exact `pending`
     // object and skips rescheduling forever.
-    if (pendingHumanReveal || pendingChoiceResult || pendingStoryEvent) {
+    if (pendingHumanReveal || pendingElimination || pendingChoiceResult || pendingStoryEvent) {
       handledLetterChoiceRef.current = null;
       return;
     }
@@ -155,7 +162,7 @@ export default function App() {
       });
     }, 700);
     return () => clearTimeout(timer);
-  }, [session, pendingHumanReveal, pendingChoiceResult, pendingStoryEvent]);
+  }, [session, pendingHumanReveal, pendingElimination, pendingChoiceResult, pendingStoryEvent]);
 
   // AI's story-archive token placement, when it's the AI who was first
   // eliminated this round.
@@ -167,7 +174,7 @@ export default function App() {
     const placement = session.pendingArchivePlacement;
     // Same "don't get stuck" fix as the letter-choice effect above: clear
     // the marker rather than leaving it stale while blocked.
-    if (pendingHumanReveal || pendingChoiceResult || pendingStoryEvent) {
+    if (pendingHumanReveal || pendingElimination || pendingChoiceResult || pendingStoryEvent) {
       handledArchiveRef.current = null;
       return;
     }
@@ -190,7 +197,7 @@ export default function App() {
       });
     }, 700);
     return () => clearTimeout(timer);
-  }, [session, pendingHumanReveal, pendingChoiceResult, pendingStoryEvent]);
+  }, [session, pendingHumanReveal, pendingElimination, pendingChoiceResult, pendingStoryEvent]);
 
   // AI's 032 「정체」 card selection, when the AI was eliminated without one.
   useEffect(() => {
@@ -199,7 +206,7 @@ export default function App() {
       return;
     }
     const pending = session.pendingIdentityChoice;
-    if (pendingHumanReveal || pendingChoiceResult || pendingStoryEvent) {
+    if (pendingHumanReveal || pendingElimination || pendingChoiceResult || pendingStoryEvent) {
       handledIdentityRef.current = null;
       return;
     }
@@ -216,7 +223,7 @@ export default function App() {
       });
     }, 700);
     return () => clearTimeout(timer);
-  }, [session, pendingHumanReveal, pendingChoiceResult, pendingStoryEvent]);
+  }, [session, pendingHumanReveal, pendingElimination, pendingChoiceResult, pendingStoryEvent]);
 
   // AI's 실카드 "선택" 분기 결정, when the eligible player (round winner) is the AI.
   useEffect(() => {
@@ -225,7 +232,7 @@ export default function App() {
       return;
     }
     const pending = session.pendingChoice;
-    if (pendingHumanReveal || pendingChoiceResult || pendingStoryEvent) {
+    if (pendingHumanReveal || pendingElimination || pendingChoiceResult || pendingStoryEvent) {
       handledChoiceRef.current = null;
       return;
     }
@@ -242,7 +249,7 @@ export default function App() {
       });
     }, 700);
     return () => clearTimeout(timer);
-  }, [session, pendingHumanReveal, pendingChoiceResult, pendingStoryEvent]);
+  }, [session, pendingHumanReveal, pendingElimination, pendingChoiceResult, pendingStoryEvent]);
 
   // Show a readable popup (with full flavor text + conditions) whenever new
   // cards appear in the story archive.
@@ -275,6 +282,7 @@ export default function App() {
     seenArchiveIdsRef.current = new Set();
     shownChoiceResultCardIdRef.current = null;
     setDismissedRevealId(null);
+    setDismissedEliminationId(null);
     setShowRouteSwitch(false);
     setEndSummaryAcknowledged(false);
     setPendingStoryEvent(null);
@@ -405,6 +413,7 @@ export default function App() {
       {showStoryArchive && (
         <StoryArchiveModal
           archive={session.storyArchive}
+          archiveHistory={session.archiveHistory}
           clockTokens={session.clockTokens}
           onClose={() => setShowStoryArchive(false)}
         />
@@ -458,8 +467,20 @@ export default function App() {
           with an explicit RoundStartGate breather before the next round's
           hands are actually dealt. Each gate below explicitly excludes the
           ones before it so at most one full-screen modal is ever mounted
-          at a time. */}
-      {!pendingHumanReveal && pendingChoiceResult && (
+          at a time. pendingElimination (public: who was just eliminated
+          and why) comes right after the private reveal too, since it's
+          the clearest way to acknowledge an abrupt elimination regardless
+          of who caused it. */}
+      {!pendingHumanReveal && pendingElimination && (
+        <EliminationModal
+          playerDisplayName={displayNameFor(pendingElimination.playerId)}
+          reason={pendingElimination.reason}
+          onDismiss={() => setDismissedEliminationId(pendingElimination.id)}
+        />
+      )}
+
+      {!pendingHumanReveal &&
+        !pendingElimination && pendingChoiceResult && (
         <ChoiceResultModal
           info={pendingChoiceResult}
           chooserName={displayNameFor(pendingChoiceResult.chosenBy)}
@@ -467,7 +488,8 @@ export default function App() {
         />
       )}
 
-      {!pendingHumanReveal && !pendingChoiceResult && pendingStoryEvent && (
+      {!pendingHumanReveal &&
+        !pendingElimination && !pendingChoiceResult && pendingStoryEvent && (
         <StoryEventModal
           cards={pendingStoryEvent}
           clockTokens={session.clockTokens}
@@ -475,7 +497,8 @@ export default function App() {
         />
       )}
 
-      {!pendingHumanReveal && !pendingChoiceResult && !pendingStoryEvent && humanNeedsLetterChoice && (
+      {!pendingHumanReveal &&
+        !pendingElimination && !pendingChoiceResult && !pendingStoryEvent && humanNeedsLetterChoice && (
         <LetterTokenChoiceModal
           amount={session.pendingLetterChoice!.amount}
           atCap={session.pendingLetterChoice!.atCap}
@@ -485,6 +508,7 @@ export default function App() {
       )}
 
       {!pendingHumanReveal &&
+        !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
         !needsLetterChoice &&
@@ -493,15 +517,22 @@ export default function App() {
         )}
 
       {!pendingHumanReveal &&
+        !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
         !needsLetterChoice &&
         !needsIdentityChoice &&
         humanNeedsArchiveChoice && (
-          <ArchiveChoiceModal options={session.pendingChoice!.options} onChoose={handleChooseArchiveOption} />
+          <ArchiveChoiceModal
+            cardName={ARCHIVE_CARD_SEEDS[session.pendingChoice!.cardId].name}
+            flavor={ARCHIVE_CARD_SEEDS[session.pendingChoice!.cardId].flavor}
+            options={session.pendingChoice!.options}
+            onChoose={handleChooseArchiveOption}
+          />
         )}
 
       {!pendingHumanReveal &&
+        !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
         !needsLetterChoice &&
@@ -516,6 +547,7 @@ export default function App() {
         )}
 
       {!pendingHumanReveal &&
+        !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
         !needsLetterChoice &&
@@ -550,6 +582,7 @@ export default function App() {
         )}
 
       {!pendingHumanReveal &&
+        !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
         !needsLetterChoice &&
@@ -566,6 +599,7 @@ export default function App() {
         )}
 
       {!pendingHumanReveal &&
+        !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
         roundOver &&
@@ -579,7 +613,8 @@ export default function App() {
           />
         )}
 
-      {!pendingHumanReveal && !pendingChoiceResult && !pendingStoryEvent && roundOver && session.ended && endSummaryAcknowledged && (
+      {!pendingHumanReveal &&
+        !pendingElimination && !pendingChoiceResult && !pendingStoryEvent && roundOver && session.ended && endSummaryAcknowledged && (
         <SessionEndScreen session={session} players={session.playerConfigs} onNewGame={startGame} />
       )}
 

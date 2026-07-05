@@ -18,8 +18,20 @@ function splitEarnRule(rule: string): { text: string; token: "성공" | "실패"
 
 /** `clockTokens` (the session's elapsed [시계]) enables the "남은 시간 (N주)"
  * countdown on expiring cards -- omitted by callers that don't have the
- * session at hand, in which case the badge is simply not shown. */
-export function ArchiveCardDetail({ card, clockTokens }: { card: ArchiveCardState; clockTokens?: number }) {
+ * session at hand, in which case the badge is simply not shown.
+ * `inactive` marks a card that's no longer in the live story archive
+ * (consumed by a fired condition, a resolved 선택, or expiry) -- still
+ * shown for history's sake (see SessionState.archiveHistory), just
+ * badged so it reads as "done" rather than "currently pending". */
+export function ArchiveCardDetail({
+  card,
+  clockTokens,
+  inactive,
+}: {
+  card: ArchiveCardState;
+  clockTokens?: number;
+  inactive?: boolean;
+}) {
   const earnRules = ARCHIVE_CARD_SEEDS[card.id]?.earnRules ?? [];
   const parsedRules = earnRules.map(splitEarnRule).filter((r): r is NonNullable<typeof r> => r !== null);
   const weeksLeft =
@@ -34,7 +46,10 @@ export function ArchiveCardDetail({ card, clockTokens }: { card: ArchiveCardStat
         <div className="archive-card-detail__header-text">
           <p className="archive-card-detail__name">
             {card.name}
-            {weeksLeft != null && <span className="archive-card-detail__expiry">남은 시간 ({weeksLeft}주)</span>}
+            {inactive && <span className="archive-card-detail__done">지난 이야기</span>}
+            {!inactive && weeksLeft != null && (
+              <span className="archive-card-detail__expiry">남은 시간 ({weeksLeft}주)</span>
+            )}
           </p>
           {card.revealedFrom && (
             <p className="archive-card-detail__provenance">
