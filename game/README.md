@@ -40,7 +40,7 @@ https://drayage.github.io/loveletterlegend/
 2. `Pages` 메뉴 선택
 3. `Build and deployment`의 `Source`를 `GitHub Actions`로 설정
 
-이후 `main` 브랜치에 `game/**` 또는 `.github/workflows/deploy.yml` 변경이 push되면 `.github/workflows/deploy.yml`이 자동으로 테스트, 빌드, 배포를 실행합니다.
+이후 기본 브랜치에 `game/**` 또는 `.github/workflows/deploy.yml` 변경이 push되면 `.github/workflows/deploy.yml`이 자동으로 테스트, 빌드, 배포를 실행합니다.
 
 ## 구조
 

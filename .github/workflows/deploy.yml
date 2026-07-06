@@ -3,7 +3,7 @@ name: Deploy game to GitHub Pages
 on:
   push:
     branches:
-      - main
+      - claude/pdf-database-conversion-wl9azo
     paths:
       - "game/**"
       - ".github/workflows/deploy.yml"
