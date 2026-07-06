@@ -352,6 +352,7 @@ export function conditionTiming(kind: ArchiveCondition["kind"]): ArchiveConditio
  * 발동한 쪽만 적용되고 나머지는 조용히 무시된다. */
 export type DeckEffect =
   | { kind: "add"; cardName: CardName }
+  | { kind: "optionalRound"; cardName: CardName }
   | { kind: "replace"; removeName: CardName; addName: CardName; count?: number }
   | {
       kind: "batch";

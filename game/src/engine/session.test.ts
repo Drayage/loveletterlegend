@@ -1120,7 +1120,7 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
       expect(session.storyArchive.some((c) => c.id === "203")).toBe(true);
     });
 
-    it("195's 백작부인 branch reveals 196, injects 백작부인 each round, then winning with it reveals 198/199", () => {
+    it("195's 백작부인 branch reveals 196, lets the leader opt into 백작부인, then winning with it reveals 198/199", () => {
       let session = startSession(PLAYERS);
       session = forceImmediateWin(session, "p1", [
         { instanceId: "c1", name: "대신" },
@@ -1133,14 +1133,18 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
       expect(session.storyArchive.some((c) => c.id === "196")).toBe(true);
 
       session = resolveLetterChoice(session, "p1", { type: "place", slot: "잉그리드공주" });
-      session = beginNextRound(session, "공주");
+      expect(session.optionalRoundDeckCardNames).toContain("백작부인");
+      const readyForNextRound = session;
+      const withoutCountess = beginNextRound(readyForNextRound, "공주");
       const roundCardNames = [
-        ...session.round.players.flatMap((p) => p.hand.map((c) => c.name)),
-        ...session.round.deck.map((c) => c.name),
-        ...session.round.faceUpRemovedCards.map((c) => c.name),
-        ...(session.round.hiddenRemovedCard ? [session.round.hiddenRemovedCard.name] : []),
+        ...withoutCountess.round.players.flatMap((p) => p.hand.map((c) => c.name)),
+        ...withoutCountess.round.deck.map((c) => c.name),
+        ...withoutCountess.round.faceUpRemovedCards.map((c) => c.name),
+        ...(withoutCountess.round.hiddenRemovedCard ? [withoutCountess.round.hiddenRemovedCard.name] : []),
       ];
-      expect(roundCardNames).toContain("백작부인");
+      expect(roundCardNames).not.toContain("백작부인");
+
+      session = beginNextRound(readyForNextRound, "공주", ["백작부인"]);
 
       session = forceImmediateWin(
         session,

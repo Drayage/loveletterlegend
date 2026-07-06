@@ -87,6 +87,9 @@ const CHARACTER_LETTER_RULES: Partial<Record<CharacterSlotId, string[]>> = {
 function deckEffectText(effect?: DeckEffect): string | null {
   if (!effect) return null;
   if (effect.kind === "add") return `등장: 다음 라운드부터 덱에 「${effect.cardName}」을(를) 추가합니다.`;
+  if (effect.kind === "optionalRound") {
+    return `등장: 매 라운드 시작시 「${effect.cardName}」을(를) 이번 라운드 덱에 넣을지 선택할 수 있습니다.`;
+  }
   if (effect.kind === "replace") {
     const count = effect.count && effect.count > 1 ? ` ${effect.count}장` : "";
     return `등장: 다음 라운드부터 「${effect.removeName}」을(를) 빼고 「${effect.addName}」${count}을(를) 덱에 넣습니다.`;
@@ -97,17 +100,6 @@ function deckEffectText(effect?: DeckEffect): string | null {
     return `등장: 다음 라운드부터 ${removed || "카드 변화 없음"}을(를) 빼고 ${added || "추가 카드 없음"}을(를) 덱에 넣습니다.`;
   }
   return `등장: 다음 라운드부터 「${effect.removedName}」을(를) 빼고 「${effect.restoreName}」을(를) 원래 덱으로 되돌립니다.`;
-}
-
-function passiveEventText(card: ArchiveCardState, hasVisibleMechanics: boolean): string | null {
-  if (hasVisibleMechanics) return null;
-  if (card.category === "character") {
-    return "공개 이벤트: 새 캐릭터가 이야기 보관소에 기록됩니다. 현재 즉시 적용되는 덱/토큰 규칙 변화는 없습니다.";
-  }
-  if (card.category === "identity") {
-    return "공개 이벤트: 정체 후보가 기록됩니다. 탈락한 플레이어가 정체를 고르는 단계에서 사용됩니다.";
-  }
-  return "공개 이벤트: 새 이야기가 보관소에 기록됩니다. 현재 즉시 적용되는 덱/토큰 규칙 변화는 없습니다.";
 }
 
 const CHARACTER_ACHIEVEMENTS: Partial<
@@ -164,13 +156,6 @@ export function ArchiveCardDetail({
   const characterLetterTokens = characterSlot && letterTokens ? letterTokens[characterSlot] : null;
   const letterRules = characterSlot ? CHARACTER_LETTER_RULES[characterSlot] ?? [] : [];
   const achievements = characterSlot ? CHARACTER_ACHIEVEMENTS[characterSlot] ?? [] : [];
-  const hasCharacterMechanics = Boolean(
-    characterSlot && (letterRules.length > 0 || achievements.length > 0 || characterLetterTokens)
-  );
-  const passiveEvent = passiveEventText(
-    card,
-    Boolean(deckEffect) || openConditions.length > 0 || earnRules.length > 0 || hasCharacterMechanics
-  );
   const characterProgress =
     characterSlot ? (
       <div className="archive-card-detail__character">
@@ -252,7 +237,6 @@ export function ArchiveCardDetail({
               {rule}
             </p>
           ))}
-          {passiveEvent && <p className="archive-card-detail__passive-event">{passiveEvent}</p>}
           {characterProgress}
         </div>
       </div>

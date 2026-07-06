@@ -125,6 +125,8 @@ export interface SessionState {
    * 이야기 보관소 공개로 인해 기본 16장 덱에 permanently 추가되는 카드
    * 이름 목록 -- 매 라운드 setupRound에 그대로 넘긴다. */
   extraDeckCardNames: CardName[];
+  optionalRoundDeckCardNames: CardName[];
+  activeOptionalRoundDeckCardNames: CardName[];
   /** 032가 공개하면 채워지는, 아직 아무도 고르지 않은 「정체」 카드 id 풀
    * (033~038). 032가 아직 공개되지 않았다면 빈 배열. */
   identityPool: string[];
@@ -231,6 +233,8 @@ export function startSession(playerConfigs: PlayerConfig[], initialRoute: Route 
     pendingArchivePlacement: null,
     pendingLetterChoice: null,
     extraDeckCardNames: [],
+    optionalRoundDeckCardNames: [],
+    activeOptionalRoundDeckCardNames: [],
     identityPool: [],
     playerIdentities,
     pendingIdentityChoice: null,
@@ -381,6 +385,8 @@ function resolveArchiveConditions(
 function applyDeckEffect(session: SessionState, effect: DeckEffect): void {
   if (effect.kind === "add") {
     if (!session.extraDeckCardNames.includes(effect.cardName)) session.extraDeckCardNames.push(effect.cardName);
+  } else if (effect.kind === "optionalRound") {
+    if (!session.optionalRoundDeckCardNames.includes(effect.cardName)) session.optionalRoundDeckCardNames.push(effect.cardName);
   } else if (effect.kind === "replace") {
     if (session.removedBaseCardNames.includes(effect.removeName)) return;
     for (let i = 0; i < (effect.count ?? 1); i++) {
@@ -999,7 +1005,7 @@ export function nextRoundLeader(session: SessionState): string {
 
 /** `route`는 다음 라운드를 이끄는 플레이어(nextRoundLeader -- 직전 라운드
  * 승자)가 결정한다. 다른 플레이어는 결과만 본다. */
-export function beginNextRound(session: SessionState, route: Route): SessionState {
+export function beginNextRound(session: SessionState, route: Route, activeOptionalRoundDeckCardNames?: CardName[]): SessionState {
   if (session.ended) throw new Error("세션이 이미 종료되었습니다.");
   if (session.pendingLetterChoice) throw new Error("편지 토큰 배치가 끝나지 않았습니다.");
   if (session.pendingArchivePlacement) throw new Error("이야기 보관소 토큰 배치가 끝나지 않았습니다.");
@@ -1008,6 +1014,7 @@ export function beginNextRound(session: SessionState, route: Route): SessionStat
   const next: SessionState = structuredClone(session);
   const leaderId = nextRoundLeader(next);
   next.currentRoute = route;
+  next.activeOptionalRoundDeckCardNames = activeOptionalRoundDeckCardNames ?? next.activeOptionalRoundDeckCardNames;
   next.roundNumber += 1;
   // 017 「시간」의 "시작" 태그: 라운드 시작 시 [시계] 개수를 확인해 공개.
   // 라운드 종료 이벤트와 순서가 섞이지 않도록 여기(다음 라운드가 실제로
@@ -1023,15 +1030,17 @@ export function beginNextRound(session: SessionState, route: Route): SessionStat
     next.storyArchive.some((c) => c.id === "039") && next.festivalDeck.length > 0
       ? (next.festivalDeck.shift() ?? null)
       : null;
-  const roundExtraDeckCardNames = [...next.extraDeckCardNames];
-  if (
-    next.storyArchive.some((c) => c.id === "196" || c.id === "199") &&
-    !roundExtraDeckCardNames.includes("백작부인")
-  ) {
-    roundExtraDeckCardNames.push("백작부인");
-  }
+  const optionalPrincessCardNames = new Set<CardName>(["공주둘째", "공주셋째"]);
+  const activeOptionalPrincess = next.activeOptionalRoundDeckCardNames.find((name) => optionalPrincessCardNames.has(name));
+  const roundExtraDeckCardNames = [
+    ...next.extraDeckCardNames.filter((name) => !optionalPrincessCardNames.has(name)),
+    ...next.activeOptionalRoundDeckCardNames,
+  ];
+  const roundRemovedBaseCardNames: CardName[] = activeOptionalPrincess
+    ? [...next.removedBaseCardNames, "공주"]
+    : next.removedBaseCardNames;
   next.round = {
-    ...setupRound(next.playerConfigs, leaderId, roundExtraDeckCardNames, next.removedBaseCardNames),
+    ...setupRound(next.playerConfigs, leaderId, roundExtraDeckCardNames, roundRemovedBaseCardNames),
     activeCardUpgrades: upgrades,
     activeIdentities,
     activeFestivalCardId,

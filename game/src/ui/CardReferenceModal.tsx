@@ -20,13 +20,16 @@ function currentDeckEntries(session?: SessionState): Array<{ name: CardName; cou
   for (const name of session?.extraDeckCardNames ?? []) {
     counts[name] = (counts[name] ?? 0) + 1;
   }
-  if (session?.storyArchive.some((c) => c.id === "196" || c.id === "199")) {
-    counts.백작부인 = Math.max(counts.백작부인 ?? 0, 1);
+  for (const name of session?.activeOptionalRoundDeckCardNames ?? []) {
+    counts[name] = (counts[name] ?? 0) + 1;
+  }
+  if (session?.activeOptionalRoundDeckCardNames.some((name) => name === "공주둘째" || name === "공주셋째")) {
+    counts.공주 = Math.max(0, (counts.공주 ?? 0) - 1);
   }
 
   const extraNames = [
     ...(session?.extraDeckCardNames ?? []),
-    ...(session?.storyArchive.some((c) => c.id === "196" || c.id === "199") ? (["백작부인"] as CardName[]) : []),
+    ...(session?.activeOptionalRoundDeckCardNames ?? []),
   ].filter((name) => !CARD_ORDER.includes(name));
   const orderedNames = [...CARD_ORDER, ...Array.from(new Set(extraNames))];
   return orderedNames

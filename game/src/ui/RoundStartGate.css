@@ -11,6 +11,38 @@
   font-weight: 600;
 }
 
+.round-start-gate__optional {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.round-start-gate__optional-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.round-start-gate__optional-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.round-start-gate__optional-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .round-start-gate__start-btn {
   align-self: flex-start;
   font-family: inherit;

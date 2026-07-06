@@ -1751,9 +1751,9 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     name: "루나 공주",
     category: "character",
     art: princessSecond,
-    deckEffect: { kind: "add", cardName: "공주둘째" },
+    deckEffect: { kind: "optionalRound", cardName: "공주둘째" },
     flavor:
-      "당신은 지적인 분위기를 풍기는 루나 공주를 마음에 두고 있습니다. [등장] 「공주(둘째)」를 덱에 추가합니다.",
+      "당신은 지적인 분위기를 풍기는 루나 공주를 마음에 두고 있습니다. 매 라운드 시작시 「공주(둘째)」를 이번 라운드 덱에 넣을 수 있습니다.",
     conditions: [],
   },
   "192": {
@@ -1769,9 +1769,9 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     name: "마가렛 공주",
     category: "character",
     art: princessThird,
-    deckEffect: { kind: "add", cardName: "공주셋째" },
+    deckEffect: { kind: "optionalRound", cardName: "공주셋째" },
     flavor:
-      "말괄량이로 유명한 마가렛 공주는 가끔 성 아래를 방문해서는 사람들과 다양한 교류를 하고 있습니다. [등장] 「공주(셋째)」를 덱에 추가합니다.",
+      "말괄량이로 유명한 마가렛 공주는 가끔 성 아래를 방문해서는 사람들과 다양한 교류를 하고 있습니다. 매 라운드 시작시 「공주(셋째)」를 이번 라운드 덱에 넣을 수 있습니다.",
     conditions: [],
   },
   "195": {
@@ -1794,9 +1794,10 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
       "「어머, 귀여운 아이네...」마차의 창으로 나온 백작부인이 투명할 만큼 흰 손가락이 당신의 얼굴을 쓰다듬습니다. 그 오싹한 감각은 마치 사신에게 닿은 것처럼 느껴졌지만, 당신은 그녀에게 매료되어 움직일 수 없었습니다. 정말로, 이 사랑을 좇아도 되는 것일까요...",
     conditionsTitle: "라운드 시작/종료 시 확인",
     earnRules: [
-      "매 라운드 시작시 「백작부인」을 이번 라운드 덱에 추가: 등장",
+      "매 라운드 시작시 「백작부인」을 이번 라운드 덱에 추가할 수 있음",
       "「백작부인」을 손에 들고 라운드 승리: 성공",
     ],
+    deckEffect: { kind: "optionalRound", cardName: "백작부인" },
     conditions: [
       {
         id: "196-win",

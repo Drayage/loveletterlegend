@@ -120,7 +120,7 @@ export default function App() {
   const [endSummaryAcknowledged, setEndSummaryAcknowledged] = useState(false);
   const [pendingStoryEvent, setPendingStoryEvent] = useState<ArchiveCardState[] | null>(null);
   const [pendingChoiceResult, setPendingChoiceResult] = useState<ResolvedChoiceInfo | null>(null);
-  const [pendingRoundStart, setPendingRoundStart] = useState<{ route: Route; chosenBy: string } | null>(null);
+  const [pendingRoundStart, setPendingRoundStart] = useState<{ route: Route; chosenBy: string; optionalCards: CardName[]; selectedOptionalCards: CardName[] } | null>(null);
   const [roundStartLockedNumber, setRoundStartLockedNumber] = useState<number | null>(null);
   const handledDecisionRef = useRef<string | null>(null);
   const handledArchiveRef = useRef<SessionState["pendingArchivePlacement"]>(null);
@@ -401,14 +401,14 @@ export default function App() {
     setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseGuess(s, name))) ?? prev : prev));
   }
 
-  function proceedToNextRound(route: Route) {
+  function proceedToNextRound(route: Route, selectedOptionalCards: CardName[] = []) {
     handledDecisionRef.current = null;
     handledArchiveRef.current = null;
     handledLetterChoiceRef.current = null;
     handledIdentityRef.current = null;
     handledChoiceRef.current = null;
     setRoundStartLockedNumber(session ? session.roundNumber + 1 : null);
-    setSession((prev) => (prev ? safely(() => beginNextRound(prev, route)) ?? prev : prev));
+    setSession((prev) => (prev ? safely(() => beginNextRound(prev, route, selectedOptionalCards)) ?? prev : prev));
     setShowRouteSwitch(false);
     setPendingRoundStart(null);
   }
@@ -419,7 +419,13 @@ export default function App() {
   // cascade. Only its own "N주차 시작" click actually calls proceedToNextRound.
   function requestRoundStart(route: Route, chosenBy: string) {
     setShowRouteSwitch(false);
-    setPendingRoundStart({ route, chosenBy });
+    const optionalCards = session?.optionalRoundDeckCardNames ?? [];
+    setPendingRoundStart({
+      route,
+      chosenBy,
+      optionalCards,
+      selectedOptionalCards: session?.activeOptionalRoundDeckCardNames.filter((name) => optionalCards.includes(name)) ?? [],
+    });
   }
 
   function handlePlaceArchiveToken(cardId: string, token: "성공" | "실패") {
@@ -851,7 +857,16 @@ export default function App() {
             upcomingRoundNumber={session.roundNumber + 1}
             route={pendingRoundStart.route}
             chooserName={displayNameFor(pendingRoundStart.chosenBy)}
-            onStart={() => proceedToNextRound(pendingRoundStart.route)}
+            optionalCards={pendingRoundStart.optionalCards}
+            selectedOptionalCards={pendingRoundStart.selectedOptionalCards}
+            onToggleOptionalCard={(cardName) =>
+              setPendingRoundStart((prev) => {
+                if (!prev) return prev;
+                const selected = prev.selectedOptionalCards.includes(cardName) ? [] : [cardName];
+                return { ...prev, selectedOptionalCards: selected };
+              })
+            }
+            onStart={() => proceedToNextRound(pendingRoundStart.route, pendingRoundStart.selectedOptionalCards)}
           />
         )}
 

@@ -1,6 +1,5 @@
 import type { CardInstance, CardName, CharacterUpgradeTier, GameState, GuessOption, PlayerState } from "./types";
 import { nextLogId } from "./clone";
-import { ALL_CARD_NAMES } from "./cards";
 
 export function log(draft: GameState, message: string): void {
   draft.log.push({ id: nextLogId(), message });
@@ -160,9 +159,21 @@ export function needsGuess(cardName: CardName): boolean {
   return cardName === "경비병" || cardName === "신병";
 }
 
-export function guessOptionsFor(cardName: CardName): GuessOption[] {
+export function currentRoundCardNames(state: GameState): CardName[] {
+  const names = new Set<CardName>();
+  for (const c of state.deck) names.add(c.name);
+  if (state.hiddenRemovedCard) names.add(state.hiddenRemovedCard.name);
+  for (const c of state.faceUpRemovedCards) names.add(c.name);
+  for (const p of state.players) {
+    for (const c of p.hand) names.add(c.name);
+    for (const c of p.discardPile) names.add(c.name);
+  }
+  return [...names];
+}
+
+export function guessOptionsFor(cardName: CardName, state?: GameState): GuessOption[] {
   if (cardName === "신병") return ["홀수", "짝수"];
-  return ALL_CARD_NAMES.filter((n) => n !== "경비병");
+  return (state ? currentRoundCardNames(state) : []).filter((n) => n !== "경비병");
 }
 
 export interface ResolveArgs {
@@ -379,7 +390,7 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       const reusedTargets = targetsFor(draft, actingPlayerId, reused.name, upgrade);
       const reusedTargetId =
         reusedTargets.length > 0 ? reusedTargets[Math.floor(Math.random() * reusedTargets.length)] : undefined;
-      const guessableOptions = guessOptionsFor(reused.name);
+      const guessableOptions = guessOptionsFor(reused.name, draft);
       const reusedGuess = needsGuess(reused.name)
         ? guessableOptions[Math.floor(Math.random() * guessableOptions.length)]
         : undefined;

@@ -191,7 +191,7 @@ export function chooseTarget(state: GameState, targetId: string): GameState {
       cardInstanceId: draft.pendingDecision.cardInstanceId,
       cardName,
       targetId,
-      options: guessOptionsFor(cardName),
+      options: guessOptionsFor(cardName, draft),
     };
     return draft;
   }
