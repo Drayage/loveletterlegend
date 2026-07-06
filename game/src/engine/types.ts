@@ -107,6 +107,7 @@ export interface RevealInfo {
    * physical game where only the acting player learns the result). */
   viewerPlayerId: string;
   cardName: CardName;
+  actorDisplayName?: string;
   targetDisplayName: string;
   /** 광대: the card seen in the target's hand. */
   targetCard?: CardName;
@@ -181,6 +182,7 @@ export interface GameState {
     cardName: CardName;
     guess: GuessOption;
     hit: boolean;
+    revealedCardName?: CardName;
   } | null;
   /** Public: a forced-discard resolution (마술사/마술사의도제 계열) -- shown
    * to both sides since the discard pile is always public information, so
@@ -323,7 +325,7 @@ export interface ArchiveCardState {
    * route characters), so they're shown as their own section rather than
    * lumped in with 캐릭터. */
   category: "character" | "scenario" | "identity";
-  /** Portrait shown next to character/identity cards. */
+  /** Portrait shown next to cards that have a readable face/person cue. */
   art?: string;
   flavor: string;
   /** True for cards whose real text carries the [조건] tag (053). Only

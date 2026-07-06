@@ -381,9 +381,10 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
     expect(session.festivalDeck).toEqual(["041", "042", "040"]);
   });
 
-  it("025's [실패] threshold (kingElimination + 8+ 편지) removes 025 from the archive", () => {
+  it("025's [실패] threshold reveals 027 and removes 왕 from future decks", () => {
     let session = startSession(PLAYERS);
     session.letterTokens["잉그리드공주"]["p2"] = 8;
+    session.extraDeckCardNames = ["왕"];
     session = forceImmediateWin(
       session,
       "p1",
@@ -406,6 +407,8 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
       [{ type: "kingElimination", playerId: "p2" }]
     );
     expect(session.storyArchive.some((c) => c.id === "025")).toBe(false);
+    expect(session.storyArchive.some((c) => c.id === "027")).toBe(true);
+    expect(session.extraDeckCardNames).not.toContain("왕");
   });
 
   it("025's [실패] threshold does NOT fire when the eliminated player has under 8 편지", () => {

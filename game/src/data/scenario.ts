@@ -99,6 +99,8 @@ import wizardApprentice from "../assets/cards/extra/5. 마술사의 도제.jpg";
 import princessSecond from "../assets/cards/extra/8. 공주(둘째).jpg";
 import princessThird from "../assets/cards/extra/8. 공주(셋째).jpg";
 import nobleLady from "../assets/cards/extra/8. 귀족영애.jpg";
+import king from "../assets/cards/extra/X. 왕.jpg";
+import queen from "../assets/cards/extra/왕비.jpg";
 
 export type ArchiveConditionSeed =
   | {
@@ -125,8 +127,8 @@ export interface ArchiveCardSeed {
   name: string;
   /** Matches the real card's data/cards.json "category" -- drives the
    * 캐릭터/정체/시나리오 split in the story archive UI (see types.ts's
-   * ArchiveCardState.category). Character/identity cards show a portrait
-   * alongside their text; scenario cards don't. */
+   * ArchiveCardState.category). Cards with art show a portrait alongside
+   * their text, including character-like scenario cards such as 025/027. */
   category: "character" | "scenario" | "identity";
   /** Portrait shown next to character/identity cards. */
   art?: string;
@@ -237,14 +239,14 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "025",
     name: "국왕 랜들 3세",
     category: "scenario",
+    art: king,
     flavor: "「무엄하도다!」",
     // 실카드: [등장] 《X 왕》[026]을 덱에 추가 -- deckEffect로 모델링
     // (026 카드 자체는 engine/cards.ts에 "왕" CardName으로 구현됨). [도중]
     // 《왕》 효과로 탈락 + [편지]8개 이상 시 이 카드에 [실패] --
     // addArchiveToken 호출은 session.ts의 kingElimination 이벤트 처리에서.
-    // [조건] [실패] 1개 이상 -> [027] 공개인데 027은 이 v1 슬라이스 범위
-    // 밖이라 revealIds를 비워 체크만 되고 아무것도 공개하지 않는다 (023의
-    // 소소한 분기들과 동일 패턴). [조건] 태그가 있으므로 conditionTag:true.
+    // [조건] [실패] 1개 이상 -> [027] 공개. [조건] 태그가 있으므로
+    // conditionTag:true.
     deckEffect: { kind: "add", cardName: "왕" },
     conditionTag: true,
     conditionsTitle: "라운드 종료 시 확인",
@@ -255,10 +257,20 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
         label: "[실패] 1개 이상",
         token: "실패",
         threshold: 1,
-        revealIds: [],
+        revealIds: ["027"],
         removeIds: ["025"],
       },
     ],
+  },
+  "027": {
+    id: "027",
+    name: "왕비 릴리안",
+    category: "scenario",
+    art: queen,
+    flavor: "「여보, 그만두시지요」",
+    deckEffect: { kind: "revert", removedName: "왕", restoreName: "왕" },
+    conditionsTitle: "라운드 종료 시",
+    conditions: [],
   },
   "032": {
     id: "032",

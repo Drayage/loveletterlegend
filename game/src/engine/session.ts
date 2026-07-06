@@ -506,6 +506,10 @@ function applySessionRoundEnd(session: SessionState): SessionState {
     // (실제 카드는 이 추가분을 "선택"으로 두지만, v1은 017 자체의 승리
     // 포상과 동일하게 자동 지급으로 단순화한다).
     if (next.storyArchive.some((c) => c.id === "049")) amount += 1;
+    // 027 「왕비 릴리안」의 종료 tag: 라운드 종료시 승자는 「공주/왕자」 위에
+    // 추가로 +[편지] 해도 된다. v1은 다른 라운드 승리 보너스와 함께 한 번의
+    // 배치 선택으로 합산한다.
+    if (next.storyArchive.some((c) => c.id === "027")) amount += 1;
     // 050 「역사 8」의 "중요" tag: 라운드 승자는 추가 +1, 「공주」를 들고
     // 승리했다면 대응 캐릭터에 추가 +2 더 (역시 자동 지급으로 단순화).
     if (next.storyArchive.some((c) => c.id === "050")) {

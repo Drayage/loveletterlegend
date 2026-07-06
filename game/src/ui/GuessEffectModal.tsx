@@ -6,7 +6,13 @@ import { Modal } from "./Modal";
 import "./GuessEffectModal.css";
 
 interface GuessEffectModalProps {
-  effect: { id: string; cardName: CardName; guess: GuessOption; hit: boolean } | null;
+  effect: {
+    id: string;
+    cardName: CardName;
+    guess: GuessOption;
+    hit: boolean;
+    revealedCardName?: CardName;
+  } | null;
   actingDisplayName: string;
   targetDisplayName: string;
   onDismiss: () => void;
@@ -29,6 +35,7 @@ export function GuessEffectModal({ effect, actingDisplayName, targetDisplayName,
 
   if (!effect) return null;
   const isCardGuess = effect.guess in CARD_DEFS;
+  const revealedCardName = effect.revealedCardName ?? (isCardGuess ? (effect.guess as CardName) : null);
 
   return (
     <Modal title={`「${effect.cardName}」 효과`} onClose={onDismiss} dismissible={false}>
@@ -37,8 +44,8 @@ export function GuessEffectModal({ effect, actingDisplayName, targetDisplayName,
           {actingDisplayName}이(가) {targetDisplayName}을(를) 지목하고 「{effect.guess}」(이)라고 추측합니다.
         </p>
         <div key={revealed ? "front" : "back"} className="guess-effect__card-wrap">
-          {isCardGuess ? (
-            <Card name={effect.guess as CardName} faceDown={!revealed} size="lg" />
+          {revealedCardName ? (
+            <Card name={revealedCardName} faceDown={!revealed} size="lg" />
           ) : (
             <div className="guess-effect__text-card" aria-hidden={!revealed}>
               {revealed ? effect.guess : "?"}

@@ -475,6 +475,7 @@ describe("Public effect popups (lastGuessEffect / lastForcedDiscard / lastEffect
       cardName: "경비병",
       guess: "공주",
       hit: true,
+      revealedCardName: "공주",
     });
     expect(state.players[1].eliminated).toBe(true);
     expect(state.lastElimination?.playerId).toBe("p2");

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { CardName, RevealInfo } from "../engine/types";
 import { Card } from "./Card";
 import { Modal } from "./Modal";
@@ -24,6 +25,15 @@ const COMPARE_TITLES: Partial<Record<CardName, string>> = {
 };
 
 export function EffectRevealModal({ reveal, onDismiss }: EffectRevealModalProps) {
+  const [compareRevealed, setCompareRevealed] = useState(false);
+
+  useEffect(() => {
+    setCompareRevealed(false);
+    if (!reveal?.compare) return;
+    const timer = setTimeout(() => setCompareRevealed(true), 650);
+    return () => clearTimeout(timer);
+  }, [reveal?.id, reveal?.compare]);
+
   if (!reveal) return null;
 
   const close = onDismiss;
@@ -48,19 +58,25 @@ export function EffectRevealModal({ reveal, onDismiss }: EffectRevealModalProps)
         <div className="reveal-modal">
           <div className="reveal-modal__row">
             <div className="reveal-modal__col">
-              <p className="reveal-modal__caption">내 카드</p>
-              <Card name={actorCard} size="md" />
+              <p className="reveal-modal__caption">{reveal.actorDisplayName ?? "사용자"}의 카드</p>
+              <div key={`actor-${compareRevealed}`} className="reveal-modal__flip-card">
+                <Card name={actorCard} size="md" faceDown={!compareRevealed} />
+              </div>
             </div>
             <div className="reveal-modal__col">
               <p className="reveal-modal__caption">{reveal.targetDisplayName}의 카드</p>
-              <Card name={targetCard} size="md" />
+              <div key={`target-${compareRevealed}`} className="reveal-modal__flip-card">
+                <Card name={targetCard} size="md" faceDown={!compareRevealed} />
+              </div>
             </div>
           </div>
-          <p className="reveal-modal__result">
-            {result === "win" && `승리! ${reveal.targetDisplayName}이(가) 탈락합니다.`}
-            {result === "lose" && "패배... 내가 탈락합니다."}
-            {result === "tie" && "무승부, 아무 일도 일어나지 않습니다."}
-          </p>
+          {compareRevealed && (
+            <p className="reveal-modal__result">
+              {result === "win" && `승리! ${reveal.targetDisplayName}이(가) 탈락합니다.`}
+              {result === "lose" && `${reveal.actorDisplayName ?? "사용자"}이(가) 탈락합니다.`}
+              {result === "tie" && "무승부, 아무 일도 일어나지 않습니다."}
+            </p>
+          )}
         </div>
       </Modal>
     );

@@ -175,7 +175,8 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
         return;
       }
       const target = getPlayer(draft, targetId);
-      const hit = target.hand.some((c) => guessHits(card.name, c.name, guess));
+      const revealedCard = target.hand.find((c) => guessHits(card.name, c.name, guess));
+      const hit = Boolean(revealedCard);
       log(draft, `${actor.displayName}: ${target.displayName}을(를) 지목하고 「${guess}」(이)라고 추측합니다.`);
       draft.sessionEvents?.push({ type: "guardGuessResolved", actingPlayerId, hit, cardName: card.name });
       draft.lastGuessEffect = {
@@ -185,6 +186,7 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
         cardName: card.name,
         guess,
         hit,
+        revealedCardName: hit ? revealedCard?.name : undefined,
       };
       if (hit) {
         eliminatePlayer(draft, targetId, `「${card.name}」 추측 적중`);
@@ -258,6 +260,7 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
         id: nextLogId(),
         viewerPlayerId: actingPlayerId,
         cardName: card.name,
+        actorDisplayName: actor.displayName,
         targetDisplayName: target.displayName,
         compare: {
           actorCard: actorCard.name,

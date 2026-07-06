@@ -43,7 +43,7 @@ export function ArchiveCardDetail({
   return (
     <div className="archive-card-detail">
       <div className="archive-card-detail__header">
-        {(card.category === "character" || card.category === "identity") && card.art && (
+        {card.art && (
           <img className="archive-card-detail__portrait" src={card.art} alt={card.name} />
         )}
         <div className="archive-card-detail__header-text">

@@ -7,11 +7,12 @@ import "./DecisionPanel.css";
 interface DecisionPanelProps {
   state: GameState;
   decision: PendingDecision;
+  remaining: Partial<Record<CardName, number>>;
   onChooseTarget: (targetId: string) => void;
   onChooseGuess: (name: GuessOption) => void;
 }
 
-export function DecisionPanel({ state, decision, onChooseTarget, onChooseGuess }: DecisionPanelProps) {
+export function DecisionPanel({ state, decision, remaining, onChooseTarget, onChooseGuess }: DecisionPanelProps) {
   if (decision.kind === "chooseTarget") {
     return (
       <Modal title={`「${decision.cardName}」 대상 선택`} onClose={() => {}} dismissible={false}>
@@ -53,7 +54,11 @@ export function DecisionPanel({ state, decision, onChooseTarget, onChooseGuess }
                   className="decision-panel__guess-btn"
                   onClick={() => onChooseGuess(guess)}
                 >
-                  {isCardName ? <Card name={guess as CardName} size="sm" /> : <span>{guess}</span>}
+                  {isCardName ? (
+                    <Card name={guess as CardName} size="sm" remainingCount={remaining[guess as CardName]} />
+                  ) : (
+                    <span>{guess}</span>
+                  )}
                 </button>
               );
             })}

@@ -48,7 +48,6 @@ import { RoundStartGate } from "./ui/RoundStartGate";
 import { EliminationModal } from "./ui/EliminationModal";
 import { GuessEffectModal } from "./ui/GuessEffectModal";
 import { ForcedDiscardModal } from "./ui/ForcedDiscardModal";
-import { EffectBlockedModal } from "./ui/EffectBlockedModal";
 import { ARCHIVE_CARD_SEEDS } from "./data/scenario";
 import "./App.css";
 
@@ -89,7 +88,6 @@ export default function App() {
   const [dismissedEliminationId, setDismissedEliminationId] = useState<string | null>(null);
   const [dismissedGuessEffectId, setDismissedGuessEffectId] = useState<string | null>(null);
   const [dismissedForcedDiscardId, setDismissedForcedDiscardId] = useState<string | null>(null);
-  const [dismissedEffectBlockedId, setDismissedEffectBlockedId] = useState<string | null>(null);
   const [showRouteSwitch, setShowRouteSwitch] = useState(false);
   const [endSummaryAcknowledged, setEndSummaryAcknowledged] = useState(false);
   const [pendingStoryEvent, setPendingStoryEvent] = useState<ArchiveCardState[] | null>(null);
@@ -110,7 +108,9 @@ export default function App() {
   const round = session?.round ?? null;
 
   const pendingHumanReveal =
-    round?.lastReveal && round.lastReveal.viewerPlayerId === HUMAN_ID && round.lastReveal.id !== dismissedRevealId
+    round?.lastReveal &&
+    (round.lastReveal.viewerPlayerId === HUMAN_ID || round.lastReveal.compare) &&
+    round.lastReveal.id !== dismissedRevealId
       ? round.lastReveal
       : null;
   // Public (not viewer-specific) -- shown regardless of who caused the
@@ -129,15 +129,24 @@ export default function App() {
     round?.lastForcedDiscard && round.lastForcedDiscard.id !== dismissedForcedDiscardId
       ? round.lastForcedDiscard
       : null;
-  const pendingEffectBlocked =
-    round?.lastEffectBlocked && round.lastEffectBlocked.id !== dismissedEffectBlockedId
-      ? round.lastEffectBlocked
-      : null;
+  const flowBlocked =
+    Boolean(pendingHumanReveal) ||
+    Boolean(pendingGuessEffect) ||
+    Boolean(pendingForcedDiscard) ||
+    Boolean(pendingElimination) ||
+    Boolean(pendingChoiceResult) ||
+    Boolean(pendingStoryEvent) ||
+    Boolean(pendingRoundStart) ||
+    Boolean(showRouteSwitch) ||
+    Boolean(session?.pendingLetterChoice) ||
+    Boolean(session?.pendingArchivePlacement) ||
+    Boolean(session?.pendingIdentityChoice) ||
+    Boolean(session?.pendingChoice);
 
   // AI's normal in-round turn.
   useEffect(() => {
     if (!round || round.roundResult || !round.pendingDecision) return;
-    if (pendingHumanReveal || pendingGuessEffect || pendingForcedDiscard || pendingEffectBlocked) return;
+    if (flowBlocked) return;
     const decision = round.pendingDecision;
     const actor = round.players.find((p) => p.id === decision.playerId);
     if (!actor?.isAI) return;
@@ -151,7 +160,7 @@ export default function App() {
       });
     }, 700);
     return () => clearTimeout(timer);
-  }, [round, pendingHumanReveal, pendingGuessEffect, pendingForcedDiscard, pendingEffectBlocked]);
+  }, [round, flowBlocked]);
 
   // AI's round-win [편지] token placement, when the AI is the round winner.
   useEffect(() => {
@@ -169,7 +178,6 @@ export default function App() {
       pendingHumanReveal ||
       pendingGuessEffect ||
       pendingForcedDiscard ||
-      pendingEffectBlocked ||
       pendingElimination ||
       pendingChoiceResult ||
       pendingStoryEvent
@@ -196,7 +204,6 @@ export default function App() {
     pendingHumanReveal,
     pendingGuessEffect,
     pendingForcedDiscard,
-    pendingEffectBlocked,
     pendingElimination,
     pendingChoiceResult,
     pendingStoryEvent,
@@ -216,7 +223,6 @@ export default function App() {
       pendingHumanReveal ||
       pendingGuessEffect ||
       pendingForcedDiscard ||
-      pendingEffectBlocked ||
       pendingElimination ||
       pendingChoiceResult ||
       pendingStoryEvent
@@ -248,7 +254,6 @@ export default function App() {
     pendingHumanReveal,
     pendingGuessEffect,
     pendingForcedDiscard,
-    pendingEffectBlocked,
     pendingElimination,
     pendingChoiceResult,
     pendingStoryEvent,
@@ -265,7 +270,6 @@ export default function App() {
       pendingHumanReveal ||
       pendingGuessEffect ||
       pendingForcedDiscard ||
-      pendingEffectBlocked ||
       pendingElimination ||
       pendingChoiceResult ||
       pendingStoryEvent
@@ -291,7 +295,6 @@ export default function App() {
     pendingHumanReveal,
     pendingGuessEffect,
     pendingForcedDiscard,
-    pendingEffectBlocked,
     pendingElimination,
     pendingChoiceResult,
     pendingStoryEvent,
@@ -308,7 +311,6 @@ export default function App() {
       pendingHumanReveal ||
       pendingGuessEffect ||
       pendingForcedDiscard ||
-      pendingEffectBlocked ||
       pendingElimination ||
       pendingChoiceResult ||
       pendingStoryEvent
@@ -334,7 +336,6 @@ export default function App() {
     pendingHumanReveal,
     pendingGuessEffect,
     pendingForcedDiscard,
-    pendingEffectBlocked,
     pendingElimination,
     pendingChoiceResult,
     pendingStoryEvent,
@@ -374,7 +375,6 @@ export default function App() {
     setDismissedEliminationId(null);
     setDismissedGuessEffectId(null);
     setDismissedForcedDiscardId(null);
-    setDismissedEffectBlockedId(null);
     setShowRouteSwitch(false);
     setEndSummaryAcknowledged(false);
     setPendingStoryEvent(null);
@@ -541,6 +541,7 @@ export default function App() {
         <DecisionPanel
           state={round}
           decision={decision}
+          remaining={remaining}
           onChooseTarget={handleChooseTarget}
           onChooseGuess={handleChooseGuess}
         />
@@ -554,7 +555,7 @@ export default function App() {
           ended the round) must be read first. Next come the three PUBLIC
           effect popups that narrate what a just-played card actually did
           (pendingGuessEffect's card-flip, pendingForcedDiscard's discard
-          reveal, pendingEffectBlocked's protection notice) -- these explain
+          reveal) -- these explain
           the mechanism before pendingElimination confirms its consequence.
           Then pendingChoiceResult (which 선택 옵션 was just picked, and by
           whom), then pendingStoryEvent (what got revealed as a result of
@@ -590,18 +591,9 @@ export default function App() {
         />
       )}
 
-      {!pendingHumanReveal && !pendingGuessEffect && !pendingForcedDiscard && pendingEffectBlocked && (
-        <EffectBlockedModal
-          effect={pendingEffectBlocked}
-          actingDisplayName={displayNameFor(pendingEffectBlocked.actingPlayerId)}
-          onDismiss={() => setDismissedEffectBlockedId(pendingEffectBlocked.id)}
-        />
-      )}
-
       {!pendingHumanReveal &&
         !pendingGuessEffect &&
         !pendingForcedDiscard &&
-        !pendingEffectBlocked &&
         pendingElimination && (
           <EliminationModal
             playerDisplayName={displayNameFor(pendingElimination.playerId)}
@@ -613,7 +605,6 @@ export default function App() {
       {!pendingHumanReveal &&
         !pendingGuessEffect &&
         !pendingForcedDiscard &&
-        !pendingEffectBlocked &&
         !pendingElimination &&
         pendingChoiceResult && (
           <ChoiceResultModal
@@ -626,7 +617,6 @@ export default function App() {
       {!pendingHumanReveal &&
         !pendingGuessEffect &&
         !pendingForcedDiscard &&
-        !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
         pendingStoryEvent && (
@@ -640,7 +630,6 @@ export default function App() {
       {!pendingHumanReveal &&
         !pendingGuessEffect &&
         !pendingForcedDiscard &&
-        !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
@@ -656,7 +645,6 @@ export default function App() {
       {!pendingHumanReveal &&
         !pendingGuessEffect &&
         !pendingForcedDiscard &&
-        !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
@@ -668,7 +656,6 @@ export default function App() {
       {!pendingHumanReveal &&
         !pendingGuessEffect &&
         !pendingForcedDiscard &&
-        !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
@@ -686,7 +673,6 @@ export default function App() {
       {!pendingHumanReveal &&
         !pendingGuessEffect &&
         !pendingForcedDiscard &&
-        !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
@@ -704,7 +690,6 @@ export default function App() {
       {!pendingHumanReveal &&
         !pendingGuessEffect &&
         !pendingForcedDiscard &&
-        !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
@@ -742,7 +727,6 @@ export default function App() {
       {!pendingHumanReveal &&
         !pendingGuessEffect &&
         !pendingForcedDiscard &&
-        !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
@@ -762,7 +746,6 @@ export default function App() {
       {!pendingHumanReveal &&
         !pendingGuessEffect &&
         !pendingForcedDiscard &&
-        !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
@@ -780,7 +763,6 @@ export default function App() {
       {!pendingHumanReveal &&
         !pendingGuessEffect &&
         !pendingForcedDiscard &&
-        !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&

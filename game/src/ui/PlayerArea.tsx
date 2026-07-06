@@ -42,6 +42,8 @@ export function PlayerArea({
     <section
       className={[
         "player-area",
+        player.protected ? "player-area--protected" : "",
+        player.immuneThisRound ? "player-area--immune" : "",
         player.eliminated ? "player-area--eliminated" : "",
         justEliminated ? "player-area--flash" : "",
       ]
@@ -54,7 +56,18 @@ export function PlayerArea({
           {isCurrentTurn && !player.eliminated && <span className="player-area__turn-badge">차례</span>}
         </h2>
         <div className="player-area__status">
-          {player.protected && <span className="pill pill--protected">보호중</span>}
+          {player.protected && (
+            <span className="pill pill--protected" title="다음 차례까지 카드 효과의 대상이 되지 않습니다.">
+              <span className="pill__icon" aria-hidden="true">◇</span>
+              보호중
+            </span>
+          )}
+          {player.immuneThisRound && (
+            <span className="pill pill--immune" title="이번 라운드에는 탈락하지 않습니다.">
+              <span className="pill__icon" aria-hidden="true">◆</span>
+              탈락 면역
+            </span>
+          )}
           {player.eliminated && <span className="pill pill--eliminated">탈락</span>}
         </div>
       </header>
