@@ -1,3 +1,4 @@
+import { CARD_DEFS } from "../engine/cards";
 import type { RoundSummary } from "../engine/session";
 import type { PlayerConfig } from "../engine/types";
 import { Modal } from "./Modal";
@@ -12,12 +13,31 @@ interface RoundEndSummaryProps {
 
 export function RoundEndSummary({ summary, players, ended, onContinue }: RoundEndSummaryProps) {
   const displayName = (id: string) => players.find((p) => p.id === id)?.displayName ?? id;
+  const handLabel = (cardName: RoundSummary["revealedHands"][number]["cardName"]) =>
+    cardName ? `${CARD_DEFS[cardName].rank}. ${cardName}` : "없음";
 
   return (
     <Modal title={`${summary.roundNumber}주차 결과`} onClose={() => {}} dismissible={false}>
       <div className="round-end-summary">
+        {summary.roundEndReason === "deckExhausted" && (
+          <div className="round-end-summary__deck-exhausted">
+            <p>덱이 0장이 되어 남은 손패 숫자로 승부합니다.</p>
+            <ul>
+              {summary.revealedHands.map((hand) => (
+                <li key={hand.playerId}>
+                  <span>{displayName(hand.playerId)}</span>
+                  <strong>{handLabel(hand.cardName)}</strong>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <p className="round-end-summary__winner">
-          {summary.winnerId ? `${displayName(summary.winnerId)} 승리!` : "이번 라운드는 무승부입니다."}
+          {summary.winnerId
+            ? summary.roundEndReason === "deckExhausted"
+              ? `${displayName(summary.winnerId)} 높은 숫자로 승리!`
+              : `${displayName(summary.winnerId)} 승리!`
+            : "이번 라운드는 무승부입니다."}
         </p>
         <p className="round-end-summary__clock">{summary.roundNumber}주가 지났습니다 (남은 시간 {Math.max(0, 8 - summary.roundNumber)}주)</p>
         {summary.letterTokensGained.length > 0 && (

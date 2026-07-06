@@ -19,6 +19,38 @@
   color: var(--muted);
 }
 
+.round-end-summary__deck-exhausted {
+  width: min(100%, 520px);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.round-end-summary__deck-exhausted p {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.round-end-summary__deck-exhausted ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.round-end-summary__deck-exhausted li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+}
+
 .round-end-summary__letters,
 .round-end-summary__archive,
 .round-end-summary__reveals {

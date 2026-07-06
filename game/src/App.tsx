@@ -48,6 +48,7 @@ import { RoundStartGate } from "./ui/RoundStartGate";
 import { EliminationModal } from "./ui/EliminationModal";
 import { GuessEffectModal } from "./ui/GuessEffectModal";
 import { ForcedDiscardModal } from "./ui/ForcedDiscardModal";
+import { EffectBlockedModal } from "./ui/EffectBlockedModal";
 import { Modal } from "./ui/Modal";
 import { ARCHIVE_CARD_SEEDS } from "./data/scenario";
 import "./App.css";
@@ -89,6 +90,7 @@ export default function App() {
   const [dismissedEliminationId, setDismissedEliminationId] = useState<string | null>(null);
   const [dismissedGuessEffectId, setDismissedGuessEffectId] = useState<string | null>(null);
   const [dismissedForcedDiscardId, setDismissedForcedDiscardId] = useState<string | null>(null);
+  const [dismissedEffectBlockedId, setDismissedEffectBlockedId] = useState<string | null>(null);
   const [showRouteSwitch, setShowRouteSwitch] = useState(false);
   const [endSummaryAcknowledged, setEndSummaryAcknowledged] = useState(false);
   const [pendingStoryEvent, setPendingStoryEvent] = useState<ArchiveCardState[] | null>(null);
@@ -138,10 +140,15 @@ export default function App() {
     canShowRoundEffects && round?.lastForcedDiscard && round.lastForcedDiscard.id !== dismissedForcedDiscardId
       ? round.lastForcedDiscard
       : null;
+  const pendingEffectBlocked =
+    canShowRoundEffects && round?.lastEffectBlocked && round.lastEffectBlocked.id !== dismissedEffectBlockedId
+      ? round.lastEffectBlocked
+      : null;
   const flowBlocked =
     Boolean(pendingHumanReveal) ||
     Boolean(pendingGuessEffect) ||
     Boolean(pendingForcedDiscard) ||
+    Boolean(pendingEffectBlocked) ||
     Boolean(pendingElimination) ||
     Boolean(pendingChoiceResult) ||
     Boolean(pendingStoryEvent) ||
@@ -186,14 +193,7 @@ export default function App() {
     // otherwise once those popups clear, the dependency-array re-run sees
     // handledLetterChoiceRef already pointing at this exact `pending`
     // object and skips rescheduling forever.
-    if (
-      pendingHumanReveal ||
-      pendingGuessEffect ||
-      pendingForcedDiscard ||
-      pendingElimination ||
-      pendingChoiceResult ||
-      pendingStoryEvent
-    ) {
+    if (flowBlocked) {
       handledLetterChoiceRef.current = null;
       return;
     }
@@ -213,12 +213,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [
     session,
-    pendingHumanReveal,
-    pendingGuessEffect,
-    pendingForcedDiscard,
-    pendingElimination,
-    pendingChoiceResult,
-    pendingStoryEvent,
+    flowBlocked,
   ]);
 
   // AI's story-archive token placement, when it's the AI who was first
@@ -231,14 +226,7 @@ export default function App() {
     const placement = session.pendingArchivePlacement;
     // Same "don't get stuck" fix as the letter-choice effect above: clear
     // the marker rather than leaving it stale while blocked.
-    if (
-      pendingHumanReveal ||
-      pendingGuessEffect ||
-      pendingForcedDiscard ||
-      pendingElimination ||
-      pendingChoiceResult ||
-      pendingStoryEvent
-    ) {
+    if (flowBlocked) {
       handledArchiveRef.current = null;
       return;
     }
@@ -263,12 +251,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [
     session,
-    pendingHumanReveal,
-    pendingGuessEffect,
-    pendingForcedDiscard,
-    pendingElimination,
-    pendingChoiceResult,
-    pendingStoryEvent,
+    flowBlocked,
   ]);
 
   // AI's 032 「정체」 card selection, when the AI was eliminated without one.
@@ -278,14 +261,7 @@ export default function App() {
       return;
     }
     const pending = session.pendingIdentityChoice;
-    if (
-      pendingHumanReveal ||
-      pendingGuessEffect ||
-      pendingForcedDiscard ||
-      pendingElimination ||
-      pendingChoiceResult ||
-      pendingStoryEvent
-    ) {
+    if (flowBlocked) {
       handledIdentityRef.current = null;
       return;
     }
@@ -304,12 +280,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [
     session,
-    pendingHumanReveal,
-    pendingGuessEffect,
-    pendingForcedDiscard,
-    pendingElimination,
-    pendingChoiceResult,
-    pendingStoryEvent,
+    flowBlocked,
   ]);
 
   // AI's 실카드 "선택" 분기 결정, when the eligible player (round winner) is the AI.
@@ -319,14 +290,7 @@ export default function App() {
       return;
     }
     const pending = session.pendingChoice;
-    if (
-      pendingHumanReveal ||
-      pendingGuessEffect ||
-      pendingForcedDiscard ||
-      pendingElimination ||
-      pendingChoiceResult ||
-      pendingStoryEvent
-    ) {
+    if (flowBlocked) {
       handledChoiceRef.current = null;
       return;
     }
@@ -345,12 +309,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [
     session,
-    pendingHumanReveal,
-    pendingGuessEffect,
-    pendingForcedDiscard,
-    pendingElimination,
-    pendingChoiceResult,
-    pendingStoryEvent,
+    flowBlocked,
   ]);
 
   // Show a readable popup (with full flavor text + conditions) whenever new
@@ -387,6 +346,7 @@ export default function App() {
     setDismissedEliminationId(null);
     setDismissedGuessEffectId(null);
     setDismissedForcedDiscardId(null);
+    setDismissedEffectBlockedId(null);
     setShowRouteSwitch(false);
     setEndSummaryAcknowledged(false);
     setPendingStoryEvent(null);
@@ -505,7 +465,13 @@ export default function App() {
             <span className="removed-row__label">
               {round.faceUpRemovedCards.length > 0 ? "공개 제거된 카드" : "공개 제거된 카드 없음"}
             </span>
-            <span className="removed-row__deck-count">덱 {round.deck.length}장 남음</span>
+            <span
+              className={`removed-row__deck-count${
+                round.deck.length === 0 ? " removed-row__deck-count--empty" : ""
+              }`}
+            >
+              {round.deck.length === 0 ? "덱 0장: 숫자 비교" : `덱 ${round.deck.length}장 남음`}
+            </span>
           </div>
           {round.faceUpRemovedCards.length > 0 && (
             <div className="removed-row__cards">
@@ -636,9 +602,18 @@ export default function App() {
         />
       )}
 
+      {!pendingHumanReveal && !pendingGuessEffect && !pendingForcedDiscard && pendingEffectBlocked && (
+        <EffectBlockedModal
+          effect={pendingEffectBlocked}
+          actingDisplayName={displayNameFor(pendingEffectBlocked.actingPlayerId)}
+          onDismiss={() => setDismissedEffectBlockedId(pendingEffectBlocked.id)}
+        />
+      )}
+
       {!pendingHumanReveal &&
         !pendingGuessEffect &&
         !pendingForcedDiscard &&
+        !pendingEffectBlocked &&
         pendingElimination && (
           <EliminationModal
             playerDisplayName={displayNameFor(pendingElimination.playerId)}
@@ -650,6 +625,7 @@ export default function App() {
       {!pendingHumanReveal &&
         !pendingGuessEffect &&
         !pendingForcedDiscard &&
+        !pendingEffectBlocked &&
         !pendingElimination &&
         pendingChoiceResult && (
           <ChoiceResultModal
@@ -662,6 +638,7 @@ export default function App() {
       {!pendingHumanReveal &&
         !pendingGuessEffect &&
         !pendingForcedDiscard &&
+        !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
         pendingStoryEvent && (
@@ -675,6 +652,7 @@ export default function App() {
       {!pendingHumanReveal &&
         !pendingGuessEffect &&
         !pendingForcedDiscard &&
+        !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
@@ -698,6 +676,7 @@ export default function App() {
       {!pendingHumanReveal &&
         !pendingGuessEffect &&
         !pendingForcedDiscard &&
+        !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
@@ -714,6 +693,7 @@ export default function App() {
       {!pendingHumanReveal &&
         !pendingGuessEffect &&
         !pendingForcedDiscard &&
+        !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
@@ -726,6 +706,7 @@ export default function App() {
       {!pendingHumanReveal &&
         !pendingGuessEffect &&
         !pendingForcedDiscard &&
+        !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
@@ -744,6 +725,7 @@ export default function App() {
       {!pendingHumanReveal &&
         !pendingGuessEffect &&
         !pendingForcedDiscard &&
+        !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
@@ -762,6 +744,7 @@ export default function App() {
       {!pendingHumanReveal &&
         !pendingGuessEffect &&
         !pendingForcedDiscard &&
+        !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
@@ -800,6 +783,7 @@ export default function App() {
       {!pendingHumanReveal &&
         !pendingGuessEffect &&
         !pendingForcedDiscard &&
+        !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
@@ -820,6 +804,7 @@ export default function App() {
       {!pendingHumanReveal &&
         !pendingGuessEffect &&
         !pendingForcedDiscard &&
+        !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
@@ -838,6 +823,7 @@ export default function App() {
       {!pendingHumanReveal &&
         !pendingGuessEffect &&
         !pendingForcedDiscard &&
+        !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&

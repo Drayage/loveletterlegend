@@ -12,6 +12,7 @@ import type {
   DeckEffect,
   GameState,
   PlayerConfig,
+  RoundEndReason,
 } from "./types";
 
 export type { Route } from "../data/routes";
@@ -49,6 +50,8 @@ const LETTER_TOKEN_POOL = 10;
 export interface RoundSummary {
   roundNumber: number;
   winnerId: string | null;
+  roundEndReason: RoundEndReason;
+  revealedHands: Array<{ playerId: string; cardName: CardName | null }>;
   clockTokensGained: number;
   letterTokensGained: Array<{ playerId: string; slot: CharacterSlotId; amount: number; reason?: string }>;
   archiveTokensGained: Array<{ cardId: string; cardName: string; token: "성공" | "실패"; amount: number; reason: string }>;
@@ -711,6 +714,11 @@ function applySessionRoundEnd(session: SessionState): SessionState {
   next.lastRoundSummary = {
     roundNumber: next.roundNumber,
     winnerId,
+    roundEndReason: result.reason,
+    revealedHands: next.playerConfigs.map((cfg) => ({
+      playerId: cfg.id,
+      cardName: result.revealedHands[cfg.id]?.name ?? null,
+    })),
     clockTokensGained: 1,
     letterTokensGained: letterGains,
     archiveTokensGained,

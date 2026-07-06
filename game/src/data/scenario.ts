@@ -250,6 +250,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     deckEffect: { kind: "add", cardName: "왕" },
     conditionTag: true,
     conditionsTitle: "라운드 종료 시 확인",
+    earnRules: ["「왕」 효과로 탈락한 플레이어가 편지 8개 이상 보유: 실패"],
     conditions: [
       {
         id: "025-fail",

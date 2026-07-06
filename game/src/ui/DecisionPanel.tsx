@@ -47,6 +47,7 @@ export function DecisionPanel({ state, decision, remaining, onChooseTarget, onCh
           <div className="decision-panel__guess-grid">
             {decision.options.map((guess) => {
               const isCardName = guess in CARD_DEFS;
+              const remainingCount = isCardName ? (remaining[guess as CardName] ?? 0) : null;
               return (
                 <button
                   key={guess}
@@ -55,7 +56,10 @@ export function DecisionPanel({ state, decision, remaining, onChooseTarget, onCh
                   onClick={() => onChooseGuess(guess)}
                 >
                   {isCardName ? (
-                    <Card name={guess as CardName} size="sm" remainingCount={remaining[guess as CardName]} />
+                    <span className="decision-panel__guess-card">
+                      <Card name={guess as CardName} size="sm" remainingCount={remainingCount ?? undefined} />
+                      <span className="decision-panel__guess-count">남은 {remainingCount}장</span>
+                    </span>
                   ) : (
                     <span>{guess}</span>
                   )}
