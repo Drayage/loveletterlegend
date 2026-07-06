@@ -40,6 +40,8 @@ export type CardName =
    * 등장 태그가 평범한 1회성 추가라 기존 deckEffect로 충분하다. */
   | "귀족영애";
 
+export type GuessOption = CardName | "홀수" | "짝수";
+
 export interface CardDef {
   name: CardName;
   rank: number;
@@ -94,8 +96,9 @@ export type PendingDecision =
       kind: "guessCard";
       playerId: string;
       cardInstanceId: string;
+      cardName: CardName;
       targetId: string;
-      options: CardName[];
+      options: GuessOption[];
     };
 
 export interface RevealInfo {
@@ -176,7 +179,7 @@ export interface GameState {
     actingPlayerId: string;
     targetPlayerId: string;
     cardName: CardName;
-    guess: CardName;
+    guess: GuessOption;
     hit: boolean;
   } | null;
   /** Public: a forced-discard resolution (마술사/마술사의도제 계열) -- shown
@@ -349,4 +352,15 @@ export interface ArchiveCardState {
  * engine/upgrades.ts and data/characters.ts). Lives here (not
  * engine/session.ts) so ai.ts can reference the type without depending on
  * session.ts. */
-export type CharacterSlotId = "잉그리드공주" | "아레스왕자" | "마술사의도제";
+export type CharacterSlotId =
+  | "잉그리드공주"
+  | "아레스왕자"
+  | "경비병알리오스"
+  | "신병아니스"
+  | "기사라이언"
+  | "승려올리비아"
+  | "마술사의도제"
+  | "여장군아즈사"
+  | "군사시어도어"
+  | "여후작엘마"
+  | "귀족영애아나스타샤";

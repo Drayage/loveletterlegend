@@ -1,5 +1,5 @@
-import { CARD_ORDER } from "../engine/cards";
-import type { GameState, PendingDecision } from "../engine/types";
+import { CARD_DEFS } from "../engine/cards";
+import type { CardName, GameState, GuessOption, PendingDecision } from "../engine/types";
 import { Card } from "./Card";
 import { Modal } from "./Modal";
 import "./DecisionPanel.css";
@@ -8,7 +8,7 @@ interface DecisionPanelProps {
   state: GameState;
   decision: PendingDecision;
   onChooseTarget: (targetId: string) => void;
-  onChooseGuess: (name: (typeof CARD_ORDER)[number]) => void;
+  onChooseGuess: (name: GuessOption) => void;
 }
 
 export function DecisionPanel({ state, decision, onChooseTarget, onChooseGuess }: DecisionPanelProps) {
@@ -34,21 +34,29 @@ export function DecisionPanel({ state, decision, onChooseTarget, onChooseGuess }
   }
 
   if (decision.kind === "guessCard") {
+    const isRecruit = decision.cardName === "신병";
     return (
-      <Modal title="「경비병」 카드 추측" onClose={() => {}} dismissible={false}>
+      <Modal title={`「${decision.cardName}」 추측`} onClose={() => {}} dismissible={false}>
         <div className="decision-panel">
-          <p className="decision-panel__prompt">상대가 들고 있을 카드를 추측하세요 (「경비병」 제외).</p>
+          <p className="decision-panel__prompt">
+            {isRecruit
+              ? "상대가 들고 있을 카드의 숫자가 「1을 제외한 홀수」인지 「짝수」인지 추측하세요."
+              : "상대가 들고 있을 카드를 추측하세요 (「경비병」 제외)."}
+          </p>
           <div className="decision-panel__guess-grid">
-            {decision.options.map((name) => (
-              <button
-                key={name}
-                type="button"
-                className="decision-panel__guess-btn"
-                onClick={() => onChooseGuess(name)}
-              >
-                <Card name={name} size="sm" />
-              </button>
-            ))}
+            {decision.options.map((guess) => {
+              const isCardName = guess in CARD_DEFS;
+              return (
+                <button
+                  key={guess}
+                  type="button"
+                  className="decision-panel__guess-btn"
+                  onClick={() => onChooseGuess(guess)}
+                >
+                  {isCardName ? <Card name={guess as CardName} size="sm" /> : <span>{guess}</span>}
+                </button>
+              );
+            })}
           </div>
         </div>
       </Modal>

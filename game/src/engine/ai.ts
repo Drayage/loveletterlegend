@@ -1,6 +1,6 @@
 import { CARD_DEFS, CARD_ORDER } from "./cards";
 import { cardRank } from "./effects";
-import type { ArchiveCardState, CardInstance, CardName, CharacterSlotId, GameState } from "./types";
+import type { ArchiveCardState, CardInstance, CardName, CharacterSlotId, GameState, GuessOption } from "./types";
 import type { Route } from "../data/routes";
 
 /**
@@ -46,7 +46,19 @@ function bestGuess(dist: Record<CardName, number>): { name: CardName; p: number 
   return best ?? { name: "광대", p: 0 };
 }
 
-export function chooseGuessAI(state: GameState, playerId: string): CardName {
+export function chooseGuessAI(state: GameState, playerId: string): GuessOption {
+  if (state.pendingDecision?.kind === "guessCard" && state.pendingDecision.cardName === "신병") {
+    const dist = estimateUnseenDistribution(state, playerId);
+    const odd = CARD_ORDER.filter((n) => n !== "경비병" && cardRank(n) % 2 === 1).reduce(
+      (acc, n) => acc + (dist[n] ?? 0),
+      0
+    );
+    const even = CARD_ORDER.filter((n) => cardRank(n) !== 0 && cardRank(n) % 2 === 0).reduce(
+      (acc, n) => acc + (dist[n] ?? 0),
+      0
+    );
+    return odd >= even ? "홀수" : "짝수";
+  }
   const dist = estimateUnseenDistribution(state, playerId);
   return bestGuess(dist).name;
 }

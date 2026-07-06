@@ -11,13 +11,13 @@ import {
   effectiveCardRank,
   getPlayer,
   log,
+  guessOptionsFor,
   needsGuess,
   needsTarget,
   targetsFor,
 } from "./effects";
-import { CARD_ORDER } from "./cards";
 import { resolveUpgradeTier } from "./upgrades";
-import type { CardInstance, CardName, GameState, PlayerConfig, PlayerState } from "./types";
+import type { CardInstance, CardName, GameState, GuessOption, PlayerConfig, PlayerState } from "./types";
 export type { PlayerConfig } from "./types";
 
 /** `startingPlayerId` -- the previous round's winner leads the new round
@@ -182,13 +182,13 @@ export function chooseTarget(state: GameState, targetId: string): GameState {
   const { playerId, cardName } = draft.pendingDecision;
 
   if (needsGuess(cardName)) {
-    const options: CardName[] = CARD_ORDER.filter((n) => n !== "경비병");
     draft.pendingDecision = {
       kind: "guessCard",
       playerId,
       cardInstanceId: draft.pendingDecision.cardInstanceId,
+      cardName,
       targetId,
-      options,
+      options: guessOptionsFor(cardName),
     };
     return draft;
   }
@@ -196,7 +196,7 @@ export function chooseTarget(state: GameState, targetId: string): GameState {
   return finishResolution(draft, { targetId });
 }
 
-export function chooseGuess(state: GameState, guess: CardName): GameState {
+export function chooseGuess(state: GameState, guess: GuessOption): GameState {
   const draft = cloneState(state);
   if (!draft.pendingDecision || draft.pendingDecision.kind !== "guessCard") {
     throw new Error("현재 카드를 추측할 차례가 아닙니다.");
@@ -207,7 +207,7 @@ export function chooseGuess(state: GameState, guess: CardName): GameState {
 
 function finishResolution(
   draft: GameState,
-  extra: { targetId?: string; guess?: CardName }
+  extra: { targetId?: string; guess?: GuessOption }
 ): GameState {
   const card = draft.resolvingCard;
   const playerId = draft.resolvingPlayerId;

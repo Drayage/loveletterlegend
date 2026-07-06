@@ -25,6 +25,25 @@ export function RoundEndSummary({ summary, players, ended, onContinue }: RoundEn
             {summary.letterTokensGained.map((g, i) => (
               <li key={i}>
                 {displayName(g.playerId)}: {g.slot} 편지 +{g.amount}
+                {g.reason ? <span> - {g.reason}</span> : null}
+              </li>
+            ))}
+          </ul>
+        )}
+        {summary.archiveTokensGained.length > 0 && (
+          <ul className="round-end-summary__archive">
+            {summary.archiveTokensGained.map((g, i) => (
+              <li key={`${g.cardId}-${i}`}>
+                {g.cardName}: {g.token} +{g.amount} - {g.reason}
+              </li>
+            ))}
+          </ul>
+        )}
+        {summary.archiveCardsRevealed.length > 0 && (
+          <ul className="round-end-summary__reveals">
+            {summary.archiveCardsRevealed.map((g, i) => (
+              <li key={`${g.cardId}-${i}`}>
+                새 이야기 공개: {g.cardName} ({g.sourceName}: {g.reason})
               </li>
             ))}
           </ul>

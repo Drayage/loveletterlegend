@@ -12,7 +12,15 @@ interface SessionEndScreenProps {
 const SLOT_DISPLAY_NAME: Record<CharacterSlotId, string> = {
   잉그리드공주: "잉그리드 공주",
   아레스왕자: "아레스 왕자",
+  경비병알리오스: "경비병 알리오스",
+  신병아니스: "신병 아니스",
+  기사라이언: "기사 라이언",
+  승려올리비아: "승려 올리비아",
   마술사의도제: "마술사의 도제 지나",
+  여장군아즈사: "여장군 아즈사",
+  군사시어도어: "군사 시어도어",
+  여후작엘마: "여후작 엘마",
+  귀족영애아나스타샤: "공작의 영애 아나스타샤",
 };
 
 export function SessionEndScreen({ session, players, onNewGame }: SessionEndScreenProps) {

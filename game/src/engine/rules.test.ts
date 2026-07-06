@@ -547,4 +547,30 @@ describe("Public effect popups (lastGuessEffect / lastForcedDiscard / lastEffect
     });
     expect(state.lastGuessEffect).toBeNull();
   });
+
+  it("신병 guesses parity instead of a specific card name", () => {
+    const state = minimalState({
+      players: [
+        { id: "p1", displayName: "P1", isAI: false, hand: [], discardPile: [], eliminated: false, protected: false },
+        {
+          id: "p2",
+          displayName: "P2",
+          isAI: true,
+          hand: [{ instanceId: "p2c", name: "기사" }],
+          discardPile: [],
+          eliminated: false,
+          protected: false,
+        },
+      ],
+    });
+    applyEffect(state, {
+      actingPlayerId: "p1",
+      card: { instanceId: "c1", name: "신병" },
+      targetId: "p2",
+      guess: "홀수",
+    });
+    expect(state.lastGuessEffect?.guess).toBe("홀수");
+    expect(state.lastGuessEffect?.hit).toBe(true);
+    expect(state.players[1].eliminated).toBe(true);
+  });
 });

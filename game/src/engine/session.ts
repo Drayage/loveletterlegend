@@ -24,7 +24,19 @@ export type { CharacterSlotId } from "./types";
  * change. */
 export const ROUTE_SLOT: Record<Route, CharacterSlotId> = { 공주: "잉그리드공주", 왕자: "아레스왕자" };
 export const RANK8_SLOTS: readonly CharacterSlotId[] = ["잉그리드공주", "아레스왕자"];
-const ALL_SLOTS: readonly CharacterSlotId[] = ["잉그리드공주", "아레스왕자", "마술사의도제"];
+const ALL_SLOTS: readonly CharacterSlotId[] = [
+  "잉그리드공주",
+  "아레스왕자",
+  "경비병알리오스",
+  "신병아니스",
+  "기사라이언",
+  "승려올리비아",
+  "마술사의도제",
+  "여장군아즈사",
+  "군사시어도어",
+  "여후작엘마",
+  "귀족영애아나스타샤",
+];
 
 /** Each player owns a finite personal pool of 10 physical [편지] tokens,
  * shared across every character slot (not a per-slot cap). Confirmed by
@@ -38,7 +50,9 @@ export interface RoundSummary {
   roundNumber: number;
   winnerId: string | null;
   clockTokensGained: number;
-  letterTokensGained: Array<{ playerId: string; slot: CharacterSlotId; amount: number }>;
+  letterTokensGained: Array<{ playerId: string; slot: CharacterSlotId; amount: number; reason?: string }>;
+  archiveTokensGained: Array<{ cardId: string; cardName: string; token: "성공" | "실패"; amount: number; reason: string }>;
+  archiveCardsRevealed: Array<{ cardId: string; cardName: string; sourceName: string; reason: string }>;
   /** Names of archive cards that hit their "[시계] N개: 이 카드를 제거"
    * expiry at this round's end -- surfaced in the round-end summary so
    * cards don't just silently vanish. */
@@ -421,6 +435,49 @@ function applySessionRoundEnd(session: SessionState): SessionState {
   const winnerId = result.winnerId;
   const winnerCard = winnerId ? result.revealedHands[winnerId] : null;
   const letterGains: RoundSummary["letterTokensGained"] = [];
+  const archiveTokensGained: RoundSummary["archiveTokensGained"] = [];
+  const archiveCardsRevealed: RoundSummary["archiveCardsRevealed"] = [];
+
+  const recordNewReveals = (knownIds: Set<string>) => {
+    for (const card of Object.values(next.archiveHistory)) {
+      if (knownIds.has(card.id)) continue;
+      const from = card.revealedFrom;
+      archiveCardsRevealed.push({
+        cardId: card.id,
+        cardName: card.name,
+        sourceName: from?.sourceName ?? "이야기 진행",
+        reason: from?.reason ?? "공개",
+      });
+      knownIds.add(card.id);
+    }
+  };
+
+  const revealWithSummary = (ids: Set<string>, choiceEligiblePlayerId?: string) => {
+    const knownIds = new Set(Object.keys(next.archiveHistory));
+    applyRevealSideEffects(next, ids, choiceEligiblePlayerId);
+    recordNewReveals(knownIds);
+  };
+
+  const grantArchive = (cardId: string, token: "성공" | "실패", amount: number, reason: string) => {
+    const target = next.storyArchive.find((c) => c.id === cardId);
+    if (!target) return;
+    addArchiveToken(next, cardId, token, amount);
+    archiveTokensGained.push({ cardId, cardName: target.name, token, amount, reason });
+  };
+
+  const hasArchiveCard = (cardId: string) =>
+    Boolean(next.archiveHistory[cardId] || next.storyArchive.some((c) => c.id === cardId));
+  const grantCharacterLetter = (
+    slot: CharacterSlotId,
+    playerId: string,
+    amount: number,
+    reason: string,
+    revealCardId?: string
+  ) => {
+    if (revealCardId && !hasArchiveCard(revealCardId)) return;
+    const applied = addLetterTokenCapped(next, slot, playerId, amount);
+    if (applied > 0) letterGains.push({ playerId, slot, amount: applied, reason });
+  };
 
   next.clockTokens += 1;
 
@@ -438,11 +495,7 @@ function applySessionRoundEnd(session: SessionState): SessionState {
   // v1에서는 이 재확인을 별도로 억제하지 않는다 -- 같은 라운드에 정확히
   // 임계값에 도달하는 경우는 드물고, 억제 로직을 넣을 만큼 가치가 크지
   // 않다고 판단.)
-  applyRevealSideEffects(
-    next,
-    resolveArchiveConditions(next, "roundEnd", winnerCard?.name ?? null),
-    winnerId ?? undefined
-  );
+  revealWithSummary(resolveArchiveConditions(next, "roundEnd", winnerCard?.name ?? null), winnerId ?? undefined);
 
   if (winnerId) {
     // 카드 017 「시간」: 라운드 승리 -> 공개된 공주/왕자 중 하나를 골라
@@ -469,92 +522,144 @@ function applySessionRoundEnd(session: SessionState): SessionState {
     const heldOrDiscardedWizard =
       winner?.hand.some((c) => c.name === "마술사") || winner?.discardPile.some((c) => c.name === "마술사");
     if (heldOrDiscardedWizard) {
-      const applied = addLetterTokenCapped(next, "마술사의도제", winnerId, 2);
-      if (applied > 0) letterGains.push({ playerId: winnerId, slot: "마술사의도제", amount: applied });
+      grantCharacterLetter("마술사의도제", winnerId, 2, "「마술사」를 들거나 버린 채로 라운드 승리", "147");
     }
 
     // 053 "고지식한 병사"/057 "풋풋한 신병" -- 경비병/신병을 들고/버리고
     // 승리: 각 공유 [성공] +1.
     const heldOrDiscardedGuard =
       winner?.hand.some((c) => c.name === "경비병") || winner?.discardPile.some((c) => c.name === "경비병");
-    if (heldOrDiscardedGuard) addArchiveToken(next, "053", "성공", 1);
+    if (heldOrDiscardedGuard) {
+      grantArchive("053", "성공", 1, "「경비병」을 들거나 버린 채로 라운드 승리");
+      grantCharacterLetter("경비병알리오스", winnerId, 2, "「경비병」을 들고 라운드 승리", "056");
+    }
     const heldOrDiscardedRecruit =
       winner?.hand.some((c) => c.name === "신병") || winner?.discardPile.some((c) => c.name === "신병");
-    if (heldOrDiscardedRecruit) addArchiveToken(next, "057", "성공", 1);
+    if (heldOrDiscardedRecruit) {
+      grantArchive("057", "성공", 1, "「신병」을 들거나 버린 채로 라운드 승리");
+      grantCharacterLetter("신병아니스", winnerId, 3, "「신병」을 들고 라운드 승리", "061");
+    }
 
     // 103 "성실한 기사"/108 "전신 갑옷 기사" -- 기사/복면기사를 손에 들고
     // 승리 (실카드는 "들고"만 명시, 버림더미는 포함하지 않는다).
-    if (winner?.hand.some((c) => c.name === "기사")) addArchiveToken(next, "103", "성공", 1);
-    if (winner?.hand.some((c) => c.name === "복면기사")) addArchiveToken(next, "108", "성공", 1);
+    if (winner?.hand.some((c) => c.name === "기사")) {
+      grantArchive("103", "성공", 1, "「기사」를 손에 들고 라운드 승리");
+      grantCharacterLetter("기사라이언", winnerId, 2, "「기사」를 손에 들고 라운드 승리", "107");
+    }
+    if (winner?.hand.some((c) => c.name === "복면기사")) {
+      grantArchive("108", "성공", 1, "「복면기사」를 손에 들고 라운드 승리");
+    }
     // 114 "수완 좋은 여상인" -- 상인을 손에 들고 승리.
-    if (winner?.hand.some((c) => c.name === "상인")) addArchiveToken(next, "114", "성공", 1);
+    if (winner?.hand.some((c) => c.name === "상인")) {
+      grantArchive("114", "성공", 1, "「상인」을 손에 들고 라운드 승리");
+    }
 
     // 119 "경건한 여승려"/123 "안색이 나쁜 수사" -- 승려/수사를 들고/버리고
     // 승리.
     if (winner?.hand.some((c) => c.name === "승려") || winner?.discardPile.some((c) => c.name === "승려")) {
-      addArchiveToken(next, "119", "성공", 1);
+      grantArchive("119", "성공", 1, "「승려」를 들거나 버린 채로 라운드 승리");
+      grantCharacterLetter(
+        "승려올리비아",
+        winnerId,
+        winner.hand.some((c) => c.name === "승려") ? 2 : 1,
+        winner.hand.some((c) => c.name === "승려") ? "「승려」를 손에 들고 라운드 승리" : "「승려」를 버린 채로 라운드 승리",
+        "121"
+      );
     }
     if (winner?.hand.some((c) => c.name === "수사") || winner?.discardPile.some((c) => c.name === "수사")) {
-      addArchiveToken(next, "123", "성공", 1);
+      grantArchive("123", "성공", 1, "「수사」를 들거나 버린 채로 라운드 승리");
     }
 
     // 162 "고민하는 장군" -- 실카드는 "버림더미에 남은 채로 승리"만 본다
     // (장군의 효과 자체가 손 교환이라 승리 시점엔 이미 버림더미에 있다).
-    if (winner?.discardPile.some((c) => c.name === "장군")) addArchiveToken(next, "162", "성공", 1);
+    if (winner?.discardPile.some((c) => c.name === "장군")) {
+      grantArchive("162", "성공", 1, "「장군」을 버림더미에 남긴 채로 라운드 승리");
+    }
     // 164 "떠넘기기" -- 여장군을 손에 들고 승리 (일회성 확인이지만
     // sharedToken threshold=1로 모델링해 기존 공개/제거 메커니즘을 재사용).
-    if (winner?.hand.some((c) => c.name === "여장군")) addArchiveToken(next, "164", "성공", 1);
+    if (winner?.hand.some((c) => c.name === "여장군")) {
+      grantArchive("164", "성공", 1, "「여장군」을 손에 들고 라운드 승리");
+      grantCharacterLetter("여장군아즈사", winnerId, 3, "「여장군」을 손에 들고 라운드 승리", "167");
+    }
     // 168 "표표한 군사" -- 군사를 들고/버리고 승리.
     if (winner?.hand.some((c) => c.name === "군사") || winner?.discardPile.some((c) => c.name === "군사")) {
-      addArchiveToken(next, "168", "성공", 1);
+      grantArchive("168", "성공", 1, "「군사」를 들거나 버린 채로 라운드 승리");
+      grantCharacterLetter("군사시어도어", winnerId, 2, "「군사」를 들거나 버린 채로 라운드 승리", "171");
     }
 
     // 172 "우려하는 대신"/182 "분주한 여후작" -- 대신/여후작을 들고/버리고
     // 승리.
     if (winner?.hand.some((c) => c.name === "대신") || winner?.discardPile.some((c) => c.name === "대신")) {
-      addArchiveToken(next, "172", "성공", 1);
+      grantArchive("172", "성공", 1, "「대신」을 들거나 버린 채로 라운드 승리");
     }
     if (winner?.hand.some((c) => c.name === "여후작") || winner?.discardPile.some((c) => c.name === "여후작")) {
-      addArchiveToken(next, "182", "성공", 1);
+      grantArchive("182", "성공", 1, "「여후작」을 들거나 버린 채로 라운드 승리");
+      grantCharacterLetter("여후작엘마", winnerId, 3, "「여후작」을 들거나 버린 채로 라운드 승리", "186");
     }
 
     // 153 "수수께끼의 아이" -- 마술사를 들고/버리고 승리 (일회성 확인,
     // 164/168과 동일하게 sharedToken threshold=1로 모델링).
     if (winner?.hand.some((c) => c.name === "마술사") || winner?.discardPile.some((c) => c.name === "마술사")) {
-      addArchiveToken(next, "153", "성공", 1);
+      grantArchive("153", "성공", 1, "「마술사」를 들거나 버린 채로 라운드 승리");
     }
     // 200 "거만한 귀족 영애" -- 귀족영애를 손에 들고 승리.
-    if (winner?.hand.some((c) => c.name === "귀족영애")) addArchiveToken(next, "200", "성공", 1);
+    if (winner?.hand.some((c) => c.name === "귀족영애")) {
+      grantArchive("200", "성공", 1, "「귀족영애」를 손에 들고 라운드 승리");
+      grantCharacterLetter("귀족영애아나스타샤", winnerId, 4, "「귀족영애」를 손에 들고 라운드 승리", "203");
+    }
   }
 
   for (const event of next.round.sessionEvents ?? []) {
     if (event.type === "wizardForcedDiscard") {
-      const applied = addLetterTokenCapped(next, "마술사의도제", event.actingPlayerId, 1);
-      if (applied > 0) letterGains.push({ playerId: event.actingPlayerId, slot: "마술사의도제", amount: applied });
+      grantCharacterLetter(
+        "마술사의도제",
+        event.actingPlayerId,
+        1,
+        "「마술사」로 5 이상 숫자 카드를 버리게 함",
+        "147"
+      );
     } else if (event.type === "guardGuessResolved") {
       // 「경비병」/「신병」이 같은 효과 로직을 공유하므로(see effects.ts),
       // 어느 카드였는지에 따라 053/057 중 맞는 쪽에 적립한다.
       const targetCardId = event.cardName === "신병" ? "057" : "053";
-      addArchiveToken(next, targetCardId, event.hit ? "성공" : "실패", 1);
+      grantArchive(
+        targetCardId,
+        event.hit ? "성공" : "실패",
+        1,
+        event.hit ? `「${event.cardName}」 추측 적중` : `「${event.cardName}」 추측 실패`
+      );
+      if (event.hit && event.cardName === "경비병") {
+        grantCharacterLetter("경비병알리오스", event.actingPlayerId, 1, "「경비병」으로 다른 플레이어를 탈락시킴", "056");
+      }
+      if (event.hit && event.cardName === "신병") {
+        grantCharacterLetter("신병아니스", event.actingPlayerId, 2, "「신병」으로 다른 플레이어를 탈락시킴", "061");
+      }
     } else if (event.type === "kingElimination") {
       // 025 "도중": 《왕》 효과로 탈락한 플레이어의 총 [편지]가 8개 이상이면
       // 025에 [실패] +1.
-      if (totalLetterTokens(next, event.playerId) >= 8) addArchiveToken(next, "025", "실패", 1);
+      if (totalLetterTokens(next, event.playerId) >= 8) {
+        grantArchive("025", "실패", 1, "「왕」 효과로 탈락한 플레이어가 편지 8개 이상 보유");
+      }
     } else if (event.type === "compareResolved") {
       // 「기사」/「복면기사」가 같은 비교 로직을 공유하므로(see effects.ts),
       // 어느 카드였는지에 따라 103/108 중 맞는 쪽에 적립한다. 103만 "자기
       // 자신탈락" 실패 조항이 있다 (108의 실카드는 그 조항이 없음).
       if (event.cardName === "기사" || event.cardName === "복면기사") {
         const targetCardId = event.cardName === "기사" ? "103" : "108";
-        if (event.outcome === "targetLoses") addArchiveToken(next, targetCardId, "성공", 1);
+        if (event.outcome === "targetLoses") {
+          grantArchive(targetCardId, "성공", 1, `「${event.cardName}」로 다른 플레이어를 탈락시킴`);
+          if (event.cardName === "기사") {
+            grantCharacterLetter("기사라이언", event.actingPlayerId, 2, "「기사」로 다른 플레이어를 탈락시킴", "107");
+          }
+        }
         else if (event.outcome === "actorLoses" && event.cardName === "기사") {
-          addArchiveToken(next, "103", "실패", 1);
+          grantArchive("103", "실패", 1, "「기사」 비교로 스스로 탈락");
         }
       }
     } else if (event.type === "apprenticeForcedDiscard") {
       // 144 "도중": 「마술사의 도제」로 5 이상 숫자 카드를 버리게 함 -> 143에
       // [성공] +1 (event 자체가 이미 rank>=5 조건을 만족할 때만 push됨).
-      addArchiveToken(next, "143", "성공", 1);
+      grantArchive("143", "성공", 1, "「마술사의 도제」로 5 이상 숫자 카드를 버리게 함");
     }
   }
 
@@ -566,29 +671,25 @@ function applySessionRoundEnd(session: SessionState): SessionState {
   // 단순화한다 -- 대신은 활성 효과가 없어 대부분 이 패시브가 원인이다).
   for (const p of next.round.players) {
     if (!p.eliminated) continue;
-    if (p.hand.some((c) => c.name === "경비병")) addArchiveToken(next, "053", "실패", 1);
-    if (p.hand.some((c) => c.name === "신병")) addArchiveToken(next, "057", "실패", 1);
-    if (p.hand.some((c) => c.name === "기사")) addArchiveToken(next, "103", "실패", 1);
-    if (p.hand.some((c) => c.name === "승려")) addArchiveToken(next, "119", "실패", 1);
-    if (p.hand.some((c) => c.name === "수사")) addArchiveToken(next, "123", "실패", 1);
-    if (p.hand.some((c) => c.name === "수녀")) addArchiveToken(next, "130", "실패", 1);
-    if (p.discardPile.some((c) => c.name === "장군")) addArchiveToken(next, "162", "실패", 1);
-    if (p.hand.some((c) => c.name === "대신")) addArchiveToken(next, "172", "실패", 1);
+    if (p.hand.some((c) => c.name === "경비병")) grantArchive("053", "실패", 1, "「경비병」을 손에 들고 탈락");
+    if (p.hand.some((c) => c.name === "신병")) grantArchive("057", "실패", 1, "「신병」을 손에 들고 탈락");
+    if (p.hand.some((c) => c.name === "기사")) grantArchive("103", "실패", 1, "「기사」를 손에 들고 탈락");
+    if (p.hand.some((c) => c.name === "승려")) grantArchive("119", "실패", 1, "「승려」를 손에 들고 탈락");
+    if (p.hand.some((c) => c.name === "수사")) grantArchive("123", "실패", 1, "「수사」를 손에 들고 탈락");
+    if (p.hand.some((c) => c.name === "수녀")) grantArchive("130", "실패", 1, "「수녀」를 손에 들고 탈락");
+    if (p.discardPile.some((c) => c.name === "장군")) grantArchive("162", "실패", 1, "「장군」을 버림더미에 둔 채 탈락");
+    if (p.hand.some((c) => c.name === "대신")) grantArchive("172", "실패", 1, "「대신」을 손에 들고 탈락");
     if (p.hand.some((c) => c.name === "정무관여") || p.discardPile.some((c) => c.name === "정무관여")) {
-      addArchiveToken(next, "178", "실패", 1);
+      grantArchive("178", "실패", 1, "「정무관(여자)」를 들거나 버린 채 패배");
     }
-    if (p.hand.some((c) => c.name === "마술사의도제")) addArchiveToken(next, "143", "실패", 1);
+    if (p.hand.some((c) => c.name === "마술사의도제")) grantArchive("143", "실패", 1, "「마술사의 도제」를 손에 들고 탈락");
     if (p.hand.some((c) => c.name === "여후작") || p.discardPile.some((c) => c.name === "여후작")) {
-      addArchiveToken(next, "182", "실패", 1);
+      grantArchive("182", "실패", 1, "「여후작」을 들거나 버린 채 탈락");
     }
   }
 
   // Re-check now that this round's [성공]/[실패] grants are in.
-  applyRevealSideEffects(
-    next,
-    resolveArchiveConditions(next, "roundEnd", winnerCard?.name ?? null),
-    winnerId ?? undefined
-  );
+  revealWithSummary(resolveArchiveConditions(next, "roundEnd", winnerCard?.name ?? null), winnerId ?? undefined);
 
   // 만료 처리 -- "[시계] N개: 이 카드를 제거합니다." 실카드 종료 태그.
   // 같은 라운드의 공개 조건을 먼저 처리한 뒤에 제거한다 (시계가 4가 되는
@@ -605,6 +706,8 @@ function applySessionRoundEnd(session: SessionState): SessionState {
     winnerId,
     clockTokensGained: 1,
     letterTokensGained: letterGains,
+    archiveTokensGained,
+    archiveCardsRevealed,
     expiredCards: expired.map((c) => c.name),
   };
 
@@ -901,7 +1004,7 @@ export function resolveLetterChoice(session: SessionState, playerId: string, cho
 
   if (choice.type === "place") {
     addLetterToken(next, choice.slot, playerId, pending.amount);
-    letterGains.push({ playerId, slot: choice.slot, amount: pending.amount });
+    letterGains.push({ playerId, slot: choice.slot, amount: pending.amount, reason: "라운드 승리 보상" });
   } else if (choice.type === "move") {
     const available = next.letterTokens[choice.from][playerId] ?? 0;
     if (available <= 0) throw new Error(`${choice.from}에 이동시킬 토큰이 없습니다.`);

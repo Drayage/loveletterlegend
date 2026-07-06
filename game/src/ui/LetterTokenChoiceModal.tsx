@@ -9,7 +9,15 @@ import "./LetterTokenChoiceModal.css";
 const SLOT_INFO: Record<CharacterSlotId, { name: string; art?: string }> = {
   잉그리드공주: { name: ROUTE_DEFS.공주.displayName, art: ROUTE_DEFS.공주.art },
   아레스왕자: { name: ROUTE_DEFS.왕자.displayName, art: ROUTE_DEFS.왕자.art },
+  경비병알리오스: { name: "경비병 알리오스" },
+  신병아니스: { name: "신병 아니스" },
+  기사라이언: { name: "기사 라이언" },
+  승려올리비아: { name: "승려 올리비아" },
   마술사의도제: { name: WIZARD_APPRENTICE.name },
+  여장군아즈사: { name: "여장군 아즈사" },
+  군사시어도어: { name: "군사 시어도어" },
+  여후작엘마: { name: "여후작 엘마" },
+  귀족영애아나스타샤: { name: "공작의 영애 아나스타샤" },
 };
 
 interface LetterTokenChoiceModalProps {

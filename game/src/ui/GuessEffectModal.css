@@ -17,6 +17,20 @@
   justify-content: center;
 }
 
+.guess-effect__text-card {
+  width: 96px;
+  aspect-ratio: 2 / 3;
+  border-radius: 8px;
+  border: 1px solid rgba(52, 65, 86, 0.24);
+  background: linear-gradient(180deg, #fffdf8, #f3eee3);
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+  box-shadow: 0 10px 24px rgba(31, 40, 56, 0.16);
+}
+
 .guess-effect__result {
   margin: 0;
   font-weight: 700;

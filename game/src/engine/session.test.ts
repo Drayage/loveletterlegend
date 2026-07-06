@@ -738,11 +738,17 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
   it("assigns 'no one' when a player ends up with no exclusive slot", () => {
     let session = startSession(PLAYERS);
     session.roundNumber = 8;
-    // Force a tie on every slot so both players end up empty-handed.
+    // Force a tie on enough slots so both players end up empty-handed,
+    // without exceeding the 10-token personal pool now that more character
+    // slots exist.
     for (const slot of Object.keys(session.letterTokens) as Array<keyof typeof session.letterTokens>) {
-      session.letterTokens[slot]["p1"] = 3;
-      session.letterTokens[slot]["p2"] = 3;
+      session.letterTokens[slot]["p1"] = 0;
+      session.letterTokens[slot]["p2"] = 0;
     }
+    session.letterTokens["잉그리드공주"]["p1"] = 3;
+    session.letterTokens["잉그리드공주"]["p2"] = 3;
+    session.letterTokens["아레스왕자"]["p1"] = 3;
+    session.letterTokens["아레스왕자"]["p2"] = 3;
     session = forceImmediateWin(session, "p1", [
       { instanceId: "c1", name: "대신" },
       { instanceId: "c2", name: "장군" },
@@ -794,6 +800,60 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
     expect(session.storyArchive.some((c) => c.id === "053")).toBe(false);
     expect(session.storyArchive.some((c) => c.id === "055")).toBe(true);
     expect(session.storyArchive.some((c) => c.id === "056")).toBe(true);
+  });
+
+  it("revealed character reward cards grant their own letter tokens at round end", () => {
+    let session = startSession(PLAYERS);
+    session = forceImmediateWin(
+      session,
+      "p1",
+      [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "경비병" },
+      ],
+      [
+        {
+          id: "053",
+          name: ARCHIVE_CARD_SEEDS["053"].name,
+          category: "scenario",
+          flavor: "",
+          conditionTag: true,
+          conditions: ARCHIVE_CARD_SEEDS["053"].conditions.map((c) => ({ ...c, fired: false })),
+          successTokens: 0,
+          failTokens: 0,
+        },
+        {
+          id: "056",
+          name: ARCHIVE_CARD_SEEDS["056"].name,
+          category: "character",
+          flavor: "",
+          conditions: [],
+          successTokens: 0,
+          failTokens: 0,
+        },
+      ]
+    );
+
+    expect(session.letterTokens["경비병알리오스"]["p1"]).toBe(2);
+    expect(session.lastRoundSummary?.letterTokensGained).toEqual(
+      expect.arrayContaining([
+        {
+          playerId: "p1",
+          slot: "경비병알리오스",
+          amount: 2,
+          reason: "「경비병」을 들고 라운드 승리",
+        },
+      ])
+    );
+    expect(session.lastRoundSummary?.archiveTokensGained).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          cardId: "053",
+          token: "성공",
+          reason: "「경비병」을 들거나 버린 채로 라운드 승리",
+        }),
+      ])
+    );
   });
 
   it("wizard tier2 upgrade needs no target and lets the actor redraw alone", () => {

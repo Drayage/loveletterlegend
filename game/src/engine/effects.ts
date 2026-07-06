@@ -1,4 +1,4 @@
-import type { CardInstance, CardName, CharacterUpgradeTier, GameState, PlayerState } from "./types";
+import type { CardInstance, CardName, CharacterUpgradeTier, GameState, GuessOption, PlayerState } from "./types";
 import { nextLogId } from "./clone";
 import { CARD_ORDER } from "./cards";
 
@@ -137,18 +137,30 @@ export function needsTarget(cardName: CardName, upgrade?: CharacterUpgradeTier):
 }
 
 export function needsGuess(cardName: CardName): boolean {
-  // 신병의 실카드 문구는 "「1을 제외한 홀수」또는 「짝수」"를 대는 것이지만,
-  // v1은 새 guess-종류를 추가하는 대신 경비병과 동일하게 특정 카드 이름을
-  // 대는 것으로 단순화한다 (기존 guessCard 흐름 재사용).
   return cardName === "경비병" || cardName === "신병";
+}
+
+export function guessOptionsFor(cardName: CardName): GuessOption[] {
+  if (cardName === "신병") return ["홀수", "짝수"];
+  return CARD_ORDER.filter((n) => n !== "경비병");
 }
 
 export interface ResolveArgs {
   actingPlayerId: string;
   card: CardInstance;
   targetId?: string;
-  guess?: CardName;
+  guess?: GuessOption;
   upgrade?: CharacterUpgradeTier;
+}
+
+function guessHits(cardName: CardName, targetCardName: CardName, guess: GuessOption): boolean {
+  if (cardName === "신병") {
+    const rank = cardRank(targetCardName);
+    if (guess === "홀수") return rank !== 1 && rank % 2 === 1;
+    if (guess === "짝수") return rank !== 0 && rank % 2 === 0;
+    return false;
+  }
+  return targetCardName === guess;
 }
 
 export function applyEffect(draft: GameState, args: ResolveArgs): void {
@@ -163,7 +175,7 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
         return;
       }
       const target = getPlayer(draft, targetId);
-      const hit = target.hand.some((c) => c.name === guess);
+      const hit = target.hand.some((c) => guessHits(card.name, c.name, guess));
       log(draft, `${actor.displayName}: ${target.displayName}을(를) 지목하고 「${guess}」(이)라고 추측합니다.`);
       draft.sessionEvents?.push({ type: "guardGuessResolved", actingPlayerId, hit, cardName: card.name });
       draft.lastGuessEffect = {
@@ -307,9 +319,9 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       const reusedTargets = targetsFor(draft, actingPlayerId, reused.name, upgrade);
       const reusedTargetId =
         reusedTargets.length > 0 ? reusedTargets[Math.floor(Math.random() * reusedTargets.length)] : undefined;
-      const guessableNames = CARD_ORDER.filter((n) => n !== "경비병");
+      const guessableOptions = guessOptionsFor(reused.name);
       const reusedGuess = needsGuess(reused.name)
-        ? guessableNames[Math.floor(Math.random() * guessableNames.length)]
+        ? guessableOptions[Math.floor(Math.random() * guessableOptions.length)]
         : undefined;
       applyEffect(draft, {
         actingPlayerId,
