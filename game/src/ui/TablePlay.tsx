@@ -6,6 +6,7 @@ interface TablePlayProps {
   state: GameState;
   remaining: Record<CardName, number>;
   upgradeBadges?: Partial<Record<CardName, string>>;
+  hidden?: boolean;
 }
 
 /** Center-table exchange view: both players' most recent plays side by
@@ -13,16 +14,17 @@ interface TablePlayProps {
  * so "상대가 뭘 냈고 내가 뭘 내서 어떻게 됐는지" is readable at a glance
  * without digging through the log. Outcomes come from the engine's
  * recentPlays tracking (see effects.ts setPlayOutcome). */
-export function TablePlay({ state, remaining, upgradeBadges = {} }: TablePlayProps) {
+export function TablePlay({ state, remaining, upgradeBadges = {}, hidden = false }: TablePlayProps) {
   const plays = state.recentPlays ?? [];
   const latest = plays[plays.length - 1];
+  const visiblePlays = hidden ? [] : plays;
 
   return (
     <div className="table-play">
       <span className="table-play__label">이번 교환</span>
-      {plays.length > 0 ? (
+      {visiblePlays.length > 0 ? (
         <div className="table-play__row">
-          {plays.map((p) => {
+          {visiblePlays.map((p) => {
             const player = state.players.find((pl) => pl.id === p.playerId);
             const isLatest = p === latest;
             return (

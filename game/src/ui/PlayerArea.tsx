@@ -15,6 +15,7 @@ interface PlayerAreaProps {
   handSize?: "sm" | "md";
   compact?: boolean;
   upgradeBadges?: Partial<Record<CardName, string>>;
+  concealStatus?: boolean;
 }
 
 export function PlayerArea({
@@ -27,6 +28,7 @@ export function PlayerArea({
   handSize = "md",
   compact,
   upgradeBadges = {},
+  concealStatus = false,
 }: PlayerAreaProps) {
   const [showDiscards, setShowDiscards] = useState(false);
   const [justEliminated, setJustEliminated] = useState(false);
@@ -47,10 +49,10 @@ export function PlayerArea({
       className={[
         "player-area",
         compact ? "player-area--compact" : "",
-        player.protected ? "player-area--protected" : "",
-        player.immuneThisRound ? "player-area--immune" : "",
-        player.eliminated ? "player-area--eliminated" : "",
-        justEliminated ? "player-area--flash" : "",
+        !concealStatus && player.protected ? "player-area--protected" : "",
+        !concealStatus && player.immuneThisRound ? "player-area--immune" : "",
+        !concealStatus && player.eliminated ? "player-area--eliminated" : "",
+        !concealStatus && justEliminated ? "player-area--flash" : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -58,9 +60,9 @@ export function PlayerArea({
       <header className="player-area__header">
         <h2>
           {player.displayName}
-          {isCurrentTurn && !player.eliminated && <span className="player-area__turn-badge">차례</span>}
+          {isCurrentTurn && !player.eliminated && !concealStatus && <span className="player-area__turn-badge">차례</span>}
         </h2>
-        <div className="player-area__status">
+        {!concealStatus && <div className="player-area__status">
           {player.protected && (
             <span className="pill pill--protected" title="다음 차례까지 카드 효과의 대상이 되지 않습니다.">
               <span className="pill__icon" aria-hidden="true">◇</span>
@@ -74,7 +76,7 @@ export function PlayerArea({
             </span>
           )}
           {player.eliminated && <span className="pill pill--eliminated">탈락</span>}
-        </div>
+        </div>}
       </header>
 
       <div className="player-area__row">
@@ -104,7 +106,7 @@ export function PlayerArea({
 
         <div className="player-area__group">
           <span className="player-area__label">버린 카드</span>
-          {player.discardPile.length === 0 ? (
+          {concealStatus || player.discardPile.length === 0 ? (
             <span className="player-area__discard-empty">없음</span>
           ) : (
             <button

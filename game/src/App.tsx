@@ -48,6 +48,7 @@ import { RoundStartGate } from "./ui/RoundStartGate";
 import { EliminationModal } from "./ui/EliminationModal";
 import { GuessEffectModal } from "./ui/GuessEffectModal";
 import { ForcedDiscardModal } from "./ui/ForcedDiscardModal";
+import { Modal } from "./ui/Modal";
 import { ARCHIVE_CARD_SEEDS } from "./data/scenario";
 import "./App.css";
 
@@ -93,6 +94,7 @@ export default function App() {
   const [pendingStoryEvent, setPendingStoryEvent] = useState<ArchiveCardState[] | null>(null);
   const [pendingChoiceResult, setPendingChoiceResult] = useState<ResolvedChoiceInfo | null>(null);
   const [pendingRoundStart, setPendingRoundStart] = useState<{ route: Route; chosenBy: string } | null>(null);
+  const [roundStartLockedNumber, setRoundStartLockedNumber] = useState<number | null>(null);
   const handledDecisionRef = useRef<PendingDecision | null>(null);
   const handledArchiveRef = useRef<SessionState["pendingArchivePlacement"]>(null);
   const handledLetterChoiceRef = useRef<SessionState["pendingLetterChoice"]>(null);
@@ -106,8 +108,11 @@ export default function App() {
   const shownChoiceResultCardIdRef = useRef<string | null>(null);
 
   const round = session?.round ?? null;
+  const roundStartLocked = Boolean(session && roundStartLockedNumber === session.roundNumber);
+  const canShowRoundEffects = !roundStartLocked;
 
   const pendingHumanReveal =
+    canShowRoundEffects &&
     round?.lastReveal &&
     (round.lastReveal.viewerPlayerId === HUMAN_ID || round.lastReveal.compare) &&
     round.lastReveal.id !== dismissedRevealId
@@ -117,16 +122,20 @@ export default function App() {
   // elimination, right after any private reveal the actor needed to see
   // first (see EliminationModal's doc comment).
   const pendingElimination =
-    round?.lastElimination && round.lastElimination.id !== dismissedEliminationId ? round.lastElimination : null;
+    canShowRoundEffects && round?.lastElimination && round.lastElimination.id !== dismissedEliminationId
+      ? round.lastElimination
+      : null;
   // Public effect popups (both players see these, unlike pendingHumanReveal)
   // -- 경비병/신병's guess flip, 마술사 계열의 forced discard, and a fizzled
   // effect blocked by 승려 protection. All three can occur mid-round (the
   // round doesn't necessarily end), unlike pendingElimination which in this
   // 2P game always coincides with round.roundResult being set.
   const pendingGuessEffect =
-    round?.lastGuessEffect && round.lastGuessEffect.id !== dismissedGuessEffectId ? round.lastGuessEffect : null;
+    canShowRoundEffects && round?.lastGuessEffect && round.lastGuessEffect.id !== dismissedGuessEffectId
+      ? round.lastGuessEffect
+      : null;
   const pendingForcedDiscard =
-    round?.lastForcedDiscard && round.lastForcedDiscard.id !== dismissedForcedDiscardId
+    canShowRoundEffects && round?.lastForcedDiscard && round.lastForcedDiscard.id !== dismissedForcedDiscardId
       ? round.lastForcedDiscard
       : null;
   const flowBlocked =
@@ -137,6 +146,7 @@ export default function App() {
     Boolean(pendingChoiceResult) ||
     Boolean(pendingStoryEvent) ||
     Boolean(pendingRoundStart) ||
+    roundStartLocked ||
     Boolean(showRouteSwitch) ||
     Boolean(showCardReference) ||
     Boolean(showStoryArchive) ||
@@ -382,6 +392,7 @@ export default function App() {
     setPendingStoryEvent(null);
     setPendingChoiceResult(null);
     setPendingRoundStart(null);
+    setRoundStartLockedNumber(null);
     setSession(startSession(PLAYERS));
   }
 
@@ -401,6 +412,7 @@ export default function App() {
     handledLetterChoiceRef.current = null;
     handledIdentityRef.current = null;
     handledChoiceRef.current = null;
+    setRoundStartLockedNumber(session ? session.roundNumber + 1 : null);
     setSession((prev) => (prev ? safely(() => beginNextRound(prev, route)) ?? prev : prev));
     setShowRouteSwitch(false);
     setPendingRoundStart(null);
@@ -454,6 +466,7 @@ export default function App() {
   const remaining = computeRemainingCounts(round);
 
   const roundOver = Boolean(round.roundResult);
+  const concealRoundStart = roundStartLocked;
   const needsArchivePlacement = Boolean(session.pendingArchivePlacement);
   const humanNeedsArchivePlacement =
     needsArchivePlacement && session.pendingArchivePlacement!.eligiblePlayerId === HUMAN_ID;
@@ -484,7 +497,7 @@ export default function App() {
       {/* 스크롤이 필요하면 이 보드 영역 내부에서만 일어난다 -- 로그가
        * 쌓여도 문서 자체는 절대 아래로 자라지 않는다 (100dvh 셸). */}
       <div className="board-region">
-      <EffectToast entries={round.log} />
+      {!concealRoundStart && <EffectToast entries={round.log} />}
 
       <div className="board-topline">
         <div className="removed-row">
@@ -542,28 +555,32 @@ export default function App() {
       <PlayerArea
         player={ai}
         isCurrentTurn={round.pendingDecision?.playerId === AI_ID}
-        revealHand={Boolean(round.roundResult)}
+        revealHand={Boolean(round.roundResult) && !concealRoundStart}
         remaining={remaining}
         handSize="sm"
         compact
         upgradeBadges={cardUpgradeBadges}
+        concealStatus={concealRoundStart}
       />
 
-      <TablePlay state={round} remaining={remaining} upgradeBadges={cardUpgradeBadges} />
+      <TablePlay state={round} remaining={remaining} upgradeBadges={cardUpgradeBadges} hidden={concealRoundStart} />
 
       <PlayerArea
         player={human}
         isCurrentTurn={round.pendingDecision?.playerId === HUMAN_ID}
-        revealHand
+        revealHand={!concealRoundStart}
         selectableCardIds={
-          isHumanDecision && decision?.kind === "playCard" ? decision.options.map((c) => c.instanceId) : undefined
+          isHumanDecision && decision?.kind === "playCard" && !concealRoundStart
+            ? decision.options.map((c) => c.instanceId)
+            : undefined
         }
         onSelectCard={handleSelectCard}
         remaining={remaining}
         upgradeBadges={cardUpgradeBadges}
+        concealStatus={concealRoundStart}
       />
 
-      {isHumanDecision && decision && decision.kind !== "playCard" && (
+      {isHumanDecision && decision && decision.kind !== "playCard" && !concealRoundStart && (
         <DecisionPanel
           state={round}
           decision={decision}
@@ -573,9 +590,9 @@ export default function App() {
         />
       )}
 
-      {!isHumanDecision && decision && <div className="thinking-banner">AI가 생각하는 중...</div>}
+      {!isHumanDecision && decision && !concealRoundStart && <div className="thinking-banner">AI가 생각하는 중...</div>}
 
-      <GameLog entries={round.log} />
+      <GameLog entries={concealRoundStart ? [] : round.log} />
       </div>
 
       {/* Priority when several session-level popups could be true at once:
@@ -661,6 +678,30 @@ export default function App() {
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
+        roundStartLocked && (
+          <Modal title={`${session.roundNumber}주차 시작`} onClose={() => {}} dismissible={false}>
+            <div className="round-start-gate">
+              <p className="round-start-gate__prompt">
+                라운드 시작 이벤트를 모두 확인했습니다. 이제 패를 공개하고 진행을 시작합니다.
+              </p>
+              <button
+                type="button"
+                className="round-start-gate__start-btn"
+                onClick={() => setRoundStartLockedNumber(null)}
+              >
+                {session.roundNumber}주차 진행
+              </button>
+            </div>
+          </Modal>
+        )}
+
+      {!pendingHumanReveal &&
+        !pendingGuessEffect &&
+        !pendingForcedDiscard &&
+        !pendingElimination &&
+        !pendingChoiceResult &&
+        !pendingStoryEvent &&
+        !roundStartLocked &&
         humanNeedsLetterChoice && (
           <LetterTokenChoiceModal
             amount={session.pendingLetterChoice!.amount}
@@ -676,6 +717,7 @@ export default function App() {
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
+        !roundStartLocked &&
         !needsLetterChoice &&
         humanNeedsIdentityChoice && (
           <IdentityChoiceModal options={session.pendingIdentityChoice!.options} onChoose={handleChooseIdentity} />
@@ -687,6 +729,7 @@ export default function App() {
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
+        !roundStartLocked &&
         !needsLetterChoice &&
         !needsIdentityChoice &&
         humanNeedsArchiveChoice && (
@@ -704,6 +747,7 @@ export default function App() {
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
+        !roundStartLocked &&
         !needsLetterChoice &&
         !needsIdentityChoice &&
         !needsArchiveChoice &&
@@ -721,6 +765,7 @@ export default function App() {
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
+        !roundStartLocked &&
         !needsLetterChoice &&
         !needsIdentityChoice &&
         !needsArchiveChoice &&
@@ -758,6 +803,7 @@ export default function App() {
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
+        !roundStartLocked &&
         !needsLetterChoice &&
         !needsIdentityChoice &&
         !needsArchiveChoice &&
@@ -777,6 +823,7 @@ export default function App() {
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
+        !roundStartLocked &&
         roundOver &&
         !session.ended &&
         pendingRoundStart && (
@@ -794,6 +841,7 @@ export default function App() {
         !pendingElimination &&
         !pendingChoiceResult &&
         !pendingStoryEvent &&
+        !roundStartLocked &&
         roundOver &&
         session.ended &&
         endSummaryAcknowledged && (
