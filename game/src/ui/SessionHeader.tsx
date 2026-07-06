@@ -103,8 +103,8 @@ function SlotRow({
   const humanTokens = letterTokens[slot]?.[humanId] ?? 0;
   const effectRules = EFFECT_RULES[slot] ?? [];
   return (
-    <details className="session-header__slot">
-      <summary className="session-header__slot-front">
+    <article className="session-header__slot">
+      <div className="session-header__slot-front">
         {art && <img className="session-header__slot-art" src={art} alt={info.name} />}
         <span className="session-header__slot-main">
           <span className="session-header__value">{info.name}</span>
@@ -122,8 +122,8 @@ function SlotRow({
             </span>
           ))}
         </div>
-      </summary>
-      <div className="session-header__slot-back">
+      </div>
+      <div className="session-header__slot-rules">
         <p className="session-header__slot-subtitle">편지 획득 조건</p>
         <ul>
           {(LETTER_RULES[slot] ?? ["이 캐릭터가 공개된 뒤 관련 이벤트로 편지를 획득합니다."]).map((rule) => (
@@ -148,7 +148,7 @@ function SlotRow({
           </>
         )}
       </div>
-    </details>
+    </article>
   );
 }
 

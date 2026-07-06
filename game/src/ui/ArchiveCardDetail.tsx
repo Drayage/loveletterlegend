@@ -98,6 +98,60 @@ export function ArchiveCardDetail({
   const characterLetterTokens = characterSlot && letterTokens ? letterTokens[characterSlot] : null;
   const letterRules = characterSlot ? CHARACTER_LETTER_RULES[characterSlot] ?? [] : [];
   const achievements = characterSlot ? CHARACTER_ACHIEVEMENTS[characterSlot] ?? [] : [];
+  const characterProgress =
+    characterSlot ? (
+      <div className="archive-card-detail__character">
+        {characterLetterTokens && playerConfigs && (
+          <div className="archive-card-detail__letters">
+            {playerConfigs.map((cfg) => (
+              <span key={cfg.id} className={cfg.id === humanId ? "archive-card-detail__letter-me" : ""}>
+                {cfg.id === humanId ? "나" : cfg.displayName} {characterLetterTokens[cfg.id] ?? 0}
+              </span>
+            ))}
+          </div>
+        )}
+        {letterRules.length > 0 && (
+          <div className="archive-card-detail__character-section">
+            <p className="archive-card-detail__checklist-title">편지 조건</p>
+            <ul className="archive-card-detail__earn-rules archive-card-detail__earn-rules--character">
+              {letterRules.map((rule) => (
+                <li key={rule}>{rule}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {achievements.length > 0 && characterLetterTokens && playerConfigs && (
+          <div className="archive-card-detail__character-section">
+            <p className="archive-card-detail__checklist-title archive-card-detail__achievement-title">달성 조건</p>
+            <ul className="archive-card-detail__conditions">
+              {achievements.map((achievement) => {
+                const mine = humanId ? characterLetterTokens[humanId] ?? 0 : 0;
+                const active = mine >= achievement.threshold;
+                return (
+                  <li key={`${achievement.threshold}-${achievement.label}`}>
+                    <span className="archive-card-detail__condition-row">
+                      <span className="archive-card-detail__checkbox" aria-hidden="true">
+                        {active ? "☑" : "☐"}
+                      </span>
+                      <span className="archive-card-detail__condition-label">
+                        편지 {achievement.threshold}개 이상:{" "}
+                        {achievement.cardName ? `「${achievement.cardName}」 ` : ""}
+                        {achievement.label}
+                        <span className="archive-card-detail__condition-progress">
+                          {" "}
+                          — 현재 {Math.min(mine, achievement.threshold)} / {achievement.threshold}
+                        </span>
+                        {active && <span className="archive-card-detail__active-mark">발동중</span>}
+                      </span>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+      </div>
+    ) : null;
 
   return (
     <div className="archive-card-detail">
@@ -119,6 +173,7 @@ export function ArchiveCardDetail({
             </p>
           )}
           <p className="archive-card-detail__flavor">{card.flavor}</p>
+          {characterProgress}
         </div>
       </div>
       {openConditions.length > 0 && (
@@ -159,57 +214,6 @@ export function ArchiveCardDetail({
               );
             })}
           </ul>
-        </div>
-      )}
-      {characterSlot && (
-        <div className="archive-card-detail__character">
-          <p className="archive-card-detail__checklist-title">편지 조건</p>
-          {characterLetterTokens && playerConfigs && (
-            <div className="archive-card-detail__letters">
-              {playerConfigs.map((cfg) => (
-                <span key={cfg.id} className={cfg.id === humanId ? "archive-card-detail__letter-me" : ""}>
-                  {cfg.id === humanId ? "나" : cfg.displayName} {characterLetterTokens[cfg.id] ?? 0}
-                </span>
-              ))}
-            </div>
-          )}
-          {letterRules.length > 0 && (
-            <ul className="archive-card-detail__earn-rules archive-card-detail__earn-rules--character">
-              {letterRules.map((rule) => (
-                <li key={rule}>{rule}</li>
-              ))}
-            </ul>
-          )}
-          {achievements.length > 0 && characterLetterTokens && playerConfigs && (
-            <>
-              <p className="archive-card-detail__checklist-title archive-card-detail__achievement-title">달성 조건</p>
-              <ul className="archive-card-detail__conditions">
-                {achievements.map((achievement) => {
-                  const mine = humanId ? characterLetterTokens[humanId] ?? 0 : 0;
-                  const active = mine >= achievement.threshold;
-                  return (
-                    <li key={`${achievement.threshold}-${achievement.label}`}>
-                      <span className="archive-card-detail__condition-row">
-                        <span className="archive-card-detail__checkbox" aria-hidden="true">
-                          {active ? "☑" : "☐"}
-                        </span>
-                        <span className="archive-card-detail__condition-label">
-                          편지 {achievement.threshold}개 이상:{" "}
-                          {achievement.cardName ? `「${achievement.cardName}」 ` : ""}
-                          {achievement.label}
-                          <span className="archive-card-detail__condition-progress">
-                            {" "}
-                            — 현재 {Math.min(mine, achievement.threshold)} / {achievement.threshold}
-                          </span>
-                          {active && <span className="archive-card-detail__active-mark">발동중</span>}
-                        </span>
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
-          )}
         </div>
       )}
     </div>
