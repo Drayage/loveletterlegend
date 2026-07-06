@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { ArchiveCardState } from "../engine/types";
+import type { SessionState } from "../engine/session";
 import { ArchiveCardDetail } from "./ArchiveCardDetail";
 import { Modal } from "./Modal";
 import "./StoryArchiveModal.css";
@@ -16,10 +17,12 @@ interface StoryArchiveModalProps {
   archiveHistory: Record<string, ArchiveCardState>;
   /** Elapsed [시계] -- drives each expiring card's "남은 시간 (N주)" badge. */
   clockTokens: number;
+  session: SessionState;
+  humanId: string;
   onClose: () => void;
 }
 
-export function StoryArchiveModal({ archive, archiveHistory, clockTokens, onClose }: StoryArchiveModalProps) {
+export function StoryArchiveModal({ archive, archiveHistory, clockTokens, session, humanId, onClose }: StoryArchiveModalProps) {
   const [showInactive, setShowInactive] = useState(false);
   const activeIds = new Set(archive.map((c) => c.id));
   const allCards = Object.values(archiveHistory);
@@ -44,7 +47,14 @@ export function StoryArchiveModal({ archive, archiveHistory, clockTokens, onClos
             <div className="story-archive__cards">
               {characters.map((card) => (
                 <div key={card.id} className="story-archive__card">
-                  <ArchiveCardDetail card={card} clockTokens={clockTokens} inactive={!activeIds.has(card.id)} />
+                  <ArchiveCardDetail
+                    card={card}
+                    clockTokens={clockTokens}
+                    inactive={!activeIds.has(card.id)}
+                    playerConfigs={session.playerConfigs}
+                    humanId={humanId}
+                    letterTokens={session.letterTokens}
+                  />
                 </div>
               ))}
             </div>
@@ -56,7 +66,14 @@ export function StoryArchiveModal({ archive, archiveHistory, clockTokens, onClos
             <div className="story-archive__cards">
               {identities.map((card) => (
                 <div key={card.id} className="story-archive__card">
-                  <ArchiveCardDetail card={card} clockTokens={clockTokens} inactive={!activeIds.has(card.id)} />
+                  <ArchiveCardDetail
+                    card={card}
+                    clockTokens={clockTokens}
+                    inactive={!activeIds.has(card.id)}
+                    playerConfigs={session.playerConfigs}
+                    humanId={humanId}
+                    letterTokens={session.letterTokens}
+                  />
                 </div>
               ))}
             </div>
@@ -68,7 +85,14 @@ export function StoryArchiveModal({ archive, archiveHistory, clockTokens, onClos
             <div className="story-archive__cards">
               {scenarios.map((card) => (
                 <div key={card.id} className="story-archive__card">
-                  <ArchiveCardDetail card={card} clockTokens={clockTokens} inactive={!activeIds.has(card.id)} />
+                  <ArchiveCardDetail
+                    card={card}
+                    clockTokens={clockTokens}
+                    inactive={!activeIds.has(card.id)}
+                    playerConfigs={session.playerConfigs}
+                    humanId={humanId}
+                    letterTokens={session.letterTokens}
+                  />
                 </div>
               ))}
             </div>

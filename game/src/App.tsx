@@ -528,6 +528,8 @@ export default function App() {
           archive={session.storyArchive}
           archiveHistory={session.archiveHistory}
           clockTokens={session.clockTokens}
+          session={session}
+          humanId={HUMAN_ID}
           onClose={() => setShowStoryArchive(false)}
         />
       )}
@@ -572,6 +574,8 @@ export default function App() {
       )}
 
       {!isHumanDecision && decision && <div className="thinking-banner">AI가 생각하는 중...</div>}
+
+      <GameLog entries={round.log} />
       </div>
 
       {/* Priority when several session-level popups could be true at once:
@@ -795,8 +799,6 @@ export default function App() {
         endSummaryAcknowledged && (
           <SessionEndScreen session={session} players={session.playerConfigs} onNewGame={startGame} />
         )}
-
-      <GameLog entries={round.log} />
     </div>
   );
 }
