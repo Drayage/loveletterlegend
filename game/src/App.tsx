@@ -392,7 +392,7 @@ export default function App() {
     setPendingStoryEvent(null);
     setPendingChoiceResult(null);
     setPendingRoundStart(null);
-    setRoundStartLockedNumber(null);
+    setRoundStartLockedNumber(1);
     setSession(startSession(PLAYERS));
   }
 
