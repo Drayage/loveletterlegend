@@ -437,6 +437,11 @@ function applySessionRoundEnd(session: SessionState): SessionState {
   const letterGains: RoundSummary["letterTokensGained"] = [];
   const archiveTokensGained: RoundSummary["archiveTokensGained"] = [];
   const archiveCardsRevealed: RoundSummary["archiveCardsRevealed"] = [];
+  const roundEndEligibleArchiveIds = new Set([
+    ...Object.keys(next.archiveHistory),
+    ...next.storyArchive.map((c) => c.id),
+  ]);
+  const summaryKnownArchiveIds = new Set(Object.keys(next.archiveHistory));
 
   const recordNewReveals = (knownIds: Set<string>) => {
     for (const card of Object.values(next.archiveHistory)) {
@@ -453,20 +458,18 @@ function applySessionRoundEnd(session: SessionState): SessionState {
   };
 
   const revealWithSummary = (ids: Set<string>, choiceEligiblePlayerId?: string) => {
-    const knownIds = new Set(Object.keys(next.archiveHistory));
     applyRevealSideEffects(next, ids, choiceEligiblePlayerId);
-    recordNewReveals(knownIds);
+    recordNewReveals(summaryKnownArchiveIds);
   };
 
   const grantArchive = (cardId: string, token: "성공" | "실패", amount: number, reason: string) => {
+    if (!roundEndEligibleArchiveIds.has(cardId)) return;
     const target = next.storyArchive.find((c) => c.id === cardId);
     if (!target) return;
     addArchiveToken(next, cardId, token, amount);
     archiveTokensGained.push({ cardId, cardName: target.name, token, amount, reason });
   };
 
-  const hasArchiveCard = (cardId: string) =>
-    Boolean(next.archiveHistory[cardId] || next.storyArchive.some((c) => c.id === cardId));
   const grantCharacterLetter = (
     slot: CharacterSlotId,
     playerId: string,
@@ -474,7 +477,7 @@ function applySessionRoundEnd(session: SessionState): SessionState {
     reason: string,
     revealCardId?: string
   ) => {
-    if (revealCardId && !hasArchiveCard(revealCardId)) return;
+    if (revealCardId && !roundEndEligibleArchiveIds.has(revealCardId)) return;
     const applied = addLetterTokenCapped(next, slot, playerId, amount);
     if (applied > 0) letterGains.push({ playerId, slot, amount: applied, reason });
   };

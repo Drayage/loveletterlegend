@@ -135,6 +135,7 @@ function forceImmediateWin(
   s.round.firstEliminatedThisRound = null;
   s.clockTokens = presetClock;
   s.storyArchive = [...pristineStoryArchive(), ...extraArchiveCards];
+  s.archiveHistory = Object.fromEntries(s.storyArchive.map((card) => [card.id, card]));
   s.pendingLetterChoice = null;
   s.pendingArchivePlacement = null;
   s.pendingChoice = null;
@@ -859,6 +860,24 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
     );
   });
 
+  it("does not apply round-end rewards to scenario cards revealed by that same round end", () => {
+    let session = startSession(PLAYERS);
+    session = forceImmediateWin(session, "p1", [
+      { instanceId: "minister-played", name: "대신" },
+      { instanceId: "minister-held", name: "대신" },
+    ]);
+
+    const ministerConcern = session.storyArchive.find((c) => c.id === "172");
+    expect(ministerConcern).toBeTruthy();
+    expect(ministerConcern?.successTokens).toBe(0);
+    expect(ministerConcern?.failTokens).toBe(0);
+    expect(session.storyArchive.some((c) => c.id === "173")).toBe(false);
+    expect(session.lastRoundSummary?.archiveCardsRevealed).toEqual(
+      expect.arrayContaining([expect.objectContaining({ cardId: "172" })])
+    );
+    expect(session.lastRoundSummary?.archiveTokensGained.some((g) => g.cardId === "172")).toBe(false);
+  });
+
   it("wizard tier2 upgrade needs no target and lets the actor redraw alone", () => {
     expect(needsTarget("마술사", "tier2")).toBe(false);
     expect(targetsFor({ players: [] } as unknown as GameState, "p1", "마술사", "tier2")).toEqual([]);
@@ -917,6 +936,7 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
 
     it("103's [실패] threshold reveals 113, whose autoRevealIds cascades straight to 114 (conditionTag, deckEffect replaces 기사 with 상인 x2) with no condition/choice gate of its own", () => {
       let session = startSession(PLAYERS);
+      const seededCard103 = { ...ARCHIVE_CARD_SEEDS["103"], conditions: ARCHIVE_CARD_SEEDS["103"].conditions.map((c) => ({ ...c, fired: false })), successTokens: 0, failTokens: 0 };
       session = forceImmediateWin(
         session,
         "p1",
@@ -924,15 +944,15 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
           { instanceId: "c1", name: "대신" },
           { instanceId: "c2", name: "기사" },
         ],
-        [],
+        [seededCard103],
         0,
         [
           { type: "compareResolved", actingPlayerId: "p1", targetPlayerId: "p2", cardName: "기사", outcome: "actorLoses" },
           { type: "compareResolved", actingPlayerId: "p1", targetPlayerId: "p2", cardName: "기사", outcome: "actorLoses" },
         ]
       );
-      const card103 = session.storyArchive.find((c) => c.id === "103");
-      expect(card103?.conditions.find((c) => c.id === "103-fail")?.fired).toBe(true);
+      const resolvedCard103 = session.storyArchive.find((c) => c.id === "103");
+      expect(resolvedCard103?.conditions.find((c) => c.id === "103-fail")?.fired).toBe(true);
       // 113 itself never lingers -- its autoRevealIds fires and removes it
       // in the same pass that reveals 114.
       expect(session.storyArchive.some((c) => c.id === "113")).toBe(false);
@@ -1149,6 +1169,7 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
 
     it("autoRevealIds cascades (113 -> 114) stamp revealedFrom with a generic '자동 공개' reason", () => {
       let session = startSession(PLAYERS);
+      const seededCard103 = { ...ARCHIVE_CARD_SEEDS["103"], conditions: ARCHIVE_CARD_SEEDS["103"].conditions.map((c) => ({ ...c, fired: false })), successTokens: 0, failTokens: 0 };
       session = forceImmediateWin(
         session,
         "p1",
@@ -1156,7 +1177,7 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
           { instanceId: "c1", name: "대신" },
           { instanceId: "c2", name: "기사" },
         ],
-        [],
+        [seededCard103],
         0,
         [
           { type: "compareResolved", actingPlayerId: "p1", targetPlayerId: "p2", cardName: "기사", outcome: "actorLoses" },
