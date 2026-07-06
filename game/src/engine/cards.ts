@@ -69,6 +69,14 @@ export const CARD_DEFS: Record<CardName, CardDef> = {
     shortAbility: "버리게 되면 즉시 탈락",
     ability: "이 카드를 버려야 하는 상황이 생기면, 당신은 즉시 라운드에서 탈락합니다.",
   },
+  왕자: {
+    name: "왕자",
+    rank: 8,
+    count: 1,
+    englishAlias: "Prince",
+    shortAbility: "버리게 되면 즉시 탈락",
+    ability: "이 카드를 버려야 하는 상황이 생기면, 당신은 즉시 라운드에서 탈락합니다.",
+  },
   왕: {
     name: "왕",
     // 실카드는 숫자 대신 "X" -- 순위 비교에 참여하지 않으므로 임의로 0.
@@ -77,6 +85,14 @@ export const CARD_DEFS: Record<CardName, CardDef> = {
     englishAlias: "King",
     shortAbility: "손에 들고 있으면 즉시 탈락 (패시브)",
     ability: "당신은 라운드에서 탈락합니다.",
+  },
+  마을소녀: {
+    name: "마을소녀",
+    rank: 0,
+    count: 1,
+    englishAlias: "Village Girl",
+    shortAbility: "라운드 종료 시 숫자 7로 계산",
+    ability: "라운드 종료시, 이 카드의 숫자는 7이 됩니다.",
   },
   // 023의 나머지 분기들이 실카드의 [등장] 태그로 기존 base 카드 일부를
   // 대체/추가하는 새 카드들 (see data/scenario.ts's deckEffect, engine/
@@ -91,6 +107,22 @@ export const CARD_DEFS: Record<CardName, CardDef> = {
     ability:
       "다른 플레이어를 지목한 뒤, 「1을 제외한 홀수」또는 「짝수」를 하나 댑니다. 만약 지목된 플레이어가 그 숫자 카드를 갖고 있다면 라운드에서 탈락합니다.",
   },
+  시종: {
+    name: "시종",
+    rank: 1,
+    count: 5,
+    englishAlias: "Servant",
+    shortAbility: "두 플레이어의 손패 교환",
+    ability: "플레이어 두 명을 선택합니다(자신 포함). 그 플레이어들은 손에 든 카드를 서로 바꿉니다.",
+  },
+  시녀: {
+    name: "시녀",
+    rank: 1,
+    count: 5,
+    englishAlias: "Maid",
+    shortAbility: "두 플레이어의 손패 교환",
+    ability: "플레이어 두 명을 선택합니다(자신 포함). 그 플레이어들은 손에 든 카드를 서로 바꿉니다.",
+  },
   광대의제자: {
     name: "광대의제자",
     rank: 2,
@@ -98,6 +130,14 @@ export const CARD_DEFS: Record<CardName, CardDef> = {
     englishAlias: "Clown's Apprentice",
     shortAbility: "상대 한 명의 손패를 확인 (광대와 동일)",
     ability: "다른 플레이어 한 명을 지목하여 그 플레이어가 손에 든 카드를 봅니다.",
+  },
+  광대의제자여: {
+    name: "광대의제자여",
+    rank: 2,
+    count: 1,
+    englishAlias: "Clown's Apprentice (F)",
+    shortAbility: "비공개 제거 카드를 확인",
+    ability: "비공개 카드를 봅니다.",
   },
   점술사: {
     name: "점술사",
@@ -111,12 +151,37 @@ export const CARD_DEFS: Record<CardName, CardDef> = {
     ability:
       "플레이: 아래에서 하나를 선택합니다.\n1. 덱 맨 위 카드를 봅니다. 당신은 손에 든 카드와 그 카드를 바꿀 수 있습니다.\n2. 다른 플레이어 한 명을 지목합니다. 그 플레이어가 라운드에서 승리하면 당신도 같이 승리합니다.",
   },
+  배우: {
+    name: "배우",
+    rank: 9,
+    count: 1,
+    englishAlias: "Actor",
+    shortAbility: "라운드 종료 시 숫자 0으로 계산",
+    ability: "라운드 종료시, 이 카드의 숫자는 0이 됩니다.",
+  },
+  무희: {
+    name: "무희",
+    rank: 0,
+    count: 1,
+    englishAlias: "Dancer",
+    shortAbility: "라운드 종료 시 숫자 9로 계산",
+    ability: "라운드 종료시, 이 카드의 숫자는 9가 됩니다.",
+  },
   복면기사: {
     name: "복면기사",
     rank: 3,
     count: 1,
     englishAlias: "Masked Knight",
     shortAbility: "상대와 카드 숫자 비교, 높으면 탈락 (기사와 반대)",
+    ability:
+      "당신은 다른 플레이어 한 명과 손에 든 카드의 숫자를 서로 비밀리에 비교합니다. 이때 숫자가 더 큰 카드를 가진 플레이어는 라운드에서 탈락합니다.",
+  },
+  여기사: {
+    name: "여기사",
+    rank: 3,
+    count: 1,
+    englishAlias: "Lady Knight",
+    shortAbility: "상대와 카드 숫자 비교, 높으면 탈락",
     ability:
       "당신은 다른 플레이어 한 명과 손에 든 카드의 숫자를 서로 비밀리에 비교합니다. 이때 숫자가 더 큰 카드를 가진 플레이어는 라운드에서 탈락합니다.",
   },
@@ -146,6 +211,47 @@ export const CARD_DEFS: Record<CardName, CardDef> = {
     englishAlias: "Nun",
     shortAbility: "버린 카드 1장의 효과 재사용 (v1: 무작위 선택)",
     ability: "플레이: 버림 더미에 있는 카드 1장을 선택합니다. 그 카드의 「플레이:」효과를 사용합니다.",
+  },
+  집사: {
+    name: "집사",
+    rank: 4,
+    count: 2,
+    englishAlias: "Butler",
+    shortAbility: "버림 더미에 있으면 비교/라운드 종료 숫자 +2",
+    ability: "이 카드가 버림 더미에 있을 경우, 카드의 숫자를 비교할 때와 라운드 종료시에 손에 든 카드의 숫자에 2를 더합니다.",
+  },
+  마녀: {
+    name: "마녀",
+    rank: 5,
+    count: 1,
+    englishAlias: "Witch",
+    shortAbility: "모든 손패를 모아 무작위 재분배",
+    ability: "모든 플레이어가 들고 있는 카드를 뒷면으로 모아서, 무작위로 다시 나누어 줍니다.",
+  },
+  대마도사15: {
+    name: "대마도사15",
+    rank: 5,
+    count: 1,
+    englishAlias: "Archmage (15)",
+    shortAbility: "상대 손패를 버리고 쥐를 줌",
+    ability: "다른 플레이어 한 명을 지목합니다. 그 플레이어는 손에 든 카드를 버리고 게임 밖에서 「쥐」 1장을 가져와 손에 듭니다.",
+  },
+  쥐: {
+    name: "쥐",
+    rank: 0,
+    count: 1,
+    englishAlias: "Mouse",
+    shortAbility: "플레이하면 탈락, 덱 밖 카드",
+    ability: "플레이: 당신은 라운드에서 탈락합니다. 이 카드는 덱에 넣지 않고 옆으로 빼놓습니다.",
+  },
+  대마도사20: {
+    name: "대마도사20",
+    rank: 5,
+    count: 1,
+    englishAlias: "Archmage (20)",
+    shortAbility: "상대 손패를 받고 상대에게 쥐를 줌",
+    ability:
+      "다른 플레이어 한 명을 지목합니다. 그 플레이어는 손에 든 카드를 당신에게 건네주고, 게임 밖에서 「쥐」 1장을 가져와 손에 듭니다. 그 후, 당신은 손에 든 카드 중 1장을 버립니다.",
   },
   여장군: {
     name: "여장군",
@@ -199,6 +305,22 @@ export const CARD_DEFS: Record<CardName, CardDef> = {
     ability:
       "덱 맨 위의 카드를 봅니다. 그 후, 다른 플레이어 한 명을 지목합니다. 그 플레이어는 손에 든 카드를 버리고 덱에서 새로 카드를 뽑습니다.",
   },
+  공주둘째: {
+    name: "공주둘째",
+    rank: 8,
+    count: 1,
+    englishAlias: "Second Princess",
+    shortAbility: "탈락하면 덱에서 1장 뽑고 복귀",
+    ability: "당신이 라운드에서 탈락했다면, 덱에서 카드 한 장을 뽑아 손에 들고 게임에 복귀합니다.",
+  },
+  공주셋째: {
+    name: "공주셋째",
+    rank: 8,
+    count: 1,
+    englishAlias: "Third Princess",
+    shortAbility: "버리면 즉시 탈락하고 라운드 종료",
+    ability: "이 카드를 버려야 하는 상황이 생기면, 당신은 즉시 라운드에서 탈락합니다. 즉시 라운드를 종료합니다.",
+  },
   백작부인: {
     name: "백작부인",
     rank: 8,
@@ -229,6 +351,8 @@ export const CARD_ORDER: CardName[] = [
   "대신",
   "공주",
 ];
+
+export const ALL_CARD_NAMES = Object.keys(CARD_DEFS) as CardName[];
 
 export function buildFullDeckDefs(): CardDef[] {
   return CARD_ORDER.flatMap((name) => {

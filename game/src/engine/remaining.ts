@@ -1,4 +1,3 @@
-import { CARD_DEFS, CARD_ORDER } from "./cards";
 import type { CardInstance, CardName, GameState } from "./types";
 
 /** How many copies of each card name are still unaccounted for -- i.e. not
@@ -7,13 +6,21 @@ import type { CardInstance, CardName, GameState } from "./types";
  * show to both players. */
 export function computeRemainingCounts(state: GameState): Record<CardName, number> {
   const remaining: Record<CardName, number> = {} as Record<CardName, number>;
-  for (const name of CARD_ORDER) remaining[name] = CARD_DEFS[name].count;
+
+  const add = (card: CardInstance | null | undefined) => {
+    if (!card) return;
+    remaining[card.name] = (remaining[card.name] ?? 0) + 1;
+  };
+
+  for (const c of state.deck) add(c);
+  add(state.hiddenRemovedCard);
+  for (const c of state.faceUpRemovedCards) add(c);
+  for (const p of state.players) {
+    for (const c of p.hand) add(c);
+    for (const c of p.discardPile) add(c);
+  }
 
   const subtract = (card: CardInstance) => {
-    // Session-revealed cards outside the base 16 (e.g. 「왕」) aren't in
-    // CARD_ORDER, so their count isn't pre-seeded above -- initialize
-    // lazily from CARD_DEFS on first sighting instead of assuming 0/undefined.
-    if (remaining[card.name] === undefined) remaining[card.name] = CARD_DEFS[card.name].count;
     remaining[card.name] = Math.max(0, remaining[card.name] - 1);
   };
   for (const p of state.players) {

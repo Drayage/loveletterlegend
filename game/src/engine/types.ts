@@ -7,21 +7,34 @@ export type CardName =
   | "장군"
   | "대신"
   | "공주"
+  | "왕자"
   /** 025 「국왕 랜들 3세」가 등장할 때 덱에 추가되는 함정 카드 (rank는 편의상
    * 0 -- 실제 카드는 "X"로 순위 비교에 참여하지 않는 특수 취급이며, 이
    * 카드는 손에 들고 있으면 즉시 탈락하는 패시브뿐이라 순위 비교 지점에
    * 아예 도달하지 않는다). */
   | "왕"
+  | "마을소녀"
   // 023의 나머지 7개 분기(광대/기사/승려/장군/대신) 아래에서 실카드의
   // [등장] 태그로 기존 base 카드 중 일부를 대체/추가하는 새 게임 카드들
   // (see data/scenario.ts's ArchiveCardSeed.deckEffect).
   | "신병"
+  | "시종"
+  | "시녀"
   | "광대의제자"
+  | "광대의제자여"
   | "점술사"
+  | "배우"
+  | "무희"
   | "복면기사"
+  | "여기사"
   | "상인"
   | "수사"
   | "수녀"
+  | "집사"
+  | "마녀"
+  | "대마도사15"
+  | "쥐"
+  | "대마도사20"
   | "여장군"
   | "군사"
   | "정무관남"
@@ -33,6 +46,8 @@ export type CardName =
    * 문자열이지만, 두 타입은 서로 다른 도메인(CardName vs
    * CharacterSlotId)이라 런타임 충돌은 없다. */
   | "마술사의도제"
+  | "공주둘째"
+  | "공주셋째"
   /** 188 「공주님들」의 3번째 분기(195)가 마지막으로 도달하는 200 「거만한
    * 귀족 영애」의 [등장]으로 덱에 추가되는 새 rank8 카드. 188의 다른
    * 분기(루나 공주/마가렛 공주/백작부인)는 "매 라운드 시작시 선택적으로
@@ -233,6 +248,7 @@ export interface GameState {
 }
 
 export type SessionEvent =
+  | { type: "cardPlayed"; actingPlayerId: string; cardName: CardName }
   /** `cardName`: 「경비병」/「신병」 둘 다 이 이벤트를 쓰므로(같은 효과
    * 로직 공유, see effects.ts), 어느 카드였는지 구분해 053/057 중 맞는
    * 쪽에 [성공]/[실패]를 적립해야 한다 (see engine/session.ts). */
@@ -337,6 +353,11 @@ export function conditionTiming(kind: ArchiveCondition["kind"]): ArchiveConditio
 export type DeckEffect =
   | { kind: "add"; cardName: CardName }
   | { kind: "replace"; removeName: CardName; addName: CardName; count?: number }
+  | {
+      kind: "batch";
+      add?: Array<{ cardName: CardName; count?: number }>;
+      remove?: Array<{ cardName: CardName; count?: number }>;
+    }
   | { kind: "revert"; removedName: CardName; restoreName: CardName };
 
 export interface ArchiveCardState {
@@ -384,11 +405,29 @@ export type CharacterSlotId =
   | "아레스왕자"
   | "경비병알리오스"
   | "신병아니스"
+  | "마을소녀미란다"
+  | "시종트래비스"
+  | "시녀메이블"
+  | "광대제자리카드"
+  | "광대제자피오"
+  | "점술사그리셀다"
+  | "배우파비오"
+  | "무희미나"
   | "기사라이언"
+  | "여기사캐리"
+  | "여상인수잔나"
   | "승려올리비아"
+  | "수사알베르트"
+  | "수녀로베리아"
+  | "집사세바스티안"
   | "마술사의도제"
+  | "마녀베아트릭스"
+  | "대마도사15알비스"
+  | "대마도사20알비스"
   | "여장군아즈사"
   | "군사시어도어"
+  | "정무관오즈릭"
+  | "정무관오즈리나"
   | "여후작엘마"
   | "백작부인카밀라"
   | "귀족영애아나스타샤";

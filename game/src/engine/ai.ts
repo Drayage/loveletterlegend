@@ -1,4 +1,3 @@
-import { CARD_DEFS, CARD_ORDER } from "./cards";
 import { cardRank } from "./effects";
 import type { ArchiveCardState, CardInstance, CardName, CharacterSlotId, GameState, GuessOption } from "./types";
 import type { Route } from "../data/routes";
@@ -15,11 +14,28 @@ export function estimateUnseenDistribution(
   forPlayerId: string
 ): Record<CardName, number> {
   const remaining: Record<CardName, number> = {} as Record<CardName, number>;
-  for (const name of CARD_ORDER) remaining[name] = CARD_DEFS[name].count;
+  const possibleNames = new Set<CardName>();
 
   const subtract = (card: CardInstance) => {
+    possibleNames.add(card.name);
+    if (remaining[card.name] === undefined) remaining[card.name] = 0;
     remaining[card.name] = Math.max(0, remaining[card.name] - 1);
   };
+
+  const addRoundCard = (card: CardInstance | null | undefined) => {
+    if (!card) return;
+    possibleNames.add(card.name);
+    if (remaining[card.name] === undefined) remaining[card.name] = 0;
+    remaining[card.name] += 1;
+  };
+
+  for (const c of state.deck) addRoundCard(c);
+  addRoundCard(state.hiddenRemovedCard);
+  for (const c of state.faceUpRemovedCards) addRoundCard(c);
+  for (const p of state.players) {
+    for (const c of p.hand) addRoundCard(c);
+    for (const c of p.discardPile) addRoundCard(c);
+  }
 
   for (const p of state.players) {
     for (const c of p.discardPile) subtract(c);
@@ -31,7 +47,7 @@ export function estimateUnseenDistribution(
 
   const total = Object.values(remaining).reduce((a, b) => a + b, 0);
   const dist: Record<CardName, number> = {} as Record<CardName, number>;
-  for (const name of CARD_ORDER) {
+  for (const name of possibleNames) {
     dist[name] = total > 0 ? remaining[name] / total : 0;
   }
   return dist;
@@ -39,7 +55,7 @@ export function estimateUnseenDistribution(
 
 function bestGuess(dist: Record<CardName, number>): { name: CardName; p: number } {
   let best: { name: CardName; p: number } | null = null;
-  for (const name of CARD_ORDER) {
+  for (const name of Object.keys(dist) as CardName[]) {
     if (name === "경비병") continue;
     if (!best || dist[name] > best.p) best = { name, p: dist[name] };
   }
@@ -49,11 +65,11 @@ function bestGuess(dist: Record<CardName, number>): { name: CardName; p: number 
 export function chooseGuessAI(state: GameState, playerId: string): GuessOption {
   if (state.pendingDecision?.kind === "guessCard" && state.pendingDecision.cardName === "신병") {
     const dist = estimateUnseenDistribution(state, playerId);
-    const odd = CARD_ORDER.filter((n) => n !== "경비병" && cardRank(n) % 2 === 1).reduce(
+    const odd = (Object.keys(dist) as CardName[]).filter((n) => n !== "경비병" && cardRank(n) % 2 === 1).reduce(
       (acc, n) => acc + (dist[n] ?? 0),
       0
     );
-    const even = CARD_ORDER.filter((n) => cardRank(n) !== 0 && cardRank(n) % 2 === 0).reduce(
+    const even = (Object.keys(dist) as CardName[]).filter((n) => cardRank(n) !== 0 && cardRank(n) % 2 === 0).reduce(
       (acc, n) => acc + (dist[n] ?? 0),
       0
     );
@@ -98,7 +114,7 @@ function scoreCardToPlay(
     }
     case "기사": {
       // Playing 기사 compares `keep` against the opponent's unknown card.
-      const winProb = CARD_ORDER.filter((n) => cardRank(n) < cardRank(keep.name)).reduce(
+      const winProb = (Object.keys(dist) as CardName[]).filter((n) => cardRank(n) < cardRank(keep.name)).reduce(
         (acc, n) => acc + (dist[n] ?? 0),
         0
       );
@@ -106,7 +122,7 @@ function scoreCardToPlay(
     }
     case "장군": {
       const myRank = cardRank(keep.name);
-      const expectedOpponentRank = CARD_ORDER.reduce(
+      const expectedOpponentRank = (Object.keys(dist) as CardName[]).reduce(
         (acc, n) => acc + cardRank(n) * (dist[n] ?? 0),
         0
       );
@@ -171,11 +187,24 @@ export function chooseIdentityAI(options: string[]): string {
 
 export function chooseCardToPlayAI(state: GameState, playerId: string): CardInstance {
   const player = state.players.find((p) => p.id === playerId);
-  if (!player || player.hand.length !== 2) {
-    throw new Error("AI는 카드 2장을 들고 있어야 합니다.");
+  if (!player) {
+    throw new Error("AI 플레이어를 찾을 수 없습니다.");
+  }
+  const decisionOptions =
+    state.pendingDecision?.kind === "playCard" && state.pendingDecision.playerId === playerId
+      ? state.pendingDecision.options
+      : player.hand;
+  const playableCards = decisionOptions
+    .map((option) => player.hand.find((card) => card.instanceId === option.instanceId))
+    .filter((card): card is CardInstance => Boolean(card));
+  if (playableCards.length === 0) {
+    throw new Error("AI가 낼 수 있는 카드가 없습니다.");
+  }
+  if (playableCards.length === 1 || player.hand.length < 2) {
+    return playableCards[0];
   }
   const dist = estimateUnseenDistribution(state, playerId);
-  const [a, b] = player.hand;
+  const [a, b] = playableCards;
   const scoreA = scoreCardToPlay(a, b, dist);
   const scoreB = scoreCardToPlay(b, a, dist);
   return scoreA >= scoreB ? a : b;

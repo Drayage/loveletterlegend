@@ -94,6 +94,22 @@ import traveler from "../assets/cards/extra/정체. 여행자.jpg";
 import baron from "../assets/cards/extra/정체. 남작.jpg";
 // 023의 나머지 분기 아래에서 새로 등장하는 캐릭터들의 초상화.
 import recruit from "../assets/cards/extra/1. 신병.jpg";
+import villageGirl from "../assets/cards/extra/0. 마을소녀.jpg";
+import servant from "../assets/cards/extra/1. 시종.jpg";
+import maid from "../assets/cards/extra/1. 시녀.jpg";
+import clownApprentice from "../assets/cards/extra/2. 광대의 제자(남).jpg";
+import clownApprenticeFemale from "../assets/cards/extra/2. 광대의 제자(여).jpg";
+import fortuneTeller from "../assets/cards/extra/2. 점술사.jpg";
+import actor from "../assets/cards/extra/9. 배우.jpg";
+import dancer from "../assets/cards/extra/0. 무희.jpg";
+import ladyKnight from "../assets/cards/extra/3. 여기사.jpg";
+import merchant from "../assets/cards/extra/3. 상인.jpg";
+import friar from "../assets/cards/extra/4. 수사.jpg";
+import nun from "../assets/cards/extra/4. 수녀.jpg";
+import butler from "../assets/cards/extra/4. 집사.jpg";
+import witch from "../assets/cards/extra/5. 마녀.jpg";
+import archmage15 from "../assets/cards/extra/5. 대마도사(15세).jpg";
+import archmage20 from "../assets/cards/extra/5. 대마도사(20세).jpg";
 import ladyGeneral from "../assets/cards/extra/6. 여장군.jpg";
 import tactician from "../assets/cards/extra/6. 군사.jpg";
 import marchioness from "../assets/cards/extra/7. 여후작.jpg";
@@ -213,7 +229,8 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
       { id: "023-wizard", kind: "winnerHeldCard", label: "《5 마술사》", cardName: "마술사", revealIds: ["142"] },
       { id: "023-general", kind: "winnerHeldCard", label: "《6 장군》", cardName: "장군", revealIds: ["162"] },
       { id: "023-minister", kind: "winnerHeldCard", label: "《7 대신》", cardName: "대신", revealIds: ["172"] },
-      { id: "023-royal", kind: "winnerHeldCard", label: "《8 공주/왕자》", cardName: "공주", revealIds: ["188"] },
+      { id: "023-princess", kind: "winnerHeldCard", label: "《공주》", cardName: "공주", revealIds: ["188"] },
+      { id: "023-prince", kind: "winnerHeldCard", label: "《왕자》", cardName: "왕자", revealIds: ["188"] },
     ],
   },
   "024": {
@@ -274,6 +291,30 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     flavor: "「여보, 그만두시지요」",
     deckEffect: { kind: "revert", removedName: "왕", restoreName: "왕" },
     conditionsTitle: "라운드 종료 시",
+    conditions: [],
+  },
+  "028": {
+    id: "028",
+    name: "간판 점원 미란다",
+    category: "character",
+    art: villageGirl,
+    flavor: "「어서 오세요. 오늘도 그분께 드릴 편지를 맡기러 오셨나요?」",
+    conditions: [],
+  },
+  "029": {
+    id: "029",
+    name: "간판 점원 미란다",
+    category: "character",
+    art: villageGirl,
+    flavor:
+      "러브레터가 전해져 들떠 있는 자도 있고, 소식이 없어 슬퍼하는 자도 있습니다. 술로 달래고 싶은 사람은 성 아래 술집 점원에게 말을 걸곤 합니다.",
+    deckEffect: { kind: "add", cardName: "마을소녀" },
+    conditionsTitle: "라운드 종료 시 확인",
+    earnRules: [
+      "「마을소녀」를 손에 들고 라운드 승리: +편지 1",
+      "「마을소녀」가 버림 더미에 놓인 채 라운드 종료: 편지 1 감소",
+      "[편지] 3개 이상: 「마을소녀」의 종료 숫자가 9로 변경",
+    ],
     conditions: [],
   },
   "032": {
@@ -356,6 +397,20 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
       "다양한 우연과 기연을 통해, 편지를 보낸 이들은 새해를 맞이하는 의례에 참석합니다. 이 기적과도 같은 순간에 자신의 마음과 마주하고 진실한 답을 찾을 수 있을까요.",
     conditions: [],
   },
+  "048": {
+    id: "048",
+    name: "역사 6 천재일우의 기회",
+    category: "scenario",
+    flavor:
+      "열렬한 러브레터가 공주들과 왕국 사람들 사이에서 화제가 된 것 같습니다. 지금이라면, 이제까지 전할 수 없던 상대에게도 마음을 전할 수 있을지 모릅니다.",
+    conditions: [],
+    choices: [
+      { id: "048-luna", label: "차분한 둘째 공주 루나", revealIds: ["189", "190"] },
+      { id: "048-margaret", label: "활기찬 셋째 공주 마가렛", revealIds: ["192", "193"] },
+      { id: "048-countess", label: "마차를 타고 외출하는 요염한 귀부인", revealIds: ["196"] },
+      { id: "048-noble", label: "쇼핑할 생각에 들뜬 수행원을 거느린 소녀", revealIds: ["200"] },
+    ],
+  },
   "031": {
     id: "031",
     name: "역사 3 운명의 변덕",
@@ -430,6 +485,10 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     flavor:
       "병사들이 편지의 전갈을 맡고 있는 것이 왕에게 알려지고 말았습니다. 그들은 왕에게 꾸중을 듣고, 주선을 해 주지 않게 되어 버렸습니다. 다른 수단을 생각하지 않으면....",
     conditions: [],
+    choices: [
+      { id: "062-servant", label: "의욕 없어 보이는 시종에게 부탁합니다", revealIds: ["063"] },
+      { id: "062-maid", label: "퉁명스러운 시녀에게 부탁합니다", revealIds: ["071"] },
+    ],
   },
   "051": {
     id: "051",
@@ -506,6 +565,94 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
       "《1 신병》을 손에 들고 라운드 승리: +[편지] 3개. 「신병」으로 다른 플레이어를 탈락시킬 경우, 탈락시킨 인원 1명당 +[편지] 2개.",
     conditions: [],
   },
+  "063": {
+    id: "063",
+    name: "의욕 없는 시종",
+    category: "scenario",
+    art: servant,
+    flavor: "「아, 상관없는데요. 그렇게 근무 태도가 좋아 보이지는 않는데 괜찮을까요....」",
+    deckEffect: {
+      kind: "batch",
+      remove: [
+        { cardName: "경비병", count: 5 },
+        { cardName: "신병" },
+      ],
+      add: [{ cardName: "시종", count: 5 }],
+    },
+    conditionsTitle: "라운드 종료 시 확인",
+    earnRules: ["「시종」이 버림 더미에 있는 채로 라운드 승리: 성공"],
+    conditions: [
+      {
+        id: "063-win",
+        kind: "sharedToken",
+        label: "「시종」이 버림 더미에 있는 채로 라운드 승리",
+        token: "성공",
+        threshold: 1,
+        revealIds: ["069", "070"],
+        removeIds: ["063"],
+      },
+    ],
+  },
+  "069": {
+    id: "069",
+    name: "시종 트래비스",
+    category: "character",
+    art: servant,
+    flavor: "「네, 네. 전하겠습니다. 이번에는 정말입니다.」",
+    conditions: [],
+  },
+  "070": {
+    id: "070",
+    name: "시종 트래비스",
+    category: "character",
+    art: servant,
+    flavor: "《1 시종》이 버림 더미에 놓인 채로 라운드 승리: +[편지] 2개.",
+    conditions: [],
+  },
+  "071": {
+    id: "071",
+    name: "퉁명스러운 시녀",
+    category: "scenario",
+    art: maid,
+    flavor: "「하, 하지 않으면 안 되니까. 이런 사람에게 편지를 맡겨도 괜찮은 걸까?」",
+    deckEffect: {
+      kind: "batch",
+      remove: [
+        { cardName: "경비병", count: 5 },
+        { cardName: "신병" },
+      ],
+      add: [{ cardName: "시녀", count: 5 }],
+    },
+    conditionsTitle: "라운드 종료 시 확인",
+    earnRules: ["「시녀」가 버림 더미에 있는 채로 라운드 승리: 성공"],
+    conditions: [
+      {
+        id: "071-win",
+        kind: "sharedToken",
+        label: "「시녀」가 버림 더미에 있는 채로 라운드 승리",
+        token: "성공",
+        threshold: 1,
+        revealIds: ["077", "078"],
+        removeIds: ["071"],
+      },
+    ],
+  },
+  "077": {
+    id: "077",
+    name: "시녀 메이블",
+    category: "character",
+    art: maid,
+    flavor: "「제대로 전할 테니까, 너무 빤히 보지 마세요.」",
+    conditions: [],
+  },
+  "078": {
+    id: "078",
+    name: "시녀 메이블",
+    category: "character",
+    art: maid,
+    flavor: "《1 시녀》가 버림 더미에 놓인 채로 라운드 승리: +[편지] 2개.",
+    conditions: [],
+  },
 
   // ---- 023의 《2 광대》 분기: 079 선택 -> 080/089/093 ----
   "079": {
@@ -528,9 +675,18 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     flavor:
       "공연 중인 광대처럼 제대로 분장한 인물이 당신에게 인사합니다. 아무래도 말을 멈춘 채 팬터마임 연습 중인 것 같습니다.",
     deckEffect: { kind: "replace", removeName: "광대", addName: "광대의제자" },
-    // 실카드의 "종료" 조건("광대/광대의 제자가 버림더미에 있는 채로 승리"
-    // -> [082] 공개)은 대상이 v1 슬라이스 밖이라 생략한다.
-    conditions: [],
+    conditionsTitle: "라운드 종료 시 확인",
+    conditions: [
+      {
+        id: "080-win",
+        kind: "sharedToken",
+        label: "「광대/광대의 제자」가 버림 더미에 있는 채로 라운드 승리",
+        token: "성공",
+        threshold: 1,
+        revealIds: ["082"],
+        removeIds: ["080"],
+      },
+    ],
   },
   "089": {
     id: "089",
@@ -539,9 +695,18 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     flavor:
       "점을 치는 텐트는 어둡고, 알 수 없는 향 냄새에 휩싸여 있습니다. 이국적인 의상을 입은 미녀가 수정구슬을 앞에 두고 신비로운 미소를 짓고 있습니다.「무슨 일이신가요?」",
     deckEffect: { kind: "replace", removeName: "광대", addName: "점술사" },
-    // 실카드의 "종료" 조건(점술사 관련 승리 -> [091][092] 공개)은 대상이
-    // v1 슬라이스 밖이라 생략한다.
-    conditions: [],
+    conditionsTitle: "라운드 종료 시 확인",
+    conditions: [
+      {
+        id: "089-win",
+        kind: "sharedToken",
+        label: "「점술사」를 손에 들거나 버린 채로 라운드 승리",
+        token: "성공",
+        threshold: 1,
+        revealIds: ["091", "092"],
+        removeIds: ["089"],
+      },
+    ],
   },
   "093": {
     id: "093",
@@ -549,8 +714,176 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     category: "scenario",
     flavor:
       "커다란 환성에 이끌려, 행사의 한가운데 있는 무대를 방문합니다. 당신은 거기에서 공연 중인 연극의 주역에 눈길을 빼앗깁니다. 아, 정말 멋진 연기에 빼어난 외모입니다!",
-    // 실카드는 자체 "선택" 분기(094/098)를 갖지만 둘 다 v1 슬라이스 밖이라
-    // choices 없이 flavor만 표시하는 종결 카드로 둔다.
+    conditions: [],
+    choices: [
+      { id: "093-actor", label: "잘생긴 간판배우에게 마음을 빼앗깁니다", revealIds: ["094"] },
+      { id: "093-dancer", label: "매혹적인 무희에게 눈길이 갑니다", revealIds: ["098"] },
+    ],
+  },
+  "082": {
+    id: "082",
+    name: "분장 속 맨얼굴",
+    category: "scenario",
+    flavor:
+      "어느 날, 낯선 사람이 당신에게 말을 걸어옵니다. 얼굴을 유심히 들여다보니, 얼마 전 만났던 광대의 제자가 아니겠습니까. 몰라봤던 그 모습은....",
+    conditions: [],
+    choices: [
+      { id: "082-boy", label: "정말 개구쟁이 같은 소년입니다", revealIds: ["083", "084"] },
+      { id: "082-girl", label: "상상할 수 없었던 소녀입니다", revealIds: ["086", "087"] },
+    ],
+  },
+  "083": {
+    id: "083",
+    name: "광대의 제자 리카드",
+    category: "character",
+    art: clownApprentice,
+    flavor: "「쉿, 지금은 연습 중이야. 그래도 네 부탁이라면 도와줄게.」",
+    conditions: [],
+  },
+  "084": {
+    id: "084",
+    name: "광대의 제자 리카드",
+    category: "character",
+    art: clownApprentice,
+    deckEffect: { kind: "batch", remove: [{ cardName: "광대의제자" }], add: [{ cardName: "광대의제자" }] },
+    flavor: "《2 광대의 제자(남)》를 손에 들거나 버린 채로 라운드 승리: +[편지] 2개.",
+    conditions: [],
+  },
+  "086": {
+    id: "086",
+    name: "광대의 제자 피오",
+    category: "character",
+    art: clownApprenticeFemale,
+    flavor: "「이번에는 들켰네요. 그래도 무대 뒤의 길은 제가 잘 알아요.」",
+    conditions: [],
+  },
+  "087": {
+    id: "087",
+    name: "광대의 제자 피오",
+    category: "character",
+    art: clownApprenticeFemale,
+    deckEffect: { kind: "batch", remove: [{ cardName: "광대의제자" }], add: [{ cardName: "광대의제자여" }] },
+    flavor: "《2 광대의 제자(여)》를 손에 들거나 버린 채로 라운드 승리: +[편지] 2개.",
+    conditions: [],
+  },
+  "091": {
+    id: "091",
+    name: "점술사 그리셀다",
+    category: "character",
+    art: fortuneTeller,
+    flavor: "「카드가 말하고 있군요. 당신의 마음은 아직 끝나지 않았다고.」",
+    conditions: [],
+  },
+  "092": {
+    id: "092",
+    name: "점술사 그리셀다",
+    category: "character",
+    art: fortuneTeller,
+    flavor: "《2 점술사》를 손에 들거나 버린 채로 라운드 승리: +[편지] 2개.",
+    conditions: [],
+  },
+  "094": {
+    id: "094",
+    name: "잘생긴 간판배우",
+    category: "scenario",
+    art: actor,
+    deckEffect: { kind: "add", cardName: "배우" },
+    flavor: "「이 무대의 주역을 알아보는 눈이 있군요.」",
+    conditionsTitle: "[조건] 라운드 종료 시 확인",
+    earnRules: ["「배우」를 손에 들고 라운드 승리: 성공", "「배우」를 손에 들고 탈락: 실패"],
+    conditions: [
+      {
+        id: "094-success",
+        kind: "sharedToken",
+        label: "[성공] 1개 이상 (우선 적용)",
+        token: "성공",
+        threshold: 1,
+        revealIds: ["096", "097"],
+        removeIds: ["094"],
+      },
+      {
+        id: "094-fail",
+        kind: "sharedToken",
+        label: "[실패] 1개 이상",
+        token: "실패",
+        threshold: 1,
+        revealIds: ["102"],
+        removeIds: ["094"],
+      },
+    ],
+  },
+  "096": {
+    id: "096",
+    name: "배우 파비오",
+    category: "character",
+    art: actor,
+    flavor: "「당신이 객석에 있다면, 오늘의 연기는 더 뜨거워지겠군요.」",
+    conditions: [],
+  },
+  "097": {
+    id: "097",
+    name: "배우 파비오",
+    category: "character",
+    art: actor,
+    flavor: "《9 배우》를 손에 들고 라운드 승리: +[편지] 2개. [편지] 3개 이상이면 「배우」의 종료 숫자가 2가 됩니다.",
+    conditions: [],
+  },
+  "098": {
+    id: "098",
+    name: "매혹적인 무희",
+    category: "scenario",
+    art: dancer,
+    deckEffect: { kind: "add", cardName: "무희" },
+    flavor: "「후후. 원하는 만큼 보셔도 좋아요.」",
+    conditionsTitle: "[조건] 라운드 종료 시 확인",
+    earnRules: ["「무희」를 손에 들고 라운드 승리: 성공", "「무희」를 손에 들고 탈락: 실패"],
+    conditions: [
+      {
+        id: "098-success",
+        kind: "sharedToken",
+        label: "[성공] 1개 이상 (우선 적용)",
+        token: "성공",
+        threshold: 1,
+        revealIds: ["100", "101"],
+        removeIds: ["098"],
+      },
+      {
+        id: "098-fail",
+        kind: "sharedToken",
+        label: "[실패] 2개 이상",
+        token: "실패",
+        threshold: 2,
+        revealIds: ["102"],
+        removeIds: ["098"],
+      },
+    ],
+  },
+  "100": {
+    id: "100",
+    name: "무희 미나",
+    category: "character",
+    art: dancer,
+    flavor: "「무대 위에서도, 편지 속에서도, 마음은 숨길 수 없답니다.」",
+    conditions: [],
+  },
+  "101": {
+    id: "101",
+    name: "무희 미나",
+    category: "character",
+    art: dancer,
+    flavor: "《0 무희》를 손에 들고 라운드 승리: +[편지] 2개. [편지] 3개 이상이면 「무희」의 종료 숫자가 7이 됩니다.",
+    conditions: [],
+  },
+  "102": {
+    id: "102",
+    name: "극단의 출발",
+    category: "scenario",
+    flavor: "인기를 얻은 배우와 무희는 갑작스러운 행사 의뢰로 성을 떠나 버렸습니다.",
+    deckEffect: {
+      kind: "batch",
+      remove: [{ cardName: "배우" }, { cardName: "무희" }],
+      add: [{ cardName: "광대의제자" }],
+    },
     conditions: [],
   },
 
@@ -632,11 +965,29 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
         label: "[성공] 1개 이상",
         token: "성공",
         threshold: 1,
-        revealIds: [],
+        revealIds: ["110", "111"],
         removeIds: ["108"],
       },
     ],
     earnRules: ["「복면기사」를 손에 들고 라운드 승리: 성공", "「복면기사」로 다른 플레이어를 탈락시킴: 성공"],
+  },
+  "110": {
+    id: "110",
+    name: "여기사 캐리",
+    category: "character",
+    art: ladyKnight,
+    flavor: "「보세요, 이 몸의 실력을! 반드시 전해 보이겠습니다.」",
+    conditions: [],
+  },
+  "111": {
+    id: "111",
+    name: "여기사 캐리",
+    category: "character",
+    art: ladyKnight,
+    deckEffect: { kind: "replace", removeName: "복면기사", addName: "여기사" },
+    flavor:
+      "《3 여기사》를 손에 들고 라운드 승리: +[편지] 2개. 「여기사」로 다른 플레이어를 탈락시킴: +[편지] 2개.",
+    conditions: [],
   },
   "113": {
     id: "113",
@@ -663,11 +1014,28 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
         label: "[성공] 2개 이상",
         token: "성공",
         threshold: 2,
-        revealIds: [],
+        revealIds: ["117", "118"],
         removeIds: ["114"],
       },
     ],
     earnRules: ["「상인」을 손에 들고 라운드 승리: 성공"],
+  },
+  "117": {
+    id: "117",
+    name: "여상인 수잔나",
+    category: "character",
+    art: merchant,
+    flavor: "「인자 내한테 맡기라. 장사는 신용이 생명이다!」",
+    conditions: [],
+  },
+  "118": {
+    id: "118",
+    name: "여상인 수잔나",
+    category: "character",
+    art: merchant,
+    flavor:
+      "《3 상인》을 손에 들고 라운드 승리: +[편지] 2개. 「상인」으로 다른 플레이어를 탈락시킴: +[편지] 1개. [편지] 3개 이상이면 탈락 기준이 5 이하로 바뀝니다.",
+    conditions: [],
   },
 
   // ---- 023의 《4 승려》 분기: 119 -> 120/121 또는 122 선택 -> 123(+124) 또는 130(+131) ----
@@ -744,7 +1112,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
         label: "[성공] 1개 이상 (우선 적용)",
         token: "성공",
         threshold: 1,
-        revealIds: [],
+        revealIds: ["126", "127"],
         removeIds: ["123"],
       },
       {
@@ -753,11 +1121,38 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
         label: "[실패] 1개 이상",
         token: "실패",
         threshold: 1,
-        revealIds: [],
+        revealIds: ["129"],
         removeIds: ["123"],
       },
     ],
     earnRules: ["「수사」를 손에 들거나 버린 채로 라운드 승리: 성공", "「수사」를 손에 들고 탈락함: 실패"],
+  },
+  "126": {
+    id: "126",
+    name: "수사 알베르트",
+    category: "character",
+    art: friar,
+    flavor: "「제가 할 수 있는 것은 기도뿐입니다. 그래도 해보겠습니다.」",
+    conditions: [],
+  },
+  "127": {
+    id: "127",
+    name: "수사 알베르트",
+    category: "character",
+    art: friar,
+    deckEffect: { kind: "replace", removeName: "승려", addName: "수사" },
+    flavor:
+      "《4 수사》를 손에 들거나 버림 더미에 놓은 채로 라운드 승리: +[편지] 2개. [편지] 2개 이상이면 승려 1장을 수사 1장으로 교체합니다.",
+    conditions: [],
+  },
+  "129": {
+    id: "129",
+    name: "역부족",
+    category: "scenario",
+    flavor:
+      "「아아, 나는 정말.... 성 안에 의지할 수 있는 분이 계시니 그분을 소개해 드리겠습니다.」",
+    conditions: [],
+    autoRevealIds: ["137"],
   },
   "130": {
     id: "130",
@@ -775,7 +1170,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
         label: "[성공] 1개 이상 (우선 적용)",
         token: "성공",
         threshold: 1,
-        revealIds: [],
+        revealIds: ["134", "135"],
         removeIds: ["130"],
       },
       {
@@ -784,7 +1179,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
         label: "[실패] 2개 이상",
         token: "실패",
         threshold: 2,
-        revealIds: [],
+        revealIds: ["136"],
         removeIds: ["130"],
       },
     ],
@@ -792,6 +1187,66 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     // 카드 무작위 재사용이라 원인 추적이 어려워 v1에서는 생략한다 (이
     // 카드의 목표 자체가 v1 슬라이스 밖이라 실질적으로 문제 없음).
     earnRules: ["「수녀」를 손에 들고 탈락함: 실패"],
+  },
+  "134": {
+    id: "134",
+    name: "수녀 로베리아",
+    category: "character",
+    art: nun,
+    flavor: "「역시 기도만으로는 부족하겠지요. 제가 직접 움직이겠습니다.」",
+    conditions: [],
+  },
+  "135": {
+    id: "135",
+    name: "수녀 로베리아",
+    category: "character",
+    art: nun,
+    flavor:
+      "《4 수녀》를 손에 들거나 버림 더미에 놓은 채로 라운드 승리: +[편지] 2개. [편지] 3개 이상이면 사용 후 다음 차례까지 보호됩니다.",
+    conditions: [],
+  },
+  "136": {
+    id: "136",
+    name: "수녀의 참회",
+    category: "scenario",
+    flavor: "「역시 나로선 잘 안 되네!」 수녀는 깊이 참회하고, 다시 승려에게 길을 터 줍니다.",
+    deckEffect: {
+      kind: "batch",
+      remove: [{ cardName: "수녀", count: 2 }],
+      add: [{ cardName: "승려", count: 2 }],
+    },
+    conditions: [],
+  },
+  "137": {
+    id: "137",
+    name: "온화한 노신사",
+    category: "scenario",
+    art: butler,
+    flavor:
+      "성 안에서 여러 가지 일을 맡아보는 노신사는 온화한 미소를 지으며 부탁을 흔쾌히 들어 줍니다.",
+    deckEffect: {
+      kind: "batch",
+      remove: [{ cardName: "승려", count: 2 }],
+      add: [{ cardName: "집사", count: 2 }],
+    },
+    conditions: [],
+    autoRevealIds: ["140", "141"],
+  },
+  "140": {
+    id: "140",
+    name: "집사 세바스티안",
+    category: "character",
+    art: butler,
+    flavor: "「당신의 마음이 닿기를, 늙은이도 바라고 있습니다.」",
+    conditions: [],
+  },
+  "141": {
+    id: "141",
+    name: "집사 세바스티안",
+    category: "character",
+    art: butler,
+    flavor: "《4 집사》를 손에 들거나 버림 더미에 놓은 채로 라운드 승리: +[편지] 2개.",
+    conditions: [],
   },
 
   // ---- 023의 《5 마술사》 분기: 142 -> 143(+144) -> 146/147 또는 148 / -> 153 -> 154 ----
@@ -861,8 +1316,45 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     category: "scenario",
     flavor:
       "편지를 맡겨 보긴 했지만 그 제자조차 만날 수 없게 되고 말았습니다. 곤란해진 당신은 마술사와 관계가 있는 것 같은 성 아래 마법약 공방을 찾아가 보기로 합니다.",
-    // 실카드의 [등장] "[149][150] 공개, 이 카드를 제거합니다."는 대상이 v1
-    // 슬라이스 밖이라 생략한다.
+    conditions: [],
+    autoRevealIds: ["149"],
+  },
+  "149": {
+    id: "149",
+    name: "요염한 마녀",
+    category: "scenario",
+    art: witch,
+    flavor: "「어서 오세요. 무슨 문제가 있으신가요?」 속을 짐작할 수 없는 미녀가 당신을 맞이합니다.",
+    deckEffect: { kind: "batch", remove: [{ cardName: "마술사의도제" }], add: [{ cardName: "마녀" }] },
+    conditionsTitle: "라운드 종료 시 확인",
+    earnRules: ["「마녀」를 버림 더미에 놓은 채로 라운드 승리: 성공"],
+    conditions: [
+      {
+        id: "149-win",
+        kind: "sharedToken",
+        label: "「마녀」를 버림 더미에 놓은 채로 라운드 승리",
+        token: "성공",
+        threshold: 1,
+        revealIds: ["151", "152"],
+        removeIds: ["149"],
+      },
+    ],
+  },
+  "151": {
+    id: "151",
+    name: "마녀 베아트릭스",
+    category: "character",
+    art: witch,
+    flavor: "「좋아요, 내 마법의 힘을 빌려드리죠.」",
+    conditions: [],
+  },
+  "152": {
+    id: "152",
+    name: "마녀 베아트릭스",
+    category: "character",
+    art: witch,
+    flavor:
+      "《5 마녀》를 손에 들거나 버림 더미에 놓은 채로 라운드 승리: +[편지] 2개. 「마녀」를 플레이함: +[편지] 1개. [편지] 3개 이상이면 원하는 대로 다시 나눕니다.",
     conditions: [],
   },
   "153": {
@@ -889,8 +1381,46 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     name: "수수께끼의 소년",
     category: "scenario",
     flavor: "「이런 건 어때?」",
-    // 실카드는 자체 "선택" 분기(155~158/156+159~161)를 갖지만 둘 다 v1
-    // 슬라이스 밖이라 choices 없이 flavor만 표시하는 종결 카드로 둔다.
+    conditions: [],
+    choices: [
+      { id: "154-15", label: "어린 대마도사에게 부탁합니다", revealIds: ["157", "158"] },
+      { id: "154-20", label: "성장한 대마도사에게 부탁합니다", revealIds: ["160", "161"] },
+    ],
+  },
+  "157": {
+    id: "157",
+    name: "대마도사 알비스(15세)",
+    category: "character",
+    art: archmage15,
+    flavor: "「하하하! 쥐라니, 멋지구나!」",
+    conditions: [],
+  },
+  "158": {
+    id: "158",
+    name: "대마도사 알비스(15세)",
+    category: "character",
+    art: archmage15,
+    deckEffect: { kind: "replace", removeName: "마술사", addName: "대마도사15" },
+    flavor:
+      "《5 대마도사(15세)》를 손에 들거나 버림 더미에 놓은 채로 라운드 승리: +[편지] 2개. 「대마도사(15세)」를 플레이함: +[편지] 1개.",
+    conditions: [],
+  },
+  "160": {
+    id: "160",
+    name: "대마도사 알비스(20세)",
+    category: "character",
+    art: archmage20,
+    flavor: "「그하하하! 지금 이 몸이 못할 일은 없다!」",
+    conditions: [],
+  },
+  "161": {
+    id: "161",
+    name: "대마도사 알비스(20세)",
+    category: "character",
+    art: archmage20,
+    deckEffect: { kind: "replace", removeName: "마술사", addName: "대마도사20" },
+    flavor:
+      "《5 대마도사(20세)》를 손에 들거나 버림 더미에 놓은 채로 라운드 승리: +[편지] 2개. 「대마도사(20세)」를 플레이함: +[편지] 1개. [편지] 3개 이상이면 문구가 「당신은 탈락합니다」로 변경됩니다.",
     conditions: [],
   },
 
@@ -1043,8 +1573,35 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     flavor:
       "「아무래도 아버지가 폐를 끼친 것 같네. 이 왕국에 러브레터를 보내면 안된다는 법은 없으니...」 갑자기 사근사근한 언행의 남성이 비밀리에 당신을 찾아옵니다. 그는 그렇게 말하며 당신의 편지에 쓱쓱 서명했습니다. 아무래도 무언가 인정받은 것 같아 당신의 가슴이 기대로 두근거립니다.",
     deckEffect: { kind: "replace", removeName: "대신", addName: "정무관남" },
-    // 실카드의 "종료" 조건(정무관남 관련 승리 -> [176][177] 공개)은 대상이
-    // v1 슬라이스 밖이라 생략한다.
+    conditionsTitle: "라운드 종료 시 확인",
+    earnRules: ["「정무관(남자)」를 손에 들거나 버린 채로 라운드 승리: 성공"],
+    conditions: [
+      {
+        id: "174-win",
+        kind: "sharedToken",
+        label: "「정무관(남자)」를 손에 들거나 버린 채로 라운드 승리",
+        token: "성공",
+        threshold: 1,
+        revealIds: ["176", "177"],
+        removeIds: ["174"],
+      },
+    ],
+  },
+  "176": {
+    id: "176",
+    name: "정무관 오즈릭",
+    category: "character",
+    art: ROUTE_DEFS.왕자.art,
+    flavor: "「무모한 도전이지만, 그 마음은 고귀하군요.」",
+    conditions: [],
+  },
+  "177": {
+    id: "177",
+    name: "정무관 오즈릭",
+    category: "character",
+    art: ROUTE_DEFS.왕자.art,
+    flavor:
+      "《7 정무관(남자)》를 손에 들거나 버림 더미에 놓은 채로 라운드 승리: +[편지] 2개. [편지] 3개 이상이면 탈락하지 않기와 상대 탈락 중 하나를 고릅니다.",
     conditions: [],
   },
   "178": {
@@ -1058,16 +1615,42 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     deckEffect: { kind: "replace", removeName: "대신", addName: "정무관여" },
     conditions: [
       {
+        id: "178-success",
+        kind: "sharedToken",
+        label: "「정무관(여자)」를 들거나 버린 채로 승리하지 않고 라운드 종료",
+        token: "성공",
+        threshold: 1,
+        revealIds: ["180", "181"],
+        removeIds: ["178"],
+      },
+      {
         id: "178-fail",
         kind: "sharedToken",
         label: "[실패] 1개 이상",
         token: "실패",
         threshold: 1,
-        revealIds: [],
+        revealIds: ["180", "181"],
         removeIds: ["178"],
       },
     ],
     earnRules: ["「정무관(여자)」를 손에 들거나 버린 채로 패배함: 실패"],
+  },
+  "180": {
+    id: "180",
+    name: "정무관 오즈리나",
+    category: "character",
+    art: ROUTE_DEFS.공주.art,
+    flavor: "「조금 더 제게 의지해도 좋답니다.」",
+    conditions: [],
+  },
+  "181": {
+    id: "181",
+    name: "정무관 오즈리나",
+    category: "character",
+    art: ROUTE_DEFS.공주.art,
+    flavor:
+      "《7 정무관(여자)》를 손에 들거나 버림 더미에 놓은 채로 탈락: +[편지] 1개. 승리하지 않고 라운드 종료: +[편지] 2개. [편지] 3개 이상이면 다른 플레이어가 당신을 효과 대상으로 골라야 합니다.",
+    conditions: [],
   },
   "182": {
     id: "182",
@@ -1168,8 +1751,9 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     name: "루나 공주",
     category: "character",
     art: princessSecond,
+    deckEffect: { kind: "add", cardName: "공주둘째" },
     flavor:
-      "당신은 지적인 분위기를 풍기는 루나 공주를 마음에 두고 있습니다. 도대체 어떻게 해야 좀처럼 드러나지 않는 그녀의 마음을 얻을 수 있을까요?",
+      "당신은 지적인 분위기를 풍기는 루나 공주를 마음에 두고 있습니다. [등장] 「공주(둘째)」를 덱에 추가합니다.",
     conditions: [],
   },
   "192": {
@@ -1185,8 +1769,9 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     name: "마가렛 공주",
     category: "character",
     art: princessThird,
+    deckEffect: { kind: "add", cardName: "공주셋째" },
     flavor:
-      "말괄량이로 유명한 마가렛 공주는 가끔 성 아래를 방문해서는 사람들과 다양한 교류를 하고 있습니다. 어느 날 그녀와 이야기할 기회를 얻은 당신은, 그녀의 천진난만한 매력에 끌리게 되었습니다.",
+      "말괄량이로 유명한 마가렛 공주는 가끔 성 아래를 방문해서는 사람들과 다양한 교류를 하고 있습니다. [등장] 「공주(셋째)」를 덱에 추가합니다.",
     conditions: [],
   },
   "195": {

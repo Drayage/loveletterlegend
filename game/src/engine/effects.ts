@@ -1,6 +1,6 @@
 import type { CardInstance, CardName, CharacterUpgradeTier, GameState, GuessOption, PlayerState } from "./types";
 import { nextLogId } from "./clone";
-import { CARD_ORDER } from "./cards";
+import { ALL_CARD_NAMES } from "./cards";
 
 export function log(draft: GameState, message: string): void {
   draft.log.push({ id: nextLogId(), message });
@@ -37,6 +37,15 @@ export function eliminatePlayer(draft: GameState, playerId: string, reason: stri
   if (!draft.firstEliminatedThisRound) draft.firstEliminatedThisRound = playerId;
   draft.lastElimination = { id: nextLogId(), playerId, reason };
   log(draft, `${player.displayName}: ${reason} → 라운드에서 탈락합니다.`);
+  const hasSecondPrincess =
+    player.hand.some((c) => c.name === "공주둘째") || player.discardPile.some((c) => c.name === "공주둘째");
+  if (hasSecondPrincess) {
+    const revived = drawCardFor(draft, playerId);
+    if (revived) {
+      player.eliminated = false;
+      log(draft, `${player.displayName}: 「공주(둘째)」 효과로 덱에서 1장을 뽑고 복귀합니다.`);
+    }
+  }
 }
 
 // Draws a card for a player, falling back to the face-down burned card if
@@ -62,8 +71,9 @@ export function drawCardFor(draft: GameState, playerId: string): CardInstance | 
 export function discardCard(draft: GameState, playerId: string, card: CardInstance): void {
   const player = getPlayer(draft, playerId);
   player.discardPile.push(card);
-  if (card.name === "공주") {
-    eliminatePlayer(draft, playerId, "「공주」를 버려서");
+  if (card.name === "공주" || card.name === "왕자" || card.name === "공주셋째") {
+    eliminatePlayer(draft, playerId, `「${card.name}」를 버려서`);
+    if (card.name === "공주셋째") draft.deckExhaustedThisTurn = true;
   } else if (card.name === "귀족영애") {
     eliminatePlayer(draft, playerId, "「귀족영애」를 버려서");
     if (draft.deck.length > 0) {
@@ -104,11 +114,16 @@ export function targetsFor(
     case "기사":
     case "장군":
     case "신병":
+    case "시종":
+    case "시녀":
     case "광대의제자":
     case "복면기사":
+    case "여기사":
     case "상인":
     case "군사":
     case "마술사의도제":
+    case "대마도사15":
+    case "대마도사20":
       return eligibleTargets(draft, actingPlayerId, false);
     case "마술사":
       // 「마술사의 도제」 편지 5개 이상 개정판: 대상 없이 스스로 카드를 교체.
@@ -128,11 +143,16 @@ export function needsTarget(cardName: CardName, upgrade?: CharacterUpgradeTier):
     cardName === "장군" ||
     cardName === "마술사" ||
     cardName === "신병" ||
+    cardName === "시종" ||
+    cardName === "시녀" ||
     cardName === "광대의제자" ||
     cardName === "복면기사" ||
+    cardName === "여기사" ||
     cardName === "상인" ||
     cardName === "군사" ||
-    cardName === "마술사의도제"
+    cardName === "마술사의도제" ||
+    cardName === "대마도사15" ||
+    cardName === "대마도사20"
   );
 }
 
@@ -142,7 +162,7 @@ export function needsGuess(cardName: CardName): boolean {
 
 export function guessOptionsFor(cardName: CardName): GuessOption[] {
   if (cardName === "신병") return ["홀수", "짝수"];
-  return CARD_ORDER.filter((n) => n !== "경비병");
+  return ALL_CARD_NAMES.filter((n) => n !== "경비병");
 }
 
 export interface ResolveArgs {
@@ -166,6 +186,7 @@ function guessHits(cardName: CardName, targetCardName: CardName, guess: GuessOpt
 export function applyEffect(draft: GameState, args: ResolveArgs): void {
   const { actingPlayerId, card, targetId, guess, upgrade } = args;
   const actor = getPlayer(draft, actingPlayerId);
+  draft.sessionEvents?.push({ type: "cardPlayed", actingPlayerId, cardName: card.name });
 
   switch (card.name) {
     case "경비병":
@@ -222,13 +243,35 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       }
       return;
     }
+    case "광대의제자여": {
+      const seen = draft.hiddenRemovedCard;
+      log(draft, `${actor.displayName}: 「광대의 제자(여)」 효과로 비공개 카드를 확인합니다.`);
+      setPlayOutcome(draft, card.instanceId, "비공개 카드 확인");
+      if (seen) {
+        draft.lastReveal = {
+          id: nextLogId(),
+          viewerPlayerId: actingPlayerId,
+          cardName: card.name,
+          targetDisplayName: "비공개 카드",
+          targetCard: seen.name,
+        };
+      }
+      return;
+    }
     // 점술사: 실카드는 "덱 위 카드 확인 후 교환" 또는 "공동 승리" 중 선택이지만,
     // v1은 앞쪽 선택지만 확인(peek)으로 단순화한다 (see cards.ts's comment).
     // 자기 자신에게만 영향을 주므로 대상 지목이 필요 없다.
     case "점술사": {
       const seen = draft.deck[0];
       log(draft, `${actor.displayName}: 「점술사」 효과로 덱 맨 위 카드를 확인합니다.`);
-      setPlayOutcome(draft, card.instanceId, "덱 맨 위 카드를 확인");
+      const current = actor.hand[0];
+      if (seen && current && cardRank(seen.name) > cardRank(current.name)) {
+        actor.hand[0] = seen;
+        draft.deck[0] = current;
+        setPlayOutcome(draft, card.instanceId, "덱 맨 위 카드 확인 후 교환");
+      } else {
+        setPlayOutcome(draft, card.instanceId, "덱 맨 위 카드를 확인");
+      }
       if (seen) {
         draft.lastReveal = {
           id: nextLogId(),
@@ -296,9 +339,23 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       const targetCard = target.hand[0];
       log(draft, `${actor.displayName}: 「상인」 효과로 ${target.displayName}을(를) 지목합니다.`);
       if (targetCard && cardRank(targetCard.name) <= 3) {
+        draft.sessionEvents?.push({
+          type: "compareResolved",
+          actingPlayerId,
+          targetPlayerId: targetId,
+          cardName: card.name,
+          outcome: "targetLoses",
+        });
         eliminatePlayer(draft, targetId, "「상인」 효과 (손패 숫자 3 이하)");
         setPlayOutcome(draft, card.instanceId, `${target.displayName} 탈락 (숫자 3 이하)`);
       } else {
+        draft.sessionEvents?.push({
+          type: "compareResolved",
+          actingPlayerId,
+          targetPlayerId: targetId,
+          cardName: card.name,
+          outcome: "tie",
+        });
         log(draft, `${target.displayName}의 손패는 숫자 3을 초과해 아무 일도 일어나지 않습니다.`);
         setPlayOutcome(draft, card.instanceId, `${target.displayName}에게 효과 없음 (숫자 4 이상)`);
       }
@@ -333,6 +390,60 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
         guess: reusedGuess,
         upgrade,
       });
+      return;
+    }
+    case "마녀": {
+      const pooled: CardInstance[] = [];
+      for (const p of alivePlayers(draft)) {
+        const held = p.hand.pop();
+        if (held) pooled.push(held);
+      }
+      for (let i = pooled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pooled[i], pooled[j]] = [pooled[j], pooled[i]];
+      }
+      for (const p of alivePlayers(draft)) {
+        const dealt = pooled.pop();
+        if (dealt) p.hand.push(dealt);
+      }
+      log(draft, `${actor.displayName}: 「마녀」 효과로 모든 손패를 모아 무작위로 다시 나눕니다.`);
+      setPlayOutcome(draft, card.instanceId, "모든 손패 무작위 재분배");
+      return;
+    }
+    case "대마도사15": {
+      if (!targetId) {
+        blockNoTarget(draft, actor, card);
+        return;
+      }
+      const target = getPlayer(draft, targetId);
+      const discarded = target.hand.pop();
+      if (discarded) discardCard(draft, targetId, discarded);
+      if (!target.eliminated) target.hand.push({ instanceId: nextLogId(), name: "쥐" });
+      log(draft, `${actor.displayName}: 「대마도사(15세)」 효과로 ${target.displayName}에게 「쥐」를 줍니다.`);
+      setPlayOutcome(draft, card.instanceId, `${target.displayName}의 손패를 쥐로 교체`);
+      return;
+    }
+    case "대마도사20": {
+      if (!targetId) {
+        blockNoTarget(draft, actor, card);
+        return;
+      }
+      const target = getPlayer(draft, targetId);
+      const taken = target.hand.pop();
+      if (taken) actor.hand.push(taken);
+      if (!target.eliminated) target.hand.push({ instanceId: nextLogId(), name: "쥐" });
+      const discard = [...actor.hand].sort((a, b) => cardRank(a.name) - cardRank(b.name))[0];
+      if (discard) {
+        actor.hand = actor.hand.filter((c) => c.instanceId !== discard.instanceId);
+        discardCard(draft, actingPlayerId, discard);
+      }
+      log(draft, `${actor.displayName}: 「대마도사(20세)」 효과로 ${target.displayName}의 손패를 받고 「쥐」를 줍니다.`);
+      setPlayOutcome(draft, card.instanceId, `${target.displayName}에게 쥐를 주고 1장 버림`);
+      return;
+    }
+    case "쥐": {
+      eliminatePlayer(draft, actingPlayerId, "「쥐」를 플레이해서");
+      setPlayOutcome(draft, card.instanceId, `${actor.displayName} 탈락`);
       return;
     }
     case "여장군": {
@@ -535,6 +646,67 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       setPlayOutcome(draft, card.instanceId, "효과 없음");
       return;
     }
+    case "집사": {
+      setPlayOutcome(draft, card.instanceId, "버림 더미에 놓임: 숫자 보정 +2");
+      return;
+    }
+    case "여기사": {
+      if (!targetId) {
+        blockNoTarget(draft, actor, card);
+        return;
+      }
+      const target = getPlayer(draft, targetId);
+      const actorCard = actor.hand[0];
+      const targetCard = target.hand[0];
+      if (!actorCard || !targetCard) return;
+      const actorRank = effectiveCardRank(draft, actingPlayerId, actorCard.name);
+      const targetRank = effectiveCardRank(draft, targetId, targetCard.name);
+      const actorLoses = actorRank > targetRank;
+      draft.lastReveal = {
+        id: nextLogId(),
+        viewerPlayerId: actingPlayerId,
+        cardName: card.name,
+        actorDisplayName: actor.displayName,
+        targetDisplayName: target.displayName,
+        compare: {
+          actorCard: actorCard.name,
+          targetCard: targetCard.name,
+          result: actorRank === targetRank ? "tie" : actorLoses ? "lose" : "win",
+        },
+      };
+      draft.sessionEvents?.push({
+        type: "compareResolved",
+        actingPlayerId,
+        targetPlayerId: targetId,
+        cardName: card.name,
+        outcome: actorRank === targetRank ? "tie" : actorLoses ? "actorLoses" : "targetLoses",
+      });
+      if (actorRank === targetRank) {
+        setPlayOutcome(draft, card.instanceId, `${target.displayName}과(와) 비교 → 무승부`);
+      } else if (actorLoses) {
+        eliminatePlayer(draft, actingPlayerId, `「${card.name}」 비교에서 패배`);
+        setPlayOutcome(draft, card.instanceId, `${target.displayName}과(와) 비교 패배 → ${actor.displayName} 탈락`);
+      } else {
+        eliminatePlayer(draft, targetId, `「${card.name}」 비교에서 패배`);
+        setPlayOutcome(draft, card.instanceId, `${target.displayName}과(와) 비교 승리 → ${target.displayName} 탈락`);
+      }
+      return;
+    }
+    case "시종":
+    case "시녀": {
+      if (!targetId) {
+        blockNoTarget(draft, actor, card);
+        return;
+      }
+      const target = getPlayer(draft, targetId);
+      const actorCard = actor.hand.pop();
+      const targetCard = target.hand.pop();
+      if (actorCard) target.hand.push(actorCard);
+      if (targetCard) actor.hand.push(targetCard);
+      log(draft, `${actor.displayName}: 「${card.name}」 효과로 ${target.displayName}과(와) 손패를 교환합니다.`);
+      setPlayOutcome(draft, card.instanceId, `${target.displayName}과(와) 손패 교환`);
+      return;
+    }
     case "백작부인": {
       setPlayOutcome(draft, card.instanceId, "효과 없음");
       return;
@@ -547,7 +719,12 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
  * 적용된다. 손패 합계를 쓰는 대신 「12 이상」 판정(대신)에는 적용되지
  * 않는다 (실카드 문구가 "비교"만 명시). */
 export function effectiveCardRank(draft: GameState, playerId: string, name: CardName): number {
-  const base = cardRank(name);
+  let base = cardRank(name);
+  if (name === "마을소녀") base = 7;
+  if (name === "배우") base = 0;
+  if (name === "무희") base = 9;
+  const player = draft.players.find((p) => p.id === playerId);
+  if (player?.discardPile.some((c) => c.name === "집사")) base += 2;
   return draft.activeIdentities?.[playerId] === "035" ? base + 2 : base;
 }
 
@@ -561,22 +738,37 @@ export function cardRank(name: CardName): number {
     장군: 6,
     대신: 7,
     공주: 8,
+    왕자: 8,
     // 실카드는 숫자 없이 "X" -- checkKingElimination이 순위 비교 지점에
     // 도달하기 전에 항상 먼저 탈락시키므로 이 값이 실제로 쓰일 일은 없다.
     왕: 0,
+    마을소녀: 0,
     신병: 1,
+    시종: 1,
+    시녀: 1,
     광대의제자: 2,
+    광대의제자여: 2,
     점술사: 2,
+    배우: 9,
+    무희: 0,
     복면기사: 3,
+    여기사: 3,
     상인: 3,
     수사: 4,
     수녀: 4,
+    집사: 4,
+    마녀: 5,
+    대마도사15: 5,
+    쥐: 0,
+    대마도사20: 5,
     여장군: 6,
     군사: 6,
     정무관남: 7,
     정무관여: 7,
     여후작: 7,
     마술사의도제: 5,
+    공주둘째: 8,
+    공주셋째: 8,
     백작부인: 8,
     귀족영애: 8,
   };

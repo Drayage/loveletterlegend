@@ -30,11 +30,29 @@ const ALL_SLOTS: readonly CharacterSlotId[] = [
   "아레스왕자",
   "경비병알리오스",
   "신병아니스",
+  "마을소녀미란다",
+  "시종트래비스",
+  "시녀메이블",
+  "광대제자리카드",
+  "광대제자피오",
+  "점술사그리셀다",
+  "배우파비오",
+  "무희미나",
   "기사라이언",
+  "여기사캐리",
+  "여상인수잔나",
   "승려올리비아",
+  "수사알베르트",
+  "수녀로베리아",
+  "집사세바스티안",
   "마술사의도제",
+  "마녀베아트릭스",
+  "대마도사15알비스",
+  "대마도사20알비스",
   "여장군아즈사",
   "군사시어도어",
+  "정무관오즈릭",
+  "정무관오즈리나",
   "여후작엘마",
   "백작부인카밀라",
   "귀족영애아나스타샤",
@@ -369,6 +387,22 @@ function applyDeckEffect(session: SessionState, effect: DeckEffect): void {
       session.removedBaseCardNames.push(effect.removeName);
       session.extraDeckCardNames.push(effect.addName);
     }
+  } else if (effect.kind === "batch") {
+    for (const removal of effect.remove ?? []) {
+      for (let i = 0; i < (removal.count ?? 1); i++) {
+        const extraIdx = session.extraDeckCardNames.indexOf(removal.cardName);
+        if (extraIdx !== -1) {
+          session.extraDeckCardNames.splice(extraIdx, 1);
+        } else {
+          session.removedBaseCardNames.push(removal.cardName);
+        }
+      }
+    }
+    for (const addition of effect.add ?? []) {
+      for (let i = 0; i < (addition.count ?? 1); i++) {
+        session.extraDeckCardNames.push(addition.cardName);
+      }
+    }
   } else {
     const idx = session.extraDeckCardNames.indexOf(effect.removedName);
     if (idx !== -1) session.extraDeckCardNames.splice(idx, 1);
@@ -550,6 +584,36 @@ function applySessionRoundEnd(session: SessionState): SessionState {
       grantArchive("057", "성공", 1, "「신병」을 들거나 버린 채로 라운드 승리");
       grantCharacterLetter("신병아니스", winnerId, 3, "「신병」을 들고 라운드 승리", "061");
     }
+    if (winner?.hand.some((c) => c.name === "마을소녀")) {
+      grantCharacterLetter("마을소녀미란다", winnerId, 1, "「마을소녀」를 손에 들고 라운드 승리", "029");
+    }
+    if (winner?.discardPile.some((c) => c.name === "시종")) {
+      grantArchive("063", "성공", 1, "「시종」이 버림 더미에 있는 채로 라운드 승리");
+      grantCharacterLetter("시종트래비스", winnerId, 2, "「시종」이 버림 더미에 있는 채로 라운드 승리", "070");
+    }
+    if (winner?.discardPile.some((c) => c.name === "시녀")) {
+      grantArchive("071", "성공", 1, "「시녀」가 버림 더미에 있는 채로 라운드 승리");
+      grantCharacterLetter("시녀메이블", winnerId, 2, "「시녀」가 버림 더미에 있는 채로 라운드 승리", "078");
+    }
+    if (winner?.hand.some((c) => c.name === "광대의제자") || winner?.discardPile.some((c) => c.name === "광대의제자")) {
+      grantArchive("080", "성공", 1, "「광대의 제자」를 들거나 버린 채로 라운드 승리");
+      grantCharacterLetter("광대제자리카드", winnerId, 2, "「광대의 제자(남)」를 들거나 버린 채로 라운드 승리", "084");
+    }
+    if (winner?.hand.some((c) => c.name === "광대의제자여") || winner?.discardPile.some((c) => c.name === "광대의제자여")) {
+      grantCharacterLetter("광대제자피오", winnerId, 2, "「광대의 제자(여)」를 들거나 버린 채로 라운드 승리", "087");
+    }
+    if (winner?.hand.some((c) => c.name === "점술사") || winner?.discardPile.some((c) => c.name === "점술사")) {
+      grantArchive("089", "성공", 1, "「점술사」를 들거나 버린 채로 라운드 승리");
+      grantCharacterLetter("점술사그리셀다", winnerId, 2, "「점술사」를 들거나 버린 채로 라운드 승리", "092");
+    }
+    if (winner?.hand.some((c) => c.name === "배우")) {
+      grantArchive("094", "성공", 1, "「배우」를 손에 들고 라운드 승리");
+      grantCharacterLetter("배우파비오", winnerId, 2, "「배우」를 손에 들고 라운드 승리", "097");
+    }
+    if (winner?.hand.some((c) => c.name === "무희")) {
+      grantArchive("098", "성공", 1, "「무희」를 손에 들고 라운드 승리");
+      grantCharacterLetter("무희미나", winnerId, 2, "「무희」를 손에 들고 라운드 승리", "101");
+    }
 
     // 103 "성실한 기사"/108 "전신 갑옷 기사" -- 기사/복면기사를 손에 들고
     // 승리 (실카드는 "들고"만 명시, 버림더미는 포함하지 않는다).
@@ -560,9 +624,13 @@ function applySessionRoundEnd(session: SessionState): SessionState {
     if (winner?.hand.some((c) => c.name === "복면기사")) {
       grantArchive("108", "성공", 1, "「복면기사」를 손에 들고 라운드 승리");
     }
+    if (winner?.hand.some((c) => c.name === "여기사")) {
+      grantCharacterLetter("여기사캐리", winnerId, 2, "「여기사」를 손에 들고 라운드 승리", "111");
+    }
     // 114 "수완 좋은 여상인" -- 상인을 손에 들고 승리.
     if (winner?.hand.some((c) => c.name === "상인")) {
       grantArchive("114", "성공", 1, "「상인」을 손에 들고 라운드 승리");
+      grantCharacterLetter("여상인수잔나", winnerId, 2, "「상인」을 손에 들고 라운드 승리", "118");
     }
 
     // 119 "경건한 여승려"/123 "안색이 나쁜 수사" -- 승려/수사를 들고/버리고
@@ -579,6 +647,23 @@ function applySessionRoundEnd(session: SessionState): SessionState {
     }
     if (winner?.hand.some((c) => c.name === "수사") || winner?.discardPile.some((c) => c.name === "수사")) {
       grantArchive("123", "성공", 1, "「수사」를 들거나 버린 채로 라운드 승리");
+      grantCharacterLetter("수사알베르트", winnerId, 2, "「수사」를 들거나 버린 채로 라운드 승리", "127");
+    }
+    if (winner?.hand.some((c) => c.name === "수녀") || winner?.discardPile.some((c) => c.name === "수녀")) {
+      grantCharacterLetter("수녀로베리아", winnerId, 2, "「수녀」를 들거나 버린 채로 라운드 승리", "135");
+    }
+    if (winner?.hand.some((c) => c.name === "집사") || winner?.discardPile.some((c) => c.name === "집사")) {
+      grantCharacterLetter("집사세바스티안", winnerId, 2, "「집사」를 들거나 버린 채로 라운드 승리", "141");
+    }
+    if (winner?.hand.some((c) => c.name === "마녀") || winner?.discardPile.some((c) => c.name === "마녀")) {
+      grantArchive("149", "성공", 1, "「마녀」를 들거나 버린 채로 라운드 승리");
+      grantCharacterLetter("마녀베아트릭스", winnerId, 2, "「마녀」를 들거나 버린 채로 라운드 승리", "152");
+    }
+    if (winner?.hand.some((c) => c.name === "대마도사15") || winner?.discardPile.some((c) => c.name === "대마도사15")) {
+      grantCharacterLetter("대마도사15알비스", winnerId, 2, "「대마도사(15세)」를 들거나 버린 채로 라운드 승리", "158");
+    }
+    if (winner?.hand.some((c) => c.name === "대마도사20") || winner?.discardPile.some((c) => c.name === "대마도사20")) {
+      grantCharacterLetter("대마도사20알비스", winnerId, 2, "「대마도사(20세)」를 들거나 버린 채로 라운드 승리", "161");
     }
 
     // 162 "고민하는 장군" -- 실카드는 "버림더미에 남은 채로 승리"만 본다
@@ -603,6 +688,10 @@ function applySessionRoundEnd(session: SessionState): SessionState {
     if (winner?.hand.some((c) => c.name === "대신") || winner?.discardPile.some((c) => c.name === "대신")) {
       grantArchive("172", "성공", 1, "「대신」을 들거나 버린 채로 라운드 승리");
     }
+    if (winner?.hand.some((c) => c.name === "정무관남") || winner?.discardPile.some((c) => c.name === "정무관남")) {
+      grantArchive("174", "성공", 1, "「정무관(남자)」를 들거나 버린 채로 라운드 승리");
+      grantCharacterLetter("정무관오즈릭", winnerId, 2, "「정무관(남자)」를 들거나 버린 채로 라운드 승리", "177");
+    }
     if (winner?.hand.some((c) => c.name === "여후작") || winner?.discardPile.some((c) => c.name === "여후작")) {
       grantArchive("182", "성공", 1, "「여후작」을 들거나 버린 채로 라운드 승리");
       grantCharacterLetter("여후작엘마", winnerId, 3, "「여후작」을 들거나 버린 채로 라운드 승리", "186");
@@ -625,7 +714,15 @@ function applySessionRoundEnd(session: SessionState): SessionState {
   }
 
   for (const event of next.round.sessionEvents ?? []) {
-    if (event.type === "wizardForcedDiscard") {
+    if (event.type === "cardPlayed") {
+      if (event.cardName === "마녀") {
+        grantCharacterLetter("마녀베아트릭스", event.actingPlayerId, 1, "「마녀」를 플레이함", "152");
+      } else if (event.cardName === "대마도사15") {
+        grantCharacterLetter("대마도사15알비스", event.actingPlayerId, 1, "「대마도사(15세)」를 플레이함", "158");
+      } else if (event.cardName === "대마도사20") {
+        grantCharacterLetter("대마도사20알비스", event.actingPlayerId, 1, "「대마도사(20세)」를 플레이함", "161");
+      }
+    } else if (event.type === "wizardForcedDiscard") {
       grantCharacterLetter(
         "마술사의도제",
         event.actingPlayerId,
@@ -659,12 +756,16 @@ function applySessionRoundEnd(session: SessionState): SessionState {
       // 「기사」/「복면기사」가 같은 비교 로직을 공유하므로(see effects.ts),
       // 어느 카드였는지에 따라 103/108 중 맞는 쪽에 적립한다. 103만 "자기
       // 자신탈락" 실패 조항이 있다 (108의 실카드는 그 조항이 없음).
-      if (event.cardName === "기사" || event.cardName === "복면기사") {
+      if (event.cardName === "기사" || event.cardName === "복면기사" || event.cardName === "여기사" || event.cardName === "상인") {
         const targetCardId = event.cardName === "기사" ? "103" : "108";
         if (event.outcome === "targetLoses") {
           grantArchive(targetCardId, "성공", 1, `「${event.cardName}」로 다른 플레이어를 탈락시킴`);
           if (event.cardName === "기사") {
             grantCharacterLetter("기사라이언", event.actingPlayerId, 2, "「기사」로 다른 플레이어를 탈락시킴", "107");
+          } else if (event.cardName === "여기사") {
+            grantCharacterLetter("여기사캐리", event.actingPlayerId, 2, "「여기사」로 다른 플레이어를 탈락시킴", "111");
+          } else if (event.cardName === "상인") {
+            grantCharacterLetter("여상인수잔나", event.actingPlayerId, 1, "「상인」으로 다른 플레이어를 탈락시킴", "118");
           }
         }
         else if (event.outcome === "actorLoses" && event.cardName === "기사") {
@@ -685,9 +786,15 @@ function applySessionRoundEnd(session: SessionState): SessionState {
   // 명시하지만, v1은 원인을 구분하지 않고 "대신을 들고 탈락"으로
   // 단순화한다 -- 대신은 활성 효과가 없어 대부분 이 패시브가 원인이다).
   for (const p of next.round.players) {
+    if (p.id !== winnerId && (p.hand.some((c) => c.name === "정무관여") || p.discardPile.some((c) => c.name === "정무관여"))) {
+      grantArchive("178", "성공", 1, "「정무관(여자)」를 들거나 버린 채 승리하지 않고 라운드 종료");
+      grantCharacterLetter("정무관오즈리나", p.id, 2, "「정무관(여자)」를 들거나 버린 채 승리하지 않고 라운드 종료", "181");
+    }
     if (!p.eliminated) continue;
     if (p.hand.some((c) => c.name === "경비병")) grantArchive("053", "실패", 1, "「경비병」을 손에 들고 탈락");
     if (p.hand.some((c) => c.name === "신병")) grantArchive("057", "실패", 1, "「신병」을 손에 들고 탈락");
+    if (p.hand.some((c) => c.name === "배우")) grantArchive("094", "실패", 1, "「배우」를 손에 들고 탈락");
+    if (p.hand.some((c) => c.name === "무희")) grantArchive("098", "실패", 1, "「무희」를 손에 들고 탈락");
     if (p.hand.some((c) => c.name === "기사")) grantArchive("103", "실패", 1, "「기사」를 손에 들고 탈락");
     if (p.hand.some((c) => c.name === "승려")) grantArchive("119", "실패", 1, "「승려」를 손에 들고 탈락");
     if (p.hand.some((c) => c.name === "수사")) grantArchive("123", "실패", 1, "「수사」를 손에 들고 탈락");
@@ -696,6 +803,7 @@ function applySessionRoundEnd(session: SessionState): SessionState {
     if (p.hand.some((c) => c.name === "대신")) grantArchive("172", "실패", 1, "「대신」을 손에 들고 탈락");
     if (p.hand.some((c) => c.name === "정무관여") || p.discardPile.some((c) => c.name === "정무관여")) {
       grantArchive("178", "실패", 1, "「정무관(여자)」를 들거나 버린 채 패배");
+      grantCharacterLetter("정무관오즈리나", p.id, 1, "「정무관(여자)」를 들거나 버린 채 탈락", "181");
     }
     if (p.hand.some((c) => c.name === "마술사의도제")) grantArchive("143", "실패", 1, "「마술사의 도제」를 손에 들고 탈락");
     if (p.hand.some((c) => c.name === "여후작") || p.discardPile.some((c) => c.name === "여후작")) {
