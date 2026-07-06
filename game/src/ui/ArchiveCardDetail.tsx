@@ -29,6 +29,7 @@ const CHARACTER_CARD_TO_SLOT: Partial<Record<string, CharacterSlotId>> = {
   "167": "여장군아즈사",
   "171": "군사시어도어",
   "186": "여후작엘마",
+  "199": "백작부인카밀라",
   "203": "귀족영애아나스타샤",
 };
 
@@ -43,6 +44,7 @@ const CHARACTER_LETTER_RULES: Partial<Record<CharacterSlotId, string[]>> = {
   여장군아즈사: ["여장군을 들고 라운드 승리: +3"],
   군사시어도어: ["군사를 들거나 버린 채 라운드 승리: +2"],
   여후작엘마: ["여후작을 들거나 버린 채 라운드 승리: +3"],
+  백작부인카밀라: ["백작부인을 들고 라운드 승리: +4"],
   귀족영애아나스타샤: ["귀족영애를 들고 라운드 승리: +4"],
 };
 
@@ -111,6 +113,7 @@ export function ArchiveCardDetail({
   const earnRules = ARCHIVE_CARD_SEEDS[card.id]?.earnRules ?? [];
   const deckEffect = deckEffectText(ARCHIVE_CARD_SEEDS[card.id]?.deckEffect);
   const parsedRules = earnRules.map(splitEarnRule).filter((r): r is NonNullable<typeof r> => r !== null);
+  const standaloneRules = earnRules.filter((rule) => !splitEarnRule(rule));
   const weeksLeft =
     card.expiresAtClock != null && clockTokens != null ? Math.max(0, card.expiresAtClock - clockTokens) : null;
   // Already-fired conditions drop off the checklist entirely (rather than a
@@ -203,6 +206,11 @@ export function ArchiveCardDetail({
           )}
           <p className="archive-card-detail__flavor">{card.flavor}</p>
           {deckEffect && <p className="archive-card-detail__deck-effect">{deckEffect}</p>}
+          {standaloneRules.map((rule) => (
+            <p key={rule} className="archive-card-detail__deck-effect">
+              {rule}
+            </p>
+          ))}
           {passiveEvent && <p className="archive-card-detail__passive-event">{passiveEvent}</p>}
           {characterProgress}
         </div>

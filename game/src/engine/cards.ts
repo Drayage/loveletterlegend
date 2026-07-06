@@ -199,6 +199,15 @@ export const CARD_DEFS: Record<CardName, CardDef> = {
     ability:
       "덱 맨 위의 카드를 봅니다. 그 후, 다른 플레이어 한 명을 지목합니다. 그 플레이어는 손에 든 카드를 버리고 덱에서 새로 카드를 뽑습니다.",
   },
+  백작부인: {
+    name: "백작부인",
+    rank: 8,
+    count: 1,
+    englishAlias: "Countess",
+    shortAbility: "내려놓을 수 없음, 들고 라운드 승리 시 백작부인 이야기 진행",
+    ability:
+      "이 카드는 내려놓을 수 없습니다. 「나른한 백작부인」이 이야기 보관소에 있다면, 이 카드를 손에 들고 라운드 승리 시 다음 백작부인 이야기가 공개됩니다.",
+  },
   귀족영애: {
     name: "귀족영애",
     rank: 8,

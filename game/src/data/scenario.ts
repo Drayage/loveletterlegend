@@ -16,16 +16,18 @@
 //   branches (광대/기사/승려/마술사/장군/대신/공주 too, revealing
 //   [079]/[103]/[119]/[142]/[162]/[172]/[188]) are wired all the way down
 //   each real card's own further "선택"/조건 chain, with ONE exception: 188
-//   「공주님들」의 3개 분기 중 2개(루나공주/마가렛공주, ids 189-194)와
-//   195's own 백작부인 분기(196-199)는 실카드가 "매 라운드 시작시 되돌릴
+//   「공주님들」의 3개 분기 중 2개(루나공주/마가렛공주, ids 189-194)는
+//   실카드가 "매 라운드 시작시 되돌릴
 //   수 있는 선택적 토글"로 대응 rank8 카드를 덱에 넣었다 뺐다 하는데, 이건
 //   v1 엔진에 없는 새 "라운드 시작 시점 결정" 메커니즘이 필요해 캐릭터
 //   리프까지만 공개하고 실제 덱 주입은 하지 않는다 (see comment on
-//   ARCHIVE_CARD_SEEDS["188"] below). 142(마술사)와 188의 3번째 분기
-//   (195 -> 200 「귀족 영애」)는 평범한 1회성 [등장] 태그라 끝까지
+//   ARCHIVE_CARD_SEEDS["188"] below). 195's own 백작부인 분기(196-199)는
+//   196/199가 활성화된 동안 매 라운드 「백작부인」을 덱에 넣는 방식으로
+//   구현한다. 142(마술사)와 188의 3번째 분기
+//   (195 -> 200 「귀족 영애」)도 평범한 1회성 [등장] 태그라 끝까지
 //   구현했다. Every deck-effect card the live branches introduce (신병/
 //   광대의제자/점술사/복면기사/상인/수사/수녀/여장군/군사/정무관남/
-//   정무관여/여후작/마술사의도제/귀족영애) is a fully playable CardName
+//   정무관여/여후작/마술사의도제/백작부인/귀족영애) is a fully playable CardName
 //   (engine/cards.ts) wired into effects.ts. Where a branch's own further
 //   reveal target sits outside this v1 slice (e.g. 027, 082, 091/092,
 //   110-112, 117/118, 126/127, 129, 134-136, 149/150, 155-161, 176/177,
@@ -98,6 +100,7 @@ import marchioness from "../assets/cards/extra/7. 여후작.jpg";
 import wizardApprentice from "../assets/cards/extra/5. 마술사의 도제.jpg";
 import princessSecond from "../assets/cards/extra/8. 공주(둘째).jpg";
 import princessThird from "../assets/cards/extra/8. 공주(셋째).jpg";
+import countess from "../assets/cards/extra/8. 백작부인.jpg";
 import nobleLady from "../assets/cards/extra/8. 귀족영애.jpg";
 import king from "../assets/cards/extra/X. 왕.jpg";
 import queen from "../assets/cards/extra/왕비.jpg";
@@ -118,9 +121,9 @@ export type ArchiveConditionSeed =
        * 054's condition removes both 053 and 054). */
       removeIds?: string[];
     }
-  | { id: string; kind: "winnerHeldCard"; label: string; cardName: CardName; revealIds: string[] }
-  | { id: string; kind: "archiveCardCount"; label: string; minCount: number; revealIds: string[] }
-  | { id: string; kind: "clockThreshold"; label: string; threshold: number; revealIds: string[] };
+  | { id: string; kind: "winnerHeldCard"; label: string; cardName: CardName; revealIds: string[]; removeIds?: string[] }
+  | { id: string; kind: "archiveCardCount"; label: string; minCount: number; revealIds: string[]; removeIds?: string[] }
+  | { id: string; kind: "clockThreshold"; label: string; threshold: number; revealIds: string[]; removeIds?: string[] };
 
 export interface ArchiveCardSeed {
   id: string;
@@ -1201,8 +1204,41 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "196",
     name: "나른한 백작부인",
     category: "scenario",
+    art: countess,
     flavor:
       "「어머, 귀여운 아이네...」마차의 창으로 나온 백작부인이 투명할 만큼 흰 손가락이 당신의 얼굴을 쓰다듬습니다. 그 오싹한 감각은 마치 사신에게 닿은 것처럼 느껴졌지만, 당신은 그녀에게 매료되어 움직일 수 없었습니다. 정말로, 이 사랑을 좇아도 되는 것일까요...",
+    conditionsTitle: "라운드 시작/종료 시 확인",
+    earnRules: [
+      "매 라운드 시작시 「백작부인」을 이번 라운드 덱에 추가: 등장",
+      "「백작부인」을 손에 들고 라운드 승리: 성공",
+    ],
+    conditions: [
+      {
+        id: "196-win",
+        kind: "winnerHeldCard",
+        label: "「백작부인」을 손에 들고 라운드 승리",
+        cardName: "백작부인",
+        revealIds: ["198", "199"],
+        removeIds: ["196"],
+      },
+    ],
+  },
+  "198": {
+    id: "198",
+    name: "백작부인 카밀라",
+    category: "character",
+    art: countess,
+    flavor: "「이제는 아무래도 좋아요. 모든 게 다 괜찮아요.」",
+    conditions: [],
+  },
+  "199": {
+    id: "199",
+    name: "백작부인 카밀라",
+    category: "character",
+    art: countess,
+    flavor:
+      "당신을 저택에 초대한 그녀의 언사는 공허하며, 말끝마다 기력을 잃어가는 것을 볼 수 있습니다. 아마도 남편이었던 백작을 잃은 슬픔으로 자포자기하고 있는 듯 합니다. 사랑을 말하기 전에, 당신은 우선 그녀가 삶의 의욕을 되찾을 수 있게 해주어야 합니다.",
+    earnRules: ["「백작부인」을 손에 들고 라운드 승리: 성공"],
     conditions: [],
   },
   "200": {

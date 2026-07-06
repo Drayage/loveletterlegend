@@ -21,6 +21,7 @@ const ALL_SLOTS: CharacterSlotId[] = [
   "여장군아즈사",
   "군사시어도어",
   "여후작엘마",
+  "백작부인카밀라",
   "귀족영애아나스타샤",
 ];
 
@@ -35,6 +36,7 @@ const SLOT_INFO: Record<CharacterSlotId, { name: string; art?: string; quote?: s
   여장군아즈사: { name: "여장군 아즈사" },
   군사시어도어: { name: "군사 시어도어" },
   여후작엘마: { name: "여후작 엘마" },
+  백작부인카밀라: { name: "백작부인 카밀라" },
   귀족영애아나스타샤: { name: "공작의 영애 아나스타샤" },
 };
 
@@ -49,6 +51,7 @@ const LETTER_RULES: Partial<Record<CharacterSlotId, string[]>> = {
   여장군아즈사: ["여장군을 들고 라운드 승리: +3"],
   군사시어도어: ["군사를 들거나 버린 채 라운드 승리: +2"],
   여후작엘마: ["여후작을 들거나 버린 채 라운드 승리: +3"],
+  백작부인카밀라: ["백작부인을 들고 라운드 승리: +4"],
   귀족영애아나스타샤: ["귀족영애를 들고 라운드 승리: +4"],
 };
 
@@ -75,6 +78,7 @@ const SLOT_REVEAL_CARD_ID: Record<CharacterSlotId, string> = {
   여장군아즈사: "167",
   군사시어도어: "171",
   여후작엘마: "186",
+  백작부인카밀라: "199",
   귀족영애아나스타샤: "203",
 };
 

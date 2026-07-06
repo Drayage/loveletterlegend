@@ -9,6 +9,7 @@ import {
   discardCard,
   drawCardFor,
   effectiveCardRank,
+  eliminatePlayer,
   getPlayer,
   log,
   guessOptionsFor,
@@ -101,6 +102,8 @@ function restrictedPlayOptions(hand: CardInstance[]): CardInstance[] {
     }
   }
   const withoutLadyGeneral = hand.filter((c) => c.name !== "여장군");
+  const withoutUnplayableRank8 = withoutLadyGeneral.filter((c) => c.name !== "백작부인");
+  if (withoutUnplayableRank8.length > 0) return withoutUnplayableRank8;
   return withoutLadyGeneral.length > 0 ? withoutLadyGeneral : hand;
 }
 
@@ -120,7 +123,7 @@ export function beginTurn(state: GameState): GameState {
   log(draft, `${player.displayName}의 차례입니다. 카드를 뽑았습니다.`);
 
   if (checkKingElimination(draft, player.id) || checkMinisterElimination(draft, player.id)) {
-    return afterTurnResolved(draft);
+    return afterTurnResolved(draft, player.id);
   }
 
   draft.pendingDecision = {
@@ -227,10 +230,19 @@ function finishResolution(
   draft.resolvingPlayerId = null;
   draft.pendingDecision = null;
 
-  return afterTurnResolved(draft);
+  return afterTurnResolved(draft, playerId);
 }
 
-function afterTurnResolved(draft: GameState): GameState {
+function afterTurnResolved(draft: GameState, endedTurnPlayerId?: string): GameState {
+  const actor = endedTurnPlayerId ? getPlayer(draft, endedTurnPlayerId) : null;
+  if (
+    draft.deckExhaustedThisTurn &&
+    actor &&
+    !actor.eliminated &&
+    actor.hand.some((c) => c.name === "백작부인")
+  ) {
+    eliminatePlayer(draft, actor.id, "덱이 떨어진 차례를 마칠 때 「백작부인」을 들고 있어");
+  }
   const alive = alivePlayers(draft);
   if (alive.length <= 1) {
     return endRound(draft, "lastPlayerStanding");

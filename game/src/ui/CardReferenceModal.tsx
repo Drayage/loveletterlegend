@@ -20,8 +20,14 @@ function currentDeckEntries(session?: SessionState): Array<{ name: CardName; cou
   for (const name of session?.extraDeckCardNames ?? []) {
     counts[name] = (counts[name] ?? 0) + 1;
   }
+  if (session?.storyArchive.some((c) => c.id === "196" || c.id === "199")) {
+    counts.백작부인 = Math.max(counts.백작부인 ?? 0, 1);
+  }
 
-  const extraNames = (session?.extraDeckCardNames ?? []).filter((name) => !CARD_ORDER.includes(name));
+  const extraNames = [
+    ...(session?.extraDeckCardNames ?? []),
+    ...(session?.storyArchive.some((c) => c.id === "196" || c.id === "199") ? (["백작부인"] as CardName[]) : []),
+  ].filter((name) => !CARD_ORDER.includes(name));
   const orderedNames = [...CARD_ORDER, ...Array.from(new Set(extraNames))];
   return orderedNames
     .map((name) => ({ name, count: counts[name] ?? 0 }))

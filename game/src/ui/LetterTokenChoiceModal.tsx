@@ -17,6 +17,7 @@ const SLOT_INFO: Record<CharacterSlotId, { name: string; art?: string }> = {
   여장군아즈사: { name: "여장군 아즈사" },
   군사시어도어: { name: "군사 시어도어" },
   여후작엘마: { name: "여후작 엘마" },
+  백작부인카밀라: { name: "백작부인 카밀라" },
   귀족영애아나스타샤: { name: "공작의 영애 아나스타샤" },
 };
 

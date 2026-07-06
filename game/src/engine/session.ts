@@ -36,6 +36,7 @@ const ALL_SLOTS: readonly CharacterSlotId[] = [
   "여장군아즈사",
   "군사시어도어",
   "여후작엘마",
+  "백작부인카밀라",
   "귀족영애아나스타샤",
 ];
 
@@ -337,7 +338,7 @@ function resolveArchiveConditions(
           cond.revealIds.forEach((id) => {
             if (!toReveal.has(id)) toReveal.set(id, { sourceName: card.name, reason: cond.label });
           });
-          if (cond.kind === "sharedToken") (cond.removeIds ?? []).forEach((id) => toRemove.add(id));
+          (cond.removeIds ?? []).forEach((id) => toRemove.add(id));
         }
       }
     }
@@ -616,6 +617,10 @@ function applySessionRoundEnd(session: SessionState): SessionState {
     if (winner?.hand.some((c) => c.name === "귀족영애")) {
       grantArchive("200", "성공", 1, "「귀족영애」를 손에 들고 라운드 승리");
       grantCharacterLetter("귀족영애아나스타샤", winnerId, 4, "「귀족영애」를 손에 들고 라운드 승리", "203");
+    }
+    // 196 "나른한 백작부인" -- 백작부인을 손에 들고 승리하면 198/199 공개.
+    if (winner?.hand.some((c) => c.name === "백작부인")) {
+      grantCharacterLetter("백작부인카밀라", winnerId, 4, "「백작부인」을 손에 들고 라운드 승리", "199");
     }
   }
 
@@ -910,8 +915,15 @@ export function beginNextRound(session: SessionState, route: Route): SessionStat
     next.storyArchive.some((c) => c.id === "039") && next.festivalDeck.length > 0
       ? (next.festivalDeck.shift() ?? null)
       : null;
+  const roundExtraDeckCardNames = [...next.extraDeckCardNames];
+  if (
+    next.storyArchive.some((c) => c.id === "196" || c.id === "199") &&
+    !roundExtraDeckCardNames.includes("백작부인")
+  ) {
+    roundExtraDeckCardNames.push("백작부인");
+  }
   next.round = {
-    ...setupRound(next.playerConfigs, leaderId, next.extraDeckCardNames, next.removedBaseCardNames),
+    ...setupRound(next.playerConfigs, leaderId, roundExtraDeckCardNames, next.removedBaseCardNames),
     activeCardUpgrades: upgrades,
     activeIdentities,
     activeFestivalCardId,

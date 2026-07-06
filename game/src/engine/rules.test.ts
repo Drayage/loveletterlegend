@@ -410,6 +410,47 @@ describe("ROOT B: 142/188 new cards (마술사의도제, 점술사, 귀족영애
     expect(state.deck).toHaveLength(0);
   });
 
+  it("백작부인: if held when the turn ends with an empty deck, the holder is eliminated before deck-exhaustion scoring", () => {
+    const state = minimalState({
+      deck: [],
+      deckExhaustedThisTurn: true,
+      currentPlayerIndex: 0,
+      players: [
+        {
+          id: "p1",
+          displayName: "P1",
+          isAI: false,
+          hand: [
+            { instanceId: "countess", name: "백작부인" },
+            { instanceId: "priestess", name: "승려" },
+          ],
+          discardPile: [],
+          eliminated: false,
+          protected: false,
+        },
+        {
+          id: "p2",
+          displayName: "P2",
+          isAI: true,
+          hand: [{ instanceId: "guard", name: "경비병" }],
+          discardPile: [],
+          eliminated: false,
+          protected: false,
+        },
+      ],
+      pendingDecision: {
+        kind: "playCard",
+        playerId: "p1",
+        options: [{ instanceId: "priestess", name: "승려" }],
+      },
+    });
+
+    const result = chooseCardToPlay(state, "priestess");
+    expect(result.players[0].eliminated).toBe(true);
+    expect(result.roundResult?.reason).toBe("lastPlayerStanding");
+    expect(result.roundResult?.winnerId).toBe("p2");
+  });
+
   it("공주's own discard still just eliminates without any reshuffle (규칙 차이 확인)", () => {
     const state = minimalState({ deck: [{ instanceId: "d1", name: "경비병" }] });
     discardCard(state, "p1", { instanceId: "c1", name: "공주" });

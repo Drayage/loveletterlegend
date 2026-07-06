@@ -535,6 +535,10 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       setPlayOutcome(draft, card.instanceId, "효과 없음");
       return;
     }
+    case "백작부인": {
+      setPlayOutcome(draft, card.instanceId, "효과 없음");
+      return;
+    }
   }
 }
 
@@ -573,6 +577,7 @@ export function cardRank(name: CardName): number {
     정무관여: 7,
     여후작: 7,
     마술사의도제: 5,
+    백작부인: 8,
     귀족영애: 8,
   };
   return ranks[name];

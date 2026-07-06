@@ -1119,6 +1119,42 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
       expect(session.storyArchive.some((c) => c.id === "202")).toBe(true);
       expect(session.storyArchive.some((c) => c.id === "203")).toBe(true);
     });
+
+    it("195's 백작부인 branch reveals 196, injects 백작부인 each round, then winning with it reveals 198/199", () => {
+      let session = startSession(PLAYERS);
+      session = forceImmediateWin(session, "p1", [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "공주" },
+      ]);
+      expect(session.pendingChoice?.cardId).toBe("188");
+      session = resolveArchiveChoice(session, session.pendingChoice!.eligiblePlayerId, "188-other");
+      expect(session.pendingChoice?.cardId).toBe("195");
+      session = resolveArchiveChoice(session, session.pendingChoice!.eligiblePlayerId, "195-countess");
+      expect(session.storyArchive.some((c) => c.id === "196")).toBe(true);
+
+      session = resolveLetterChoice(session, "p1", { type: "place", slot: "잉그리드공주" });
+      session = beginNextRound(session, "공주");
+      const roundCardNames = [
+        ...session.round.players.flatMap((p) => p.hand.map((c) => c.name)),
+        ...session.round.deck.map((c) => c.name),
+        ...session.round.faceUpRemovedCards.map((c) => c.name),
+        ...(session.round.hiddenRemovedCard ? [session.round.hiddenRemovedCard.name] : []),
+      ];
+      expect(roundCardNames).toContain("백작부인");
+
+      session = forceImmediateWin(
+        session,
+        "p1",
+        [
+          { instanceId: "c3", name: "대신" },
+          { instanceId: "c4", name: "백작부인" },
+        ],
+        session.storyArchive.filter((c) => c.id === "196")
+      );
+      expect(session.storyArchive.some((c) => c.id === "196")).toBe(false);
+      expect(session.storyArchive.some((c) => c.id === "198")).toBe(true);
+      expect(session.storyArchive.some((c) => c.id === "199")).toBe(true);
+    });
   });
 
   describe("Reveal provenance + resolved-choice tracking (round-flow UX)", () => {

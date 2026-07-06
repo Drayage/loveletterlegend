@@ -61,6 +61,21 @@ const PLAYERS: PlayerConfig[] = [
   { id: AI_ID, displayName: "AI", isAI: true },
 ];
 
+const CHARACTER_SLOTS: CharacterSlotId[] = [
+  "잉그리드공주",
+  "아레스왕자",
+  "경비병알리오스",
+  "신병아니스",
+  "기사라이언",
+  "승려올리비아",
+  "마술사의도제",
+  "여장군아즈사",
+  "군사시어도어",
+  "여후작엘마",
+  "백작부인카밀라",
+  "귀족영애아나스타샤",
+];
+
 function decisionKey(decision: PendingDecision): string {
   if (decision.kind === "playCard") {
     return `${decision.kind}:${decision.playerId}:${decision.options.map((c) => c.instanceId).join(",")}`;
@@ -464,7 +479,7 @@ export default function App() {
     ])
   ) as Partial<Record<CardName, string>>;
   const humanLetterTokens = Object.fromEntries(
-    (["잉그리드공주", "아레스왕자", "마술사의도제"] as CharacterSlotId[]).map((slot) => [
+    CHARACTER_SLOTS.map((slot) => [
       slot,
       session.letterTokens[slot]?.[HUMAN_ID] ?? 0,
     ])

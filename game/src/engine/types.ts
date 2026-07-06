@@ -38,6 +38,7 @@ export type CardName =
    * 분기(루나 공주/마가렛 공주/백작부인)는 "매 라운드 시작시 선택적으로
    * 토글" 하는 새 메커니즘이 필요해 flavor-only로 남지만, 이 분기는 실카드
    * 등장 태그가 평범한 1회성 추가라 기존 deckEffect로 충분하다. */
+  | "백작부인"
   | "귀족영애";
 
 export type GuessOption = CardName | "홀수" | "짝수";
@@ -290,9 +291,33 @@ export type ArchiveCondition =
       removeIds?: string[];
       fired: boolean;
     }
-  | { id: string; kind: "winnerHeldCard"; label: string; cardName: CardName; revealIds: string[]; fired: boolean }
-  | { id: string; kind: "archiveCardCount"; label: string; minCount: number; revealIds: string[]; fired: boolean }
-  | { id: string; kind: "clockThreshold"; label: string; threshold: number; revealIds: string[]; fired: boolean };
+  | {
+      id: string;
+      kind: "winnerHeldCard";
+      label: string;
+      cardName: CardName;
+      revealIds: string[];
+      removeIds?: string[];
+      fired: boolean;
+    }
+  | {
+      id: string;
+      kind: "archiveCardCount";
+      label: string;
+      minCount: number;
+      revealIds: string[];
+      removeIds?: string[];
+      fired: boolean;
+    }
+  | {
+      id: string;
+      kind: "clockThreshold";
+      label: string;
+      threshold: number;
+      revealIds: string[];
+      removeIds?: string[];
+      fired: boolean;
+    };
 
 /** Real cards check their conditions at two distinct moments -- 「시작」 tags
  * at round start (017's clock table) and 「종료」 tags at round end
@@ -365,4 +390,5 @@ export type CharacterSlotId =
   | "여장군아즈사"
   | "군사시어도어"
   | "여후작엘마"
+  | "백작부인카밀라"
   | "귀족영애아나스타샤";
