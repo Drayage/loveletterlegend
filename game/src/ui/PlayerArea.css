@@ -10,6 +10,23 @@
     background 180ms ease;
 }
 
+.player-area--compact {
+  padding: 8px 12px;
+  border-radius: 10px;
+}
+
+.player-area--compact .player-area__header {
+  margin-bottom: 6px;
+}
+
+.player-area--compact .player-area__row {
+  gap: 14px;
+}
+
+.player-area--compact .player-area__cards {
+  min-height: 42px;
+}
+
 .player-area--protected {
   border-color: rgba(76, 132, 190, 0.7);
   box-shadow:

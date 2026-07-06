@@ -13,6 +13,8 @@ interface PlayerAreaProps {
   remaining: Record<CardName, number>;
   /** 상대(AI) 손패는 "sm"으로 줄여 화면 중앙 보드 공간을 확보한다. */
   handSize?: "sm" | "md";
+  compact?: boolean;
+  upgradeBadges?: Partial<Record<CardName, string>>;
 }
 
 export function PlayerArea({
@@ -23,6 +25,8 @@ export function PlayerArea({
   onSelectCard,
   remaining,
   handSize = "md",
+  compact,
+  upgradeBadges = {},
 }: PlayerAreaProps) {
   const [showDiscards, setShowDiscards] = useState(false);
   const [justEliminated, setJustEliminated] = useState(false);
@@ -42,6 +46,7 @@ export function PlayerArea({
     <section
       className={[
         "player-area",
+        compact ? "player-area--compact" : "",
         player.protected ? "player-area--protected" : "",
         player.immuneThisRound ? "player-area--immune" : "",
         player.eliminated ? "player-area--eliminated" : "",
@@ -83,6 +88,7 @@ export function PlayerArea({
                   name={c.name}
                   size={handSize}
                   remainingCount={remaining[c.name]}
+                  upgradeBadge={upgradeBadges[c.name]}
                   onClick={
                     selectableCardIds?.includes(c.instanceId)
                       ? () => onSelectCard?.(c.instanceId)
@@ -115,7 +121,7 @@ export function PlayerArea({
       {showDiscards && (
         <Modal title={`${player.displayName}의 버린 카드`} onClose={() => setShowDiscards(false)}>
           {player.discardPile.map((c) => (
-            <Card key={c.instanceId} name={c.name} size="sm" />
+            <Card key={c.instanceId} name={c.name} size="sm" upgradeBadge={upgradeBadges[c.name]} />
           ))}
         </Modal>
       )}

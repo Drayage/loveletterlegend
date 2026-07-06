@@ -5,6 +5,7 @@ import "./TablePlay.css";
 interface TablePlayProps {
   state: GameState;
   remaining: Record<CardName, number>;
+  upgradeBadges?: Partial<Record<CardName, string>>;
 }
 
 /** Center-table exchange view: both players' most recent plays side by
@@ -12,7 +13,7 @@ interface TablePlayProps {
  * so "상대가 뭘 냈고 내가 뭘 내서 어떻게 됐는지" is readable at a glance
  * without digging through the log. Outcomes come from the engine's
  * recentPlays tracking (see effects.ts setPlayOutcome). */
-export function TablePlay({ state, remaining }: TablePlayProps) {
+export function TablePlay({ state, remaining, upgradeBadges = {} }: TablePlayProps) {
   const plays = state.recentPlays ?? [];
   const latest = plays[plays.length - 1];
 
@@ -32,7 +33,12 @@ export function TablePlay({ state, remaining }: TablePlayProps) {
                 className={`table-play__slot${isLatest ? " table-play__pop" : ""}`}
               >
                 <span className="table-play__name">{player?.displayName ?? p.playerId}</span>
-                <Card name={p.card.name} size="md" remainingCount={remaining[p.card.name]} />
+                <Card
+                  name={p.card.name}
+                  size="sm"
+                  remainingCount={remaining[p.card.name]}
+                  upgradeBadge={upgradeBadges[p.card.name]}
+                />
                 <span className={`table-play__outcome${p.outcome ? "" : " table-play__outcome--pending"}`}>
                   {p.outcome ?? "효과 처리 중..."}
                 </span>

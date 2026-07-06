@@ -1,12 +1,12 @@
 .session-header {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
   flex-wrap: wrap;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 8px 12px;
+  padding: 7px 10px;
   flex-shrink: 0;
 }
 
@@ -51,21 +51,45 @@
 
 .session-header__slots {
   display: flex;
-  gap: 14px;
+  gap: 8px;
   flex-wrap: wrap;
   flex: 1;
+  min-width: 260px;
 }
 
 .session-header__slot {
-  display: flex;
+  position: relative;
+  min-width: 172px;
+  max-width: 220px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  padding: 0;
+}
+
+.session-header__slot[open] {
+  border-color: var(--accent);
+  background: var(--panel);
+}
+
+.session-header__slot-front {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px;
-  min-width: 150px;
+  gap: 7px;
+  min-height: 42px;
+  padding: 5px 8px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.session-header__slot-front::-webkit-details-marker {
+  display: none;
 }
 
 .session-header__slot-art {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   object-fit: cover;
   object-position: center 15%;
@@ -73,24 +97,79 @@
   flex-shrink: 0;
 }
 
-.session-header__slot-info {
+.session-header__slot-main {
   display: flex;
   flex-direction: column;
-  gap: 2px;
   min-width: 0;
+}
+
+.session-header__slot-quote {
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .session-header__slot-counts {
   display: flex;
-  gap: 6px;
-  font-size: 13px;
+  gap: 4px;
+  font-size: 12px;
   font-weight: 700;
+  align-items: center;
 }
 
 .session-header__slot-count:not(:last-child)::after {
   content: " /";
   color: var(--muted);
   font-weight: 400;
+}
+
+.session-header__slot-back {
+  border-top: 1px solid var(--border);
+  padding: 7px 9px 8px;
+  font-size: 11px;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.session-header__slot-back ul {
+  margin: 4px 0 0;
+  padding-left: 16px;
+}
+
+.session-header__slot-back li + li {
+  margin-top: 3px;
+}
+
+.session-header__slot-subtitle {
+  margin: 6px 0 0;
+  font-size: 10.5px;
+  color: var(--muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.session-header__slot-subtitle:first-child {
+  margin-top: 0;
+}
+
+.session-header__effect-rule--active {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.session-header__active-mark {
+  display: inline-flex;
+  margin-left: 5px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 800;
 }
 
 .session-header__archive-btn {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { ArchiveCardState, GameState, PendingDecision, PlayerConfig } from "./engine/types";
+import type { ArchiveCardState, CardName, GameState, PendingDecision, PlayerConfig } from "./engine/types";
 import { chooseCardToPlay, chooseTarget, chooseGuess } from "./engine/rules";
 import {
   chooseCardToPlayAI,
@@ -138,10 +138,12 @@ export default function App() {
     Boolean(pendingStoryEvent) ||
     Boolean(pendingRoundStart) ||
     Boolean(showRouteSwitch) ||
-    Boolean(session?.pendingLetterChoice) ||
-    Boolean(session?.pendingArchivePlacement) ||
-    Boolean(session?.pendingIdentityChoice) ||
-    Boolean(session?.pendingChoice);
+    Boolean(showCardReference) ||
+    Boolean(showStoryArchive) ||
+    Boolean(session?.pendingLetterChoice?.playerId === HUMAN_ID) ||
+    Boolean(session?.pendingArchivePlacement?.eligiblePlayerId === HUMAN_ID) ||
+    Boolean(session?.pendingIdentityChoice?.eligiblePlayerId === HUMAN_ID) ||
+    Boolean(session?.pendingChoice?.eligiblePlayerId === HUMAN_ID);
 
   // AI's normal in-round turn.
   useEffect(() => {
@@ -394,6 +396,11 @@ export default function App() {
   }
 
   function proceedToNextRound(route: Route) {
+    handledDecisionRef.current = null;
+    handledArchiveRef.current = null;
+    handledLetterChoiceRef.current = null;
+    handledIdentityRef.current = null;
+    handledChoiceRef.current = null;
     setSession((prev) => (prev ? safely(() => beginNextRound(prev, route)) ?? prev : prev));
     setShowRouteSwitch(false);
     setPendingRoundStart(null);
@@ -457,6 +464,12 @@ export default function App() {
     needsIdentityChoice && session.pendingIdentityChoice!.eligiblePlayerId === HUMAN_ID;
   const needsArchiveChoice = Boolean(session.pendingChoice);
   const humanNeedsArchiveChoice = needsArchiveChoice && session.pendingChoice!.eligiblePlayerId === HUMAN_ID;
+  const cardUpgradeBadges = Object.fromEntries(
+    Object.entries(round.activeCardUpgrades ?? {}).map(([name, tier]) => [
+      name,
+      tier === "tier2" ? "효과 변경 2단계" : "효과 변경 1단계",
+    ])
+  ) as Partial<Record<CardName, string>>;
   const humanLetterTokens = Object.fromEntries(
     (["잉그리드공주", "아레스왕자", "마술사의도제"] as CharacterSlotId[]).map((slot) => [
       slot,
@@ -473,23 +486,31 @@ export default function App() {
       <div className="board-region">
       <EffectToast entries={round.log} />
 
-      <div className="removed-row">
-        <div className="removed-row__labels">
-          <span className="removed-row__label">
-            {round.faceUpRemovedCards.length > 0 ? "공개 제거된 카드" : "공개 제거된 카드 없음"}
-          </span>
-          <span className="removed-row__deck-count">덱 {round.deck.length}장 남음</span>
-        </div>
-        {round.faceUpRemovedCards.length > 0 && (
-          <div className="removed-row__cards">
-            {round.faceUpRemovedCards.map((c) => (
-              <Card key={c.instanceId} name={c.name} size="sm" remainingCount={remaining[c.name]} />
-            ))}
+      <div className="board-topline">
+        <div className="removed-row">
+          <div className="removed-row__labels">
+            <span className="removed-row__label">
+              {round.faceUpRemovedCards.length > 0 ? "공개 제거된 카드" : "공개 제거된 카드 없음"}
+            </span>
+            <span className="removed-row__deck-count">덱 {round.deck.length}장 남음</span>
           </div>
-        )}
-        <button type="button" className="removed-row__reference-btn" onClick={() => setShowCardReference(true)}>
-          이번 게임 카드 확인
-        </button>
+          {round.faceUpRemovedCards.length > 0 && (
+            <div className="removed-row__cards">
+              {round.faceUpRemovedCards.map((c) => (
+                <Card
+                  key={c.instanceId}
+                  name={c.name}
+                  size="sm"
+                  remainingCount={remaining[c.name]}
+                  upgradeBadge={cardUpgradeBadges[c.name]}
+                />
+              ))}
+            </div>
+          )}
+          <button type="button" className="removed-row__reference-btn" onClick={() => setShowCardReference(true)}>
+            카드 확인
+          </button>
+        </div>
       </div>
 
       {round.activeFestivalCardId && (
@@ -522,9 +543,11 @@ export default function App() {
         revealHand={Boolean(round.roundResult)}
         remaining={remaining}
         handSize="sm"
+        compact
+        upgradeBadges={cardUpgradeBadges}
       />
 
-      <TablePlay state={round} remaining={remaining} />
+      <TablePlay state={round} remaining={remaining} upgradeBadges={cardUpgradeBadges} />
 
       <PlayerArea
         player={human}
@@ -535,6 +558,7 @@ export default function App() {
         }
         onSelectCard={handleSelectCard}
         remaining={remaining}
+        upgradeBadges={cardUpgradeBadges}
       />
 
       {isHumanDecision && decision && decision.kind !== "playCard" && (

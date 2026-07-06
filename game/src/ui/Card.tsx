@@ -15,6 +15,8 @@ interface CardProps {
    * discarded or publicly removed). Defaults to the full deck count, i.e.
    * "none used up yet", when the caller doesn't track this. */
   remainingCount?: number;
+  /** Small marker for session-driven ability upgrades currently active. */
+  upgradeBadge?: string;
 }
 
 export function Card({
@@ -25,6 +27,7 @@ export function Card({
   disabled,
   onClick,
   remainingCount,
+  upgradeBadge,
 }: CardProps) {
   // Explicit tap-to-toggle state, used as the primary interaction on touch
   // devices (which have no hover). Desktop mouse users get the ability text
@@ -79,6 +82,11 @@ export function Card({
       }
     >
       <img className="card__art" src={CARD_ART[name]} alt={def.name} draggable={false} />
+      {upgradeBadge && (
+        <span className="card__upgrade-badge" title={upgradeBadge} aria-label={upgradeBadge}>
+          ●
+        </span>
+      )}
       <span className="card__rank-badge">{def.rank}</span>
       {def.count > 1 && (
         <span

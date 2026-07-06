@@ -37,12 +37,12 @@
  * board region in the middle scrolls when it must. This keeps the play
  * area centered on screen instead of the log dragging the document down. */
 .app-layout {
-  max-width: 900px;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 10px 16px 12px;
+  padding: 8px 14px 10px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   height: 100dvh;
   box-sizing: border-box;
   overflow: hidden;
@@ -54,7 +54,13 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+}
+
+.board-topline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
 }
 
 .removed-row {
@@ -65,7 +71,8 @@
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 6px 12px;
+  padding: 5px 10px;
+  min-height: 52px;
 }
 
 .removed-row__labels {
@@ -93,7 +100,7 @@
   background: var(--accent-soft);
   border: 1px solid var(--accent);
   border-radius: 8px;
-  padding: 6px 12px;
+  padding: 5px 10px;
 }
 
 .removed-row__cards {
@@ -123,9 +130,10 @@
 
 .thinking-banner {
   text-align: center;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--muted);
   font-style: italic;
+  margin-top: -2px;
 }
 
 .round-result {

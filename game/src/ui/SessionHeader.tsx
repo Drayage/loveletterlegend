@@ -24,7 +24,7 @@ const ALL_SLOTS: CharacterSlotId[] = [
   "귀족영애아나스타샤",
 ];
 
-const SLOT_INFO: Record<CharacterSlotId, { name: string; art?: string }> = {
+const SLOT_INFO: Record<CharacterSlotId, { name: string; art?: string; quote?: string }> = {
   잉그리드공주: { name: ROUTE_DEFS.공주.displayName, art: ROUTE_DEFS.공주.art },
   아레스왕자: { name: ROUTE_DEFS.왕자.displayName, art: ROUTE_DEFS.왕자.art },
   경비병알리오스: { name: "경비병 알리오스" },
@@ -36,6 +36,27 @@ const SLOT_INFO: Record<CharacterSlotId, { name: string; art?: string }> = {
   군사시어도어: { name: "군사 시어도어" },
   여후작엘마: { name: "여후작 엘마" },
   귀족영애아나스타샤: { name: "공작의 영애 아나스타샤" },
+};
+
+const LETTER_RULES: Partial<Record<CharacterSlotId, string[]>> = {
+  잉그리드공주: ["라운드 승리: 공개된 공주/왕자 중 선택해 +1", "《8 공주/왕자》를 들고 승리: 추가 +1"],
+  아레스왕자: ["라운드 승리: 공개된 공주/왕자 중 선택해 +1", "《8 공주/왕자》를 들고 승리: 추가 +1"],
+  경비병알리오스: ["경비병을 들고 라운드 승리: +2", "경비병 추측 적중으로 탈락시킴: +1"],
+  신병아니스: ["신병을 들고 라운드 승리: +3", "신병 홀짝 추측 적중으로 탈락시킴: +2"],
+  기사라이언: ["기사를 들고 라운드 승리: +2", "기사 비교로 상대를 탈락시킴: +2"],
+  승려올리비아: ["승려를 들고 라운드 승리: +2", "승려를 버린 채 라운드 승리: +1"],
+  마술사의도제: ["마술사를 들거나 버린 채 라운드 승리: +2", "마술사로 5 이상 카드를 버리게 함: +1"],
+  여장군아즈사: ["여장군을 들고 라운드 승리: +3"],
+  군사시어도어: ["군사를 들거나 버린 채 라운드 승리: +2"],
+  여후작엘마: ["여후작을 들거나 버린 채 라운드 승리: +3"],
+  귀족영애아나스타샤: ["귀족영애를 들고 라운드 승리: +4"],
+};
+
+const EFFECT_RULES: Partial<Record<CharacterSlotId, Array<{ threshold: number; result: string; cardName?: string }>>> = {
+  마술사의도제: [
+    { threshold: WIZARD_APPRENTICE.tier1.threshold, result: WIZARD_APPRENTICE.tier1.abilityText, cardName: "마술사" },
+    { threshold: WIZARD_APPRENTICE.tier2.threshold, result: WIZARD_APPRENTICE.tier2.abilityText, cardName: "마술사" },
+  ],
 };
 
 /** A slot only shows up here once its character has actually been
@@ -64,21 +85,31 @@ const PLAYER_COLORS = ["#4f8fef", "#ef6a6a", "#5fbf7a", "#c98fef"];
 
 function SlotRow({
   slot,
+  session,
   playerConfigs,
   humanId,
   letterTokens,
 }: {
   slot: CharacterSlotId;
+  session: SessionState;
   playerConfigs: PlayerConfig[];
   humanId: string;
   letterTokens: SessionState["letterTokens"];
 }) {
   const info = SLOT_INFO[slot];
+  const revealCard = session.archiveHistory[SLOT_REVEAL_CARD_ID[slot]];
+  const art = info.art ?? revealCard?.art;
+  const flavor = revealCard?.flavor ?? info.quote;
+  const humanTokens = letterTokens[slot]?.[humanId] ?? 0;
+  const effectRules = EFFECT_RULES[slot] ?? [];
   return (
-    <div className="session-header__slot">
-      {info.art && <img className="session-header__slot-art" src={info.art} alt={info.name} />}
-      <div className="session-header__slot-info">
-        <span className="session-header__value">{info.name}</span>
+    <details className="session-header__slot">
+      <summary className="session-header__slot-front">
+        {art && <img className="session-header__slot-art" src={art} alt={info.name} />}
+        <span className="session-header__slot-main">
+          <span className="session-header__value">{info.name}</span>
+          {flavor && <span className="session-header__slot-quote">{flavor}</span>}
+        </span>
         <div className="session-header__slot-counts">
           {playerConfigs.map((cfg, i) => (
             <span
@@ -91,8 +122,33 @@ function SlotRow({
             </span>
           ))}
         </div>
+      </summary>
+      <div className="session-header__slot-back">
+        <p className="session-header__slot-subtitle">편지 획득 조건</p>
+        <ul>
+          {(LETTER_RULES[slot] ?? ["이 캐릭터가 공개된 뒤 관련 이벤트로 편지를 획득합니다."]).map((rule) => (
+            <li key={rule}>{rule}</li>
+          ))}
+        </ul>
+        {effectRules.length > 0 && (
+          <>
+            <p className="session-header__slot-subtitle">효과 변경</p>
+            <ul>
+              {effectRules.map((rule) => {
+                const active = humanTokens >= rule.threshold;
+                return (
+                  <li key={rule.threshold} className={active ? "session-header__effect-rule--active" : ""}>
+                    편지 {rule.threshold}개 이상: {rule.cardName ? `「${rule.cardName}」 ` : ""}
+                    {rule.result}
+                    {active && <span className="session-header__active-mark">발동중</span>}
+                  </li>
+                );
+              })}
+            </ul>
+          </>
+        )}
       </div>
-    </div>
+    </details>
   );
 }
 
@@ -127,6 +183,7 @@ export function SessionHeader({ session, humanId, onShowArchive }: SessionHeader
           <SlotRow
             key={slot}
             slot={slot}
+            session={session}
             playerConfigs={session.playerConfigs}
             humanId={humanId}
             letterTokens={session.letterTokens}
