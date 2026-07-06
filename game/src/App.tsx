@@ -61,6 +61,16 @@ const PLAYERS: PlayerConfig[] = [
   { id: AI_ID, displayName: "AI", isAI: true },
 ];
 
+function decisionKey(decision: PendingDecision): string {
+  if (decision.kind === "playCard") {
+    return `${decision.kind}:${decision.playerId}:${decision.options.map((c) => c.instanceId).join(",")}`;
+  }
+  if (decision.kind === "chooseTarget") {
+    return `${decision.kind}:${decision.playerId}:${decision.cardInstanceId}:${decision.eligiblePlayerIds.join(",")}`;
+  }
+  return `${decision.kind}:${decision.playerId}:${decision.cardInstanceId}:${decision.targetId}`;
+}
+
 function applyAiDecision(state: GameState, decision: PendingDecision): GameState {
   if (decision.kind === "playCard") {
     const card = chooseCardToPlayAI(state, decision.playerId);
@@ -97,7 +107,7 @@ export default function App() {
   const [pendingChoiceResult, setPendingChoiceResult] = useState<ResolvedChoiceInfo | null>(null);
   const [pendingRoundStart, setPendingRoundStart] = useState<{ route: Route; chosenBy: string } | null>(null);
   const [roundStartLockedNumber, setRoundStartLockedNumber] = useState<number | null>(null);
-  const handledDecisionRef = useRef<PendingDecision | null>(null);
+  const handledDecisionRef = useRef<string | null>(null);
   const handledArchiveRef = useRef<SessionState["pendingArchivePlacement"]>(null);
   const handledLetterChoiceRef = useRef<SessionState["pendingLetterChoice"]>(null);
   const handledIdentityRef = useRef<SessionState["pendingIdentityChoice"]>(null);
@@ -164,18 +174,28 @@ export default function App() {
 
   // AI's normal in-round turn.
   useEffect(() => {
-    if (!round || round.roundResult || !round.pendingDecision) return;
-    if (flowBlocked) return;
+    if (!round || round.roundResult || !round.pendingDecision) {
+      handledDecisionRef.current = null;
+      return;
+    }
+    if (flowBlocked) {
+      handledDecisionRef.current = null;
+      return;
+    }
     const decision = round.pendingDecision;
     const actor = round.players.find((p) => p.id === decision.playerId);
     if (!actor?.isAI) return;
-    if (handledDecisionRef.current === decision) return;
-    handledDecisionRef.current = decision;
+    const key = decisionKey(decision);
+    if (handledDecisionRef.current === key) return;
+    handledDecisionRef.current = key;
 
     const timer = setTimeout(() => {
       setSession((prev) => {
-        if (!prev || prev.round.pendingDecision !== decision) return prev;
-        return safely(() => applyToRound(prev, (s) => applyAiDecision(s, decision))) ?? prev;
+        const currentDecision = prev?.round.pendingDecision;
+        if (!prev || !currentDecision || decisionKey(currentDecision) !== key) return prev;
+        const currentActor = prev.round.players.find((p) => p.id === currentDecision.playerId);
+        if (!currentActor?.isAI) return prev;
+        return safely(() => applyToRound(prev, (s) => applyAiDecision(s, currentDecision))) ?? prev;
       });
     }, 700);
     return () => clearTimeout(timer);

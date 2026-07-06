@@ -56,6 +56,17 @@ function deckEffectText(effect?: DeckEffect): string | null {
   return `등장: 다음 라운드부터 「${effect.removedName}」을(를) 빼고 「${effect.restoreName}」을(를) 원래 덱으로 되돌립니다.`;
 }
 
+function passiveEventText(card: ArchiveCardState, hasVisibleMechanics: boolean): string | null {
+  if (hasVisibleMechanics) return null;
+  if (card.category === "character") {
+    return "공개 이벤트: 새 캐릭터가 이야기 보관소에 기록됩니다. 현재 즉시 적용되는 덱/토큰 규칙 변화는 없습니다.";
+  }
+  if (card.category === "identity") {
+    return "공개 이벤트: 정체 후보가 기록됩니다. 탈락한 플레이어가 정체를 고르는 단계에서 사용됩니다.";
+  }
+  return "공개 이벤트: 새 이야기가 보관소에 기록됩니다. 현재 즉시 적용되는 덱/토큰 규칙 변화는 없습니다.";
+}
+
 const CHARACTER_ACHIEVEMENTS: Partial<
   Record<CharacterSlotId, Array<{ threshold: number; label: string; cardName?: string }>>
 > = {
@@ -109,6 +120,13 @@ export function ArchiveCardDetail({
   const characterLetterTokens = characterSlot && letterTokens ? letterTokens[characterSlot] : null;
   const letterRules = characterSlot ? CHARACTER_LETTER_RULES[characterSlot] ?? [] : [];
   const achievements = characterSlot ? CHARACTER_ACHIEVEMENTS[characterSlot] ?? [] : [];
+  const hasCharacterMechanics = Boolean(
+    characterSlot && (letterRules.length > 0 || achievements.length > 0 || characterLetterTokens)
+  );
+  const passiveEvent = passiveEventText(
+    card,
+    Boolean(deckEffect) || openConditions.length > 0 || earnRules.length > 0 || hasCharacterMechanics
+  );
   const characterProgress =
     characterSlot ? (
       <div className="archive-card-detail__character">
@@ -185,6 +203,7 @@ export function ArchiveCardDetail({
           )}
           <p className="archive-card-detail__flavor">{card.flavor}</p>
           {deckEffect && <p className="archive-card-detail__deck-effect">{deckEffect}</p>}
+          {passiveEvent && <p className="archive-card-detail__passive-event">{passiveEvent}</p>}
           {characterProgress}
         </div>
       </div>
