@@ -178,18 +178,23 @@ export function SessionHeader({ session, humanId, onShowArchive }: SessionHeader
         ))}
       </div>
 
-      <div className="session-header__slots">
-        {revealedSlots.map((slot) => (
-          <SlotRow
-            key={slot}
-            slot={slot}
-            session={session}
-            playerConfigs={session.playerConfigs}
-            humanId={humanId}
-            letterTokens={session.letterTokens}
-          />
-        ))}
-      </div>
+      <details className="session-header__characters">
+        <summary className="session-header__characters-summary">
+          캐릭터 <span>{revealedSlots.length}</span>
+        </summary>
+        <div className="session-header__slots">
+          {revealedSlots.map((slot) => (
+            <SlotRow
+              key={slot}
+              slot={slot}
+              session={session}
+              playerConfigs={session.playerConfigs}
+              humanId={humanId}
+              letterTokens={session.letterTokens}
+            />
+          ))}
+        </div>
+      </details>
 
       <button type="button" className="session-header__archive-btn" onClick={onShowArchive}>
         이야기 보관소 보기
