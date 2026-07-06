@@ -63,6 +63,17 @@
   color: var(--muted);
 }
 
+.archive-card-detail__deck-effect {
+  margin: 6px 0 0;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: 11.5px;
+  line-height: 1.4;
+  font-weight: 700;
+}
+
 .archive-card-detail__checklist {
   margin-top: 8px;
 }

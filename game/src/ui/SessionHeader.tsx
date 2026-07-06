@@ -39,8 +39,8 @@ const SLOT_INFO: Record<CharacterSlotId, { name: string; art?: string; quote?: s
 };
 
 const LETTER_RULES: Partial<Record<CharacterSlotId, string[]>> = {
-  잉그리드공주: ["라운드 승리: 공개된 공주/왕자 중 선택해 +1", "《8 공주/왕자》를 들고 승리: 추가 +1"],
-  아레스왕자: ["라운드 승리: 공개된 공주/왕자 중 선택해 +1", "《8 공주/왕자》를 들고 승리: 추가 +1"],
+  잉그리드공주: ["라운드 승리: 공개된 공주/왕자 중 선택해 +1", "《공주》를 들고 승리: 추가 +1"],
+  아레스왕자: ["라운드 승리: 공개된 공주/왕자 중 선택해 +1", "《왕자》를 들고 승리: 추가 +1"],
   경비병알리오스: ["경비병을 들고 라운드 승리: +2", "경비병 추측 적중으로 탈락시킴: +1"],
   신병아니스: ["신병을 들고 라운드 승리: +3", "신병 홀짝 추측 적중으로 탈락시킴: +2"],
   기사라이언: ["기사를 들고 라운드 승리: +2", "기사 비교로 상대를 탈락시킴: +2"],
@@ -103,8 +103,8 @@ function SlotRow({
   const humanTokens = letterTokens[slot]?.[humanId] ?? 0;
   const effectRules = EFFECT_RULES[slot] ?? [];
   return (
-    <article className="session-header__slot">
-      <div className="session-header__slot-front">
+    <details className="session-header__slot">
+      <summary className="session-header__slot-front">
         {art && <img className="session-header__slot-art" src={art} alt={info.name} />}
         <span className="session-header__slot-main">
           <span className="session-header__value">{info.name}</span>
@@ -122,8 +122,8 @@ function SlotRow({
             </span>
           ))}
         </div>
-      </div>
-      <div className="session-header__slot-rules">
+      </summary>
+      <div className="session-header__slot-back">
         <p className="session-header__slot-subtitle">편지 획득 조건</p>
         <ul>
           {(LETTER_RULES[slot] ?? ["이 캐릭터가 공개된 뒤 관련 이벤트로 편지를 획득합니다."]).map((rule) => (
@@ -148,7 +148,7 @@ function SlotRow({
           </>
         )}
       </div>
-    </article>
+    </details>
   );
 }
 

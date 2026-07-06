@@ -1,5 +1,5 @@
 import type { CharacterSlotId, SessionState } from "../engine/session";
-import type { ArchiveCardState, ArchiveCondition, PlayerConfig } from "../engine/types";
+import type { ArchiveCardState, ArchiveCondition, DeckEffect, PlayerConfig } from "../engine/types";
 import { WIZARD_APPRENTICE } from "../data/characters";
 import { ARCHIVE_CARD_SEEDS } from "../data/scenario";
 import "./ArchiveCardDetail.css";
@@ -33,8 +33,8 @@ const CHARACTER_CARD_TO_SLOT: Partial<Record<string, CharacterSlotId>> = {
 };
 
 const CHARACTER_LETTER_RULES: Partial<Record<CharacterSlotId, string[]>> = {
-  잉그리드공주: ["라운드 승리: 공개된 공주/왕자 중 선택해 +1", "《8 공주/왕자》를 들고 승리: 추가 +1"],
-  아레스왕자: ["라운드 승리: 공개된 공주/왕자 중 선택해 +1", "《8 공주/왕자》를 들고 승리: 추가 +1"],
+  잉그리드공주: ["라운드 승리: 공개된 공주/왕자 중 선택해 +1", "《공주》를 들고 승리: 추가 +1"],
+  아레스왕자: ["라운드 승리: 공개된 공주/왕자 중 선택해 +1", "《왕자》를 들고 승리: 추가 +1"],
   경비병알리오스: ["경비병을 들고 라운드 승리: +2", "경비병 추측 적중으로 탈락시킴: +1"],
   신병아니스: ["신병을 들고 라운드 승리: +3", "신병 홀짝 추측 적중으로 탈락시킴: +2"],
   기사라이언: ["기사를 들고 라운드 승리: +2", "기사 비교로 상대를 탈락시킴: +2"],
@@ -45,6 +45,16 @@ const CHARACTER_LETTER_RULES: Partial<Record<CharacterSlotId, string[]>> = {
   여후작엘마: ["여후작을 들거나 버린 채 라운드 승리: +3"],
   귀족영애아나스타샤: ["귀족영애를 들고 라운드 승리: +4"],
 };
+
+function deckEffectText(effect?: DeckEffect): string | null {
+  if (!effect) return null;
+  if (effect.kind === "add") return `등장: 다음 라운드부터 덱에 「${effect.cardName}」을(를) 추가합니다.`;
+  if (effect.kind === "replace") {
+    const count = effect.count && effect.count > 1 ? ` ${effect.count}장` : "";
+    return `등장: 다음 라운드부터 「${effect.removeName}」을(를) 빼고 「${effect.addName}」${count}을(를) 덱에 넣습니다.`;
+  }
+  return `등장: 다음 라운드부터 「${effect.removedName}」을(를) 빼고 「${effect.restoreName}」을(를) 원래 덱으로 되돌립니다.`;
+}
 
 const CHARACTER_ACHIEVEMENTS: Partial<
   Record<CharacterSlotId, Array<{ threshold: number; label: string; cardName?: string }>>
@@ -88,6 +98,7 @@ export function ArchiveCardDetail({
   letterTokens?: SessionState["letterTokens"];
 }) {
   const earnRules = ARCHIVE_CARD_SEEDS[card.id]?.earnRules ?? [];
+  const deckEffect = deckEffectText(ARCHIVE_CARD_SEEDS[card.id]?.deckEffect);
   const parsedRules = earnRules.map(splitEarnRule).filter((r): r is NonNullable<typeof r> => r !== null);
   const weeksLeft =
     card.expiresAtClock != null && clockTokens != null ? Math.max(0, card.expiresAtClock - clockTokens) : null;
@@ -173,6 +184,7 @@ export function ArchiveCardDetail({
             </p>
           )}
           <p className="archive-card-detail__flavor">{card.flavor}</p>
+          {deckEffect && <p className="archive-card-detail__deck-effect">{deckEffect}</p>}
           {characterProgress}
         </div>
       </div>
