@@ -379,6 +379,47 @@ export default function App() {
     setPendingChoiceResult(session.lastResolvedChoice);
   }, [session?.lastResolvedChoice]);
 
+  // Queue the next-round setup only after every round-end event and
+  // required token/choice step has cleared. That keeps the 공주/왕자 card
+  // selection as the last screen before the next hand is dealt.
+  useEffect(() => {
+    if (
+      !session?.round.roundResult ||
+      session.ended ||
+      !endSummaryAcknowledged ||
+      pendingRoundStart ||
+      pendingHumanReveal ||
+      pendingGuessEffect ||
+      pendingForcedDiscard ||
+      pendingEffectBlocked ||
+      pendingElimination ||
+      pendingChoiceResult ||
+      pendingStoryEvent
+    ) {
+      return;
+    }
+    if (session.pendingLetterChoice || session.pendingArchivePlacement || session.pendingIdentityChoice || session.pendingChoice) {
+      return;
+    }
+    const optionalCards = session.optionalRoundDeckCardNames ?? [];
+    setPendingRoundStart({
+      route: session.currentRoute,
+      optionalCards,
+      selectedOptionalCards: session.activeOptionalRoundDeckCardNames.filter((name) => optionalCards.includes(name)),
+    });
+  }, [
+    endSummaryAcknowledged,
+    pendingRoundStart,
+    pendingHumanReveal,
+    pendingGuessEffect,
+    pendingForcedDiscard,
+    pendingEffectBlocked,
+    pendingElimination,
+    pendingChoiceResult,
+    pendingStoryEvent,
+    session,
+  ]);
+
   function startGame() {
     handledDecisionRef.current = null;
     handledArchiveRef.current = null;
@@ -420,18 +461,6 @@ export default function App() {
     setRoundStartLockedNumber(session ? session.roundNumber + 1 : null);
     setSession((prev) => (prev ? safely(() => beginNextRound(prev, route, selectedOptionalCards)) ?? prev : prev));
     setPendingRoundStart(null);
-  }
-
-  // The next round is queued here, but `beginNextRound` doesn't run yet -- RoundStartGate
-  // shows first, so round-end and round-start never blur into one instant
-  // cascade. Only its own "N주차 시작" click actually calls proceedToNextRound.
-  function requestRoundStart(route: Route) {
-    const optionalCards = session?.optionalRoundDeckCardNames ?? [];
-    setPendingRoundStart({
-      route,
-      optionalCards,
-      selectedOptionalCards: session?.activeOptionalRoundDeckCardNames.filter((name) => optionalCards.includes(name)) ?? [],
-    });
   }
 
   function handlePlaceArchiveToken(cardId: string, token: "성공" | "실패") {
@@ -914,8 +943,7 @@ export default function App() {
         roundOver &&
         !needsArchivePlacement &&
         session.lastRoundSummary &&
-        !endSummaryAcknowledged &&
-        !pendingRoundStart && (
+        !endSummaryAcknowledged && (
           <RoundEndSummary
             summary={session.lastRoundSummary}
             players={session.playerConfigs}
@@ -925,7 +953,6 @@ export default function App() {
               if (session.ended) {
                 return;
               }
-              requestRoundStart(session.currentRoute);
             }}
           />
         )}
@@ -938,6 +965,10 @@ export default function App() {
         !pendingChoiceResult &&
         !pendingStoryEvent &&
         !roundStartLocked &&
+        !needsLetterChoice &&
+        !needsIdentityChoice &&
+        !needsArchiveChoice &&
+        !needsArchivePlacement &&
         roundOver &&
         !session.ended &&
         pendingRoundStart && (
