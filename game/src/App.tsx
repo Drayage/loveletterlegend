@@ -179,6 +179,7 @@ export default function App() {
     canShowRoundEffects && round?.lastEffectBlocked && round.lastEffectBlocked.id !== dismissedEffectBlockedId
       ? round.lastEffectBlocked
       : null;
+  const roundResultAwaitingAcknowledgement = Boolean(round?.roundResult && session?.lastRoundSummary && !endSummaryAcknowledged);
   const flowBlocked =
     Boolean(pendingHumanReveal) ||
     Boolean(pendingGuessEffect) ||
@@ -187,6 +188,7 @@ export default function App() {
     Boolean(pendingElimination) ||
     Boolean(pendingChoiceResult) ||
     Boolean(pendingStoryEvent) ||
+    roundResultAwaitingAcknowledgement ||
     Boolean(pendingRoundStart) ||
     roundStartLocked ||
     Boolean(showCardReference) ||
@@ -563,6 +565,7 @@ export default function App() {
     ...(pendingElimination ? [{ title: "탈락 팝업", detail: `${displayNameFor(pendingElimination.playerId)} 탈락 결과를 확인해야 합니다.`, tone: "blocked" as const }] : []),
     ...(pendingChoiceResult ? [{ title: "이벤트 선택 결과", detail: "방금 선택된 시나리오 분기 결과를 확인해야 합니다.", tone: "blocked" as const }] : []),
     ...(pendingStoryEvent ? [{ title: "이야기 이벤트", detail: `${pendingStoryEvent.length}개 이벤트 설명을 읽어야 다음 단계로 갑니다.`, tone: "blocked" as const }] : []),
+    ...(roundResultAwaitingAcknowledgement && !storyEventBlocking ? [{ title: "라운드 결과 확인", detail: "결과 확인 버튼을 눌러야 후속 이벤트와 선택이 진행됩니다.", tone: "blocked" as const }] : []),
     ...(roundStartLocked && !storyEventBlocking ? [{ title: "라운드 시작 확인", detail: "시작 이벤트를 다 읽은 뒤 주차 진행 버튼을 눌러야 패가 공개됩니다.", tone: "blocked" as const }] : []),
     ...(pendingRoundStart && !storyEventBlocking ? [{ title: "다음 주차 준비", detail: "공주/왕자 카드와 추가 8번 카드를 선택한 뒤 시작해야 합니다.", tone: "blocked" as const }] : []),
     ...(showCardReference ? [{ title: "카드 확인 창", detail: "카드 목록 창을 닫으면 진행됩니다.", tone: "waiting" as const }] : []),
