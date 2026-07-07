@@ -189,14 +189,6 @@ describe("Love Letter engine", () => {
     expect(state.players[1].eliminated).toBe(false);
   });
 
-  it("034 「사냥꾼/약초꾼」 cancels one targeted effect per round", () => {
-    const state = knightMatchupState({ p1: "034" });
-    applyEffect(state, { actingPlayerId: "p2", card: { instanceId: "b", name: "기사" }, targetId: "p1" });
-    expect(state.players[0].eliminated).toBe(false);
-    expect(state.players[1].eliminated).toBe(false);
-    expect(state.identityRoundUsed?.["p1:034"]).toBe(true);
-  });
-
   it("upgraded 경비병 accepts two guesses and hits if either one matches", () => {
     let state = setupRound(PLAYERS);
     state.activeCardUpgradesByPlayer = { p1: { 경비병: "tier1" } };
@@ -225,6 +217,21 @@ describe("Love Letter engine", () => {
     state.players[1].hand = [{ instanceId: "m", name: "상인" }];
     applyEffect(state, { actingPlayerId: "p2", card: { instanceId: "m", name: "상인" }, targetId: "p1", upgrade: "tier1" });
     expect(state.players[0].eliminated).toBe(true);
+  });
+
+  it("대마도사20 upgrade makes the given 쥐 a passive elimination, while base 쥐 eliminates when played", () => {
+    const state = knightMatchupState();
+    state.players[0].hand = [{ instanceId: "target-card", name: "광대" }];
+    state.players[1].hand = [{ instanceId: "archmage", name: "대마도사20" }];
+
+    applyEffect(state, { actingPlayerId: "p2", card: { instanceId: "archmage", name: "대마도사20" }, targetId: "p1", upgrade: "tier1" });
+    expect(state.players[0].eliminated).toBe(true);
+    expect(state.lastElimination?.reason).toContain("강화된 「쥐」");
+
+    const baseState = knightMatchupState();
+    baseState.players[0].hand = [{ instanceId: "mouse", name: "쥐" }];
+    applyEffect(baseState, { actingPlayerId: "p1", card: { instanceId: "mouse", name: "쥐" } });
+    expect(baseState.players[0].eliminated).toBe(true);
   });
 });
 

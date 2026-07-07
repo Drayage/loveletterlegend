@@ -212,23 +212,10 @@ function guessHits(cardName: CardName, targetCardName: CardName, guess: GuessOpt
   return targetCardName === guess;
 }
 
-function cancelByIdentity(draft: GameState, card: CardInstance, actingPlayerId: string, targetId?: string): boolean {
-  if (!targetId || targetId === actingPlayerId) return false;
-  if (draft.activeIdentities?.[targetId] !== "034") return false;
-  const key = `${targetId}:034`;
-  if (draft.identityRoundUsed?.[key]) return false;
-  const target = getPlayer(draft, targetId);
-  draft.identityRoundUsed = { ...(draft.identityRoundUsed ?? {}), [key]: true };
-  log(draft, `${target.displayName}: 「사냥꾼/약초꾼」 효과로 「${card.name}」 효과를 취소합니다.`);
-  setPlayOutcome(draft, card.instanceId, `${target.displayName}이(가) 정체 능력으로 효과 취소`);
-  return true;
-}
-
 export function applyEffect(draft: GameState, args: ResolveArgs): void {
   const { actingPlayerId, card, targetId, guess, upgrade } = args;
   const actor = getPlayer(draft, actingPlayerId);
   draft.sessionEvents?.push({ type: "cardPlayed", actingPlayerId, cardName: card.name });
-  if (cancelByIdentity(draft, card, actingPlayerId, targetId)) return;
 
   switch (card.name) {
     case "경비병":
@@ -485,14 +472,12 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
         return;
       }
       const target = getPlayer(draft, targetId);
-      if (upgrade) {
-        eliminatePlayer(draft, targetId, "강화된 「대마도사(20세)」 효과");
-        setPlayOutcome(draft, card.instanceId, `${target.displayName} 탈락`);
-        return;
-      }
       const taken = target.hand.pop();
       if (taken) actor.hand.push(taken);
-      if (!target.eliminated) target.hand.push({ instanceId: nextLogId(), name: "쥐" });
+      if (!target.eliminated) {
+        target.hand.push({ instanceId: nextLogId(), name: "쥐" });
+        if (upgrade) eliminatePlayer(draft, targetId, "강화된 「쥐」를 손에 들어");
+      }
       const discard = [...actor.hand].sort((a, b) => cardRank(a.name) - cardRank(b.name))[0];
       if (discard) {
         actor.hand = actor.hand.filter((c) => c.instanceId !== discard.instanceId);

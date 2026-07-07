@@ -150,7 +150,7 @@ const EFFECT_RULES: Partial<
     { threshold: 3, result: "분배 결과를 자신에게 유리하게 정함", cardName: "마녀", implemented: true },
   ],
   대마도사20알비스: [
-    { threshold: 3, result: "효과 문구가 '당신은 탈락합니다'로 변경", cardName: "대마도사(20세)", implemented: true },
+    { threshold: 3, result: "받게 하는 「쥐」가 손에 든 즉시 탈락하는 패시브 카드로 변경", cardName: "대마도사(20세)", implemented: true },
   ],
   정무관오즈릭: [
     { threshold: 3, result: "상대를 지목해 탈락시킬 수 있음", cardName: "정무관(남자)", implemented: true },

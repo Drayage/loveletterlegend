@@ -242,7 +242,7 @@ export const CARD_DEFS: Record<CardName, CardDef> = {
     count: 1,
     englishAlias: "Mouse",
     shortAbility: "플레이하면 탈락, 덱 밖 카드",
-    ability: "플레이: 당신은 라운드에서 탈락합니다. 이 카드는 덱에 넣지 않고 옆으로 빼놓습니다.",
+    ability: "플레이: 당신은 라운드에서 탈락합니다. 이 카드는 덱에 넣지 않고 옆으로 빼놓습니다. 대마도사(20세)의 편지 조건이 달성된 상태라면, 대마도사(20세)가 건넨 「쥐」는 손에 든 즉시 탈락하는 패시브 카드가 됩니다.",
   },
   대마도사20: {
     name: "대마도사20",

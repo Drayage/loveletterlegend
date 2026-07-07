@@ -1474,8 +1474,26 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     flavor: "「이런 건 어때?」",
     conditions: [],
     choices: [
-      { id: "154-15", label: "어린 대마도사에게 부탁합니다", revealIds: ["157", "158"] },
-      { id: "154-20", label: "성장한 대마도사에게 부탁합니다", revealIds: ["160", "161"] },
+      { id: "154-15", label: "어린 대마도사에게 부탁합니다", revealIds: ["155"] },
+      { id: "154-20", label: "성장한 대마도사에게 부탁합니다", revealIds: ["159"] },
+    ],
+  },
+  "155": {
+    id: "155",
+    name: "수상한 준비",
+    category: "scenario",
+    art: archmage15,
+    flavor: "어린 대마도사는 당신의 부탁을 듣고 잠시 준비가 필요하다고 말했습니다. 다음 라운드 결과를 기다립니다.",
+    conditionsTitle: "라운드 종료 시 확인",
+    conditions: [
+      {
+        id: "155-next",
+        kind: "archiveCardCount",
+        label: "다음 라운드 종료",
+        minCount: 0,
+        revealIds: ["157", "158"],
+        removeIds: ["155"],
+      },
     ],
   },
   "157": {
@@ -1496,6 +1514,24 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
       "《5 대마도사(15세)》를 손에 들거나 버림 더미에 놓은 채로 라운드 승리: +[편지] 2개. 「대마도사(15세)」를 플레이함: +[편지] 1개.",
     conditions: [],
   },
+  "159": {
+    id: "159",
+    name: "불온한 준비",
+    category: "scenario",
+    art: archmage20,
+    flavor: "성장한 대마도사는 호탕하게 웃으며 준비를 시작했습니다. 다음 라운드 결과를 기다립니다.",
+    conditionsTitle: "라운드 종료 시 확인",
+    conditions: [
+      {
+        id: "159-next",
+        kind: "archiveCardCount",
+        label: "다음 라운드 종료",
+        minCount: 0,
+        revealIds: ["160", "161"],
+        removeIds: ["159"],
+      },
+    ],
+  },
   "160": {
     id: "160",
     name: "대마도사 알비스(20세)",
@@ -1511,7 +1547,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     art: archmage20,
     deckEffect: { kind: "replace", removeName: "마술사", addName: "대마도사20" },
     flavor:
-      "《5 대마도사(20세)》를 손에 들거나 버림 더미에 놓은 채로 라운드 승리: +[편지] 2개. 「대마도사(20세)」를 플레이함: +[편지] 1개. [편지] 3개 이상이면 문구가 「당신은 탈락합니다」로 변경됩니다.",
+      "《5 대마도사(20세)》를 손에 들거나 버림 더미에 놓은 채로 라운드 승리: +[편지] 2개. 「대마도사(20세)」를 플레이함: +[편지] 1개. [편지] 3개 이상이면 「쥐」의 문구가 「당신은 탈락합니다」로 변경됩니다.",
     conditions: [],
   },
 
