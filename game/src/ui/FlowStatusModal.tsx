@@ -40,8 +40,9 @@ function StatusList({ items }: { items: FlowStatusItem[] }) {
 }
 
 export function FlowStatusModal({ aiTasks, playerTasks, blockers, onClose }: FlowStatusModalProps) {
-  const [tab, setTab] = useState<FlowTab>("ai");
+  const [tab, setTab] = useState<FlowTab>("blockers");
   const items = tab === "ai" ? aiTasks : tab === "player" ? playerTasks : blockers;
+  const hasBlockingScreen = blockers.some((item) => item.tone !== "ready");
 
   return (
     <Modal title="진행 확인" onClose={onClose}>
@@ -59,6 +60,11 @@ export function FlowStatusModal({ aiTasks, playerTasks, blockers, onClose }: Flo
           ))}
         </div>
         <StatusList items={items} />
+        {hasBlockingScreen && (
+          <button type="button" className="flow-status__return-btn" onClick={onClose}>
+            막고 있는 화면으로 돌아가기
+          </button>
+        )}
       </div>
     </Modal>
   );

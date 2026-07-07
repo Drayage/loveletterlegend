@@ -77,3 +77,16 @@
 .flow-status__item--waiting .flow-status__dot {
   background: #c58a2a;
 }
+
+.flow-status__return-btn {
+  align-self: flex-end;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 9px 12px;
+  cursor: pointer;
+}
