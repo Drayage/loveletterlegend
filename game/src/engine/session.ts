@@ -1098,7 +1098,7 @@ export function beginNextRound(session: SessionState, route: Route, activeOption
     next.storyArchive.some((c) => c.id === "039") && next.festivalDeck.length > 0
       ? (next.festivalDeck.shift() ?? null)
       : null;
-  const rank8ReplacementCardNames = new Set<CardName>(["왕자", "공주둘째", "공주셋째"]);
+  const rank8ReplacementCardNames = new Set<CardName>(["공주", "왕자", "공주둘째", "공주셋째"]);
   const defaultRank8CardName: CardName = route === "왕자" ? "왕자" : "공주";
   const activeRank8Replacement = next.activeOptionalRoundDeckCardNames.find((name) => rank8ReplacementCardNames.has(name));
   const activeRank8CardName = activeRank8Replacement ?? defaultRank8CardName;

@@ -14,6 +14,11 @@ interface RoundStartGateProps {
   onStart: () => void;
 }
 
+const rank8DisplayNames: Partial<Record<CardName, string>> = {
+  공주둘째: "공주(둘째)",
+  공주셋째: "공주(셋째)",
+};
+
 /** A deliberate breather between "이전 라운드 결과 확인 완료" and the next
  * round actually starting (hands dealt, 「시작」태그 조건 재확인 등) -- the
  * player has to click to proceed, so the two never blur into one instant
@@ -27,10 +32,15 @@ export function RoundStartGate({
   onToggleOptionalCard,
   onStart,
 }: RoundStartGateProps) {
-  const routeSwapCardNames = new Set<CardName>(["공주둘째", "공주셋째"]);
-  const routeSwapCards = optionalCards.filter((name) => routeSwapCardNames.has(name));
+  const routeSwapCardNames = new Set<CardName>(["공주", "왕자", "공주둘째", "공주셋째"]);
+  const routeSwapCards: CardName[] = [
+    "공주",
+    "왕자",
+    ...optionalCards.filter((name) => name === "공주둘째" || name === "공주셋째"),
+  ];
   const additionalCards = optionalCards.filter((name) => !routeSwapCardNames.has(name));
-  const selectedRouteSwap = selectedOptionalCards.find((name) => routeSwapCards.includes(name)) ?? null;
+  const selectedRouteSwap =
+    selectedOptionalCards.find((name) => routeSwapCards.includes(name)) ?? (route === "왕자" ? "왕자" : "공주");
 
   return (
     <Modal title={`${upcomingRoundNumber}주차 준비`} onClose={() => {}} dismissible={false}>
@@ -38,38 +48,24 @@ export function RoundStartGate({
         <p className="round-start-gate__prompt">
           {chooserName}이(가) 「{ROUTE_DEFS[route].displayName}」을(를) 추구하기로 했습니다.
         </p>
-        {routeSwapCards.length > 0 && (
-          <div className="round-start-gate__optional">
-            <p className="round-start-gate__optional-title">공주/왕자 카드 선택 (택1)</p>
-            <div className="round-start-gate__optional-list">
-              <label className="round-start-gate__optional-item">
+        <div className="round-start-gate__optional">
+          <p className="round-start-gate__optional-title">공주/왕자 카드 선택 (택1)</p>
+          <div className="round-start-gate__optional-list">
+            {routeSwapCards.map((cardName) => (
+              <label key={cardName} className="round-start-gate__optional-item">
                 <input
                   type="radio"
                   name="route-rank8-card"
-                  checked={selectedRouteSwap === null}
+                  checked={selectedRouteSwap === cardName}
                   onChange={() => {
-                    if (selectedRouteSwap) onToggleOptionalCard?.(selectedRouteSwap);
+                    if (selectedRouteSwap !== cardName) onToggleOptionalCard?.(cardName);
                   }}
                 />
-                <span>기본 공주/왕자</span>
+                <span>「{rank8DisplayNames[cardName] ?? cardName}」</span>
               </label>
-              {routeSwapCards.map((cardName) => (
-                <label key={cardName} className="round-start-gate__optional-item">
-                  <input
-                    type="radio"
-                    name="route-rank8-card"
-                    checked={selectedOptionalCards.includes(cardName)}
-                    onChange={() => {
-                      if (selectedRouteSwap && selectedRouteSwap !== cardName) onToggleOptionalCard?.(selectedRouteSwap);
-                      if (!selectedOptionalCards.includes(cardName)) onToggleOptionalCard?.(cardName);
-                    }}
-                  />
-                  <span>「{cardName}」</span>
-                </label>
-              ))}
-            </div>
+            ))}
           </div>
-        )}
+        </div>
         {additionalCards.length > 0 && (
           <div className="round-start-gate__optional">
             <p className="round-start-gate__optional-title">추가 8번 카드 선택</p>
@@ -81,7 +77,7 @@ export function RoundStartGate({
                     checked={selectedOptionalCards.includes(cardName)}
                     onChange={() => onToggleOptionalCard?.(cardName)}
                   />
-                  <span>「{cardName}」</span>
+                  <span>「{rank8DisplayNames[cardName] ?? cardName}」</span>
                 </label>
               ))}
             </div>

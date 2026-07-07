@@ -880,11 +880,14 @@ export default function App() {
             onToggleOptionalCard={(cardName) =>
               setPendingRoundStart((prev) => {
                 if (!prev) return prev;
-                const routeSwapCards = new Set<CardName>(["공주둘째", "공주셋째"]);
-                const selected = prev.selectedOptionalCards.includes(cardName)
-                  ? prev.selectedOptionalCards.filter((name) => name !== cardName)
-                  : routeSwapCards.has(cardName)
-                    ? [...prev.selectedOptionalCards.filter((name) => !routeSwapCards.has(name)), cardName]
+                const routeSwapCards = new Set<CardName>(["공주", "왕자", "공주둘째", "공주셋째"]);
+                const defaultRank8Card: CardName = prev.route === "왕자" ? "왕자" : "공주";
+                const selected = routeSwapCards.has(cardName)
+                  ? cardName === defaultRank8Card
+                    ? prev.selectedOptionalCards.filter((name) => !routeSwapCards.has(name))
+                    : [...prev.selectedOptionalCards.filter((name) => !routeSwapCards.has(name)), cardName]
+                  : prev.selectedOptionalCards.includes(cardName)
+                    ? prev.selectedOptionalCards.filter((name) => name !== cardName)
                     : [...prev.selectedOptionalCards, cardName];
                 return { ...prev, selectedOptionalCards: selected };
               })
