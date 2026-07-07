@@ -937,11 +937,7 @@ export default function App() {
         !pendingElimination &&
         !pendingChoiceResult &&
         !roundStartLocked &&
-        !needsLetterChoice &&
-        !needsIdentityChoice &&
-        !needsArchiveChoice &&
         roundOver &&
-        !needsArchivePlacement &&
         session.lastRoundSummary &&
         !endSummaryAcknowledged && (
           <RoundEndSummary
