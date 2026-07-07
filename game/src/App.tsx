@@ -238,7 +238,7 @@ export default function App() {
     // otherwise once those popups clear, the dependency-array re-run sees
     // handledLetterChoiceRef already pointing at this exact `pending`
     // object and skips rescheduling forever.
-    if (flowBlocked && !pendingStoryEvent) {
+    if (flowBlocked) {
       handledLetterChoiceRef.current = null;
       return;
     }
@@ -272,7 +272,7 @@ export default function App() {
     const placement = session.pendingArchivePlacement;
     // Same "don't get stuck" fix as the letter-choice effect above: clear
     // the marker rather than leaving it stale while blocked.
-    if (flowBlocked && !pendingStoryEvent) {
+    if (flowBlocked) {
       handledArchiveRef.current = null;
       return;
     }
@@ -308,7 +308,7 @@ export default function App() {
       return;
     }
     const pending = session.pendingIdentityChoice;
-    if (flowBlocked && !pendingStoryEvent) {
+    if (flowBlocked) {
       handledIdentityRef.current = null;
       return;
     }
@@ -338,7 +338,7 @@ export default function App() {
       return;
     }
     const pending = session.pendingChoice;
-    if (flowBlocked && !pendingStoryEvent) {
+    if (flowBlocked) {
       handledChoiceRef.current = null;
       return;
     }
@@ -958,6 +958,7 @@ export default function App() {
         !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
+        !pendingStoryEvent &&
         !roundStartLocked &&
         roundOver &&
         session.lastRoundSummary &&
