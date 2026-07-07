@@ -259,6 +259,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
         label: "이야기 보관소에 「조건」을 가진 카드가 2장 이상",
         minCount: 2,
         revealIds: ["031"],
+        removeIds: ["024"],
       },
     ],
   },
@@ -979,6 +980,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
         token: "성공",
         threshold: 2,
         revealIds: ["105"],
+        removeIds: ["103"],
       },
       {
         id: "103-fail",
@@ -987,6 +989,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
         token: "실패",
         threshold: 2,
         revealIds: ["113"],
+        removeIds: ["103"],
       },
     ],
     earnRules: [
@@ -1474,7 +1477,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     flavor: "「이런 건 어때?」",
     conditions: [],
     choices: [
-      { id: "154-15", label: "어린 대마도사에게 부탁합니다", revealIds: ["155"] },
+      { id: "154-15", label: "어린 대마도사에게 부탁합니다", revealIds: ["157", "158"] },
       { id: "154-20", label: "성장한 대마도사에게 부탁합니다", revealIds: ["159"] },
     ],
   },
@@ -1568,6 +1571,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
         token: "성공",
         threshold: 1,
         revealIds: ["164"],
+        removeIds: ["162"],
       },
       {
         id: "162-fail",
@@ -1576,6 +1580,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
         token: "실패",
         threshold: 1,
         revealIds: ["168"],
+        removeIds: ["162"],
       },
     ],
     earnRules: ["「장군」을 버림더미에 남긴 채로 라운드 승리: 성공", "「장군」을 버림더미에 남긴 채로 탈락함: 실패"],

@@ -413,9 +413,13 @@ function applyDeckEffect(session: SessionState, effect: DeckEffect): void {
   } else if (effect.kind === "optionalRound") {
     if (!session.optionalRoundDeckCardNames.includes(effect.cardName)) session.optionalRoundDeckCardNames.push(effect.cardName);
   } else if (effect.kind === "replace") {
-    if (session.removedBaseCardNames.includes(effect.removeName)) return;
     for (let i = 0; i < (effect.count ?? 1); i++) {
-      session.removedBaseCardNames.push(effect.removeName);
+      const extraIdx = session.extraDeckCardNames.indexOf(effect.removeName);
+      if (extraIdx !== -1) {
+        session.extraDeckCardNames.splice(extraIdx, 1);
+      } else {
+        session.removedBaseCardNames.push(effect.removeName);
+      }
       session.extraDeckCardNames.push(effect.addName);
     }
   } else if (effect.kind === "batch") {

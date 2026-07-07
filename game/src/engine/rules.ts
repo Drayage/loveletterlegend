@@ -112,6 +112,16 @@ export function beginTurn(state: GameState): GameState {
   const player = draft.players[draft.currentPlayerIndex];
   player.protected = false;
 
+  if (
+    draft.activeIdentities?.[player.id] === "033" &&
+    !draft.identityRoundUsed?.[`${player.id}:033`] &&
+    draft.hiddenRemovedCard &&
+    player.hand[0]
+  ) {
+    draft.pendingDecision = { kind: "identitySwap", playerId: player.id };
+    return draft;
+  }
+
   const drawn = drawCardFor(draft, player.id);
   if (draft.deck.length === 0) {
     draft.deckExhaustedThisTurn = true;
@@ -158,6 +168,22 @@ export function chooseCardToPlay(state: GameState, cardInstanceId: string): Game
   log(draft, `${player.displayName}: 「${card.name}」 카드를 냅니다.`);
 
   const upgrade = resolveUpgradeTier(draft, card.name, playerId);
+  if (draft.activeIdentities?.[playerId] === "036" && !draft.identityRoundUsed?.[`${playerId}:036`]) {
+    const options = draft.players
+      .flatMap((p) => p.discardPile)
+      .filter((c) => c.name !== card.name && c.name !== "공주" && c.name !== "왕자" && c.name !== "공주둘째" && c.name !== "공주셋째" && c.name !== "귀족영애");
+    if (options.length > 0) {
+      draft.pendingDecision = {
+        kind: "identityReplaceEffect",
+        playerId,
+        cardInstanceId: card.instanceId,
+        cardName: card.name,
+        options,
+      };
+      return draft;
+    }
+  }
+
   if (needsTarget(card.name, upgrade)) {
     const eligible = targetsFor(draft, playerId, card.name, upgrade);
     draft.pendingDecision = {
@@ -182,7 +208,28 @@ export function chooseTarget(state: GameState, targetId: string): GameState {
   if (!draft.pendingDecision || draft.pendingDecision.kind !== "chooseTarget") {
     throw new Error("현재 대상을 고를 차례가 아닙니다.");
   }
-  const { playerId, cardName } = draft.pendingDecision;
+  const { playerId, cardName, effectCardName } = draft.pendingDecision;
+  if (!draft.pendingDecision.eligiblePlayerIds.includes(targetId)) {
+    throw new Error("선택할 수 없는 대상입니다.");
+  }
+  const card = draft.resolvingCard;
+  if (
+    card &&
+    targetId !== playerId &&
+    draft.activeIdentities?.[targetId] === "034" &&
+    !draft.identityRoundUsed?.[`${targetId}:034`]
+  ) {
+    draft.pendingDecision = {
+      kind: "identityCancel",
+      playerId: targetId,
+      actingPlayerId: playerId,
+      cardInstanceId: card.instanceId,
+      cardName,
+      effectCardName,
+      targetId,
+    };
+    return draft;
+  }
 
   if (needsGuess(cardName)) {
     const upgrade = resolveUpgradeTier(draft, cardName, playerId);
@@ -191,6 +238,7 @@ export function chooseTarget(state: GameState, targetId: string): GameState {
       playerId,
       cardInstanceId: draft.pendingDecision.cardInstanceId,
       cardName,
+      effectCardName,
       targetId,
       options: guessOptionsFor(cardName, draft),
       guesses: [],
@@ -199,7 +247,7 @@ export function chooseTarget(state: GameState, targetId: string): GameState {
     return draft;
   }
 
-  return finishResolution(draft, { targetId });
+  return finishResolution(draft, { targetId, effectCardName });
 }
 
 export function chooseGuess(state: GameState, guess: GuessOption): GameState {
@@ -217,19 +265,120 @@ export function chooseGuess(state: GameState, guess: GuessOption): GameState {
     };
     return draft;
   }
-  return finishResolution(draft, { targetId: decision.targetId, guess: guesses.join("|") as GuessOption });
+  return finishResolution(draft, { targetId: decision.targetId, guess: guesses.join("|") as GuessOption, effectCardName: decision.effectCardName });
+}
+
+export function chooseIdentitySwap(state: GameState, use: boolean): GameState {
+  const draft = cloneState(state);
+  if (!draft.pendingDecision || draft.pendingDecision.kind !== "identitySwap") {
+    throw new Error("현재 정체 교환을 선택할 차례가 아닙니다.");
+  }
+  const player = getPlayer(draft, draft.pendingDecision.playerId);
+  draft.identityRoundUsed = { ...(draft.identityRoundUsed ?? {}), [`${player.id}:033`]: true };
+  if (use && draft.hiddenRemovedCard && player.hand[0]) {
+    const previous = player.hand[0];
+    player.hand[0] = draft.hiddenRemovedCard;
+    draft.hiddenRemovedCard = previous;
+    log(draft, `${player.displayName}: 「농부/양치기」 효과로 비공개 카드와 손패를 교환합니다.`);
+  }
+  draft.pendingDecision = null;
+  return beginTurn(draft);
+}
+
+export function chooseIdentityCancel(state: GameState, use: boolean): GameState {
+  const draft = cloneState(state);
+  if (!draft.pendingDecision || draft.pendingDecision.kind !== "identityCancel") {
+    throw new Error("현재 정체 취소를 선택할 차례가 아닙니다.");
+  }
+  const decision = draft.pendingDecision;
+  if (use) {
+    const target = getPlayer(draft, decision.playerId);
+    draft.identityRoundUsed = { ...(draft.identityRoundUsed ?? {}), [`${decision.playerId}:034`]: true };
+    log(draft, `${target.displayName}: 「사냥꾼/약초꾼」 효과로 「${decision.cardName}」 효과를 취소합니다.`);
+    const actor = getPlayer(draft, decision.actingPlayerId);
+    const card = draft.resolvingCard;
+    if (card) {
+      actor.discardPile.push(card);
+      draft.resolvingCard = null;
+      draft.resolvingPlayerId = null;
+    }
+    draft.pendingDecision = null;
+    return afterTurnResolved(draft, decision.actingPlayerId);
+  }
+  draft.pendingDecision = null;
+  if (needsGuess(decision.cardName)) {
+    draft.pendingDecision = {
+      kind: "guessCard",
+      playerId: decision.actingPlayerId,
+      cardInstanceId: decision.cardInstanceId,
+      cardName: decision.cardName,
+      effectCardName: decision.effectCardName,
+      targetId: decision.targetId,
+      options: guessOptionsFor(decision.cardName, draft),
+      guesses: [],
+      maxGuesses: decision.cardName === "경비병" && resolveUpgradeTier(draft, decision.cardName, decision.actingPlayerId) ? 2 : 1,
+    };
+    return draft;
+  }
+  return finishResolution(draft, { targetId: decision.targetId, effectCardName: decision.effectCardName });
+}
+
+export function chooseIdentityReplacement(state: GameState, replacementInstanceId: string | null): GameState {
+  const draft = cloneState(state);
+  if (!draft.pendingDecision || draft.pendingDecision.kind !== "identityReplaceEffect") {
+    throw new Error("현재 정체 효과 대체를 선택할 차례가 아닙니다.");
+  }
+  const decision = draft.pendingDecision;
+  if (replacementInstanceId) {
+    const replacement = decision.options.find((c) => c.instanceId === replacementInstanceId);
+    if (!replacement) throw new Error("선택할 수 없는 버림 더미 카드입니다.");
+    draft.identityRoundUsed = { ...(draft.identityRoundUsed ?? {}), [`${decision.playerId}:036`]: true };
+    log(draft, `${getPlayer(draft, decision.playerId).displayName}: 「학생/여학생」 효과로 「${decision.cardName}」 대신 「${replacement.name}」 효과를 사용합니다.`);
+    draft.pendingDecision = null;
+    const upgrade = resolveUpgradeTier(draft, replacement.name, decision.playerId);
+    if (needsTarget(replacement.name, upgrade)) {
+      const eligible = targetsFor(draft, decision.playerId, replacement.name, upgrade);
+      draft.pendingDecision = {
+        kind: "chooseTarget",
+        playerId: decision.playerId,
+        cardInstanceId: decision.cardInstanceId,
+        cardName: replacement.name,
+        effectCardName: replacement.name,
+        eligiblePlayerIds: eligible,
+      };
+      if (eligible.length === 0) return finishResolution(draft, { effectCardName: replacement.name });
+      return draft;
+    }
+    return finishResolution(draft, { effectCardName: replacement.name });
+  }
+  draft.pendingDecision = null;
+  const upgrade = resolveUpgradeTier(draft, decision.cardName, decision.playerId);
+  if (needsTarget(decision.cardName, upgrade)) {
+    const eligible = targetsFor(draft, decision.playerId, decision.cardName, upgrade);
+    draft.pendingDecision = {
+      kind: "chooseTarget",
+      playerId: decision.playerId,
+      cardInstanceId: decision.cardInstanceId,
+      cardName: decision.cardName,
+      eligiblePlayerIds: eligible,
+    };
+    if (eligible.length === 0) return finishResolution(draft, {});
+    return draft;
+  }
+  return finishResolution(draft, {});
 }
 
 function finishResolution(
   draft: GameState,
-  extra: { targetId?: string; guess?: GuessOption }
+  extra: { targetId?: string; guess?: GuessOption; effectCardName?: CardName }
 ): GameState {
   const card = draft.resolvingCard;
   const playerId = draft.resolvingPlayerId;
   if (!card || !playerId) throw new Error("진행 중인 카드가 없습니다.");
 
-  const upgrade = resolveUpgradeTier(draft, card.name, playerId);
-  applyEffect(draft, { actingPlayerId: playerId, card, upgrade, ...extra });
+  const effectCard = extra.effectCardName ? { ...card, name: extra.effectCardName } : card;
+  const upgrade = resolveUpgradeTier(draft, effectCard.name, playerId);
+  applyEffect(draft, { actingPlayerId: playerId, card: effectCard, upgrade, ...extra });
 
   const actor = getPlayer(draft, playerId);
   if (!actor.eliminated) {
@@ -261,6 +410,30 @@ function afterTurnResolved(draft: GameState, endedTurnPlayerId?: string): GameSt
   }
   if (draft.deckExhaustedThisTurn) {
     return endRound(draft, "deckExhausted");
+  }
+  if (
+    actor &&
+    !actor.eliminated &&
+    draft.activeIdentities?.[actor.id] === "037" &&
+    !draft.identityGameUsed?.[`${actor.id}:037`]
+  ) {
+    draft.pendingDecision = { kind: "identityExtraTurn", playerId: actor.id };
+    return draft;
+  }
+  return advanceTurn(draft);
+}
+
+export function chooseIdentityExtraTurn(state: GameState, use: boolean): GameState {
+  const draft = cloneState(state);
+  if (!draft.pendingDecision || draft.pendingDecision.kind !== "identityExtraTurn") {
+    throw new Error("현재 추가 차례를 선택할 차례가 아닙니다.");
+  }
+  const playerId = draft.pendingDecision.playerId;
+  draft.identityGameUsed = { ...(draft.identityGameUsed ?? {}), [`${playerId}:037`]: true };
+  draft.pendingDecision = null;
+  if (use) {
+    log(draft, `${getPlayer(draft, playerId).displayName}: 「여행자/순례자」 효과로 한 번 더 차례를 가집니다.`);
+    return beginTurn(draft);
   }
   return advanceTurn(draft);
 }

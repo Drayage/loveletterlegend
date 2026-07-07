@@ -102,11 +102,30 @@ export interface LogEntry {
 
 export type PendingDecision =
   | { kind: "playCard"; playerId: string; options: CardInstance[] }
+  | { kind: "identitySwap"; playerId: string }
+  | {
+      kind: "identityCancel";
+      playerId: string;
+      actingPlayerId: string;
+      cardInstanceId: string;
+      cardName: CardName;
+      effectCardName?: CardName;
+      targetId: string;
+    }
+  | {
+      kind: "identityReplaceEffect";
+      playerId: string;
+      cardInstanceId: string;
+      cardName: CardName;
+      options: CardInstance[];
+    }
+  | { kind: "identityExtraTurn"; playerId: string }
   | {
       kind: "chooseTarget";
       playerId: string;
       cardInstanceId: string;
       cardName: CardName;
+      effectCardName?: CardName;
       eligiblePlayerIds: string[];
     }
   | {
@@ -114,6 +133,7 @@ export type PendingDecision =
       playerId: string;
       cardInstanceId: string;
       cardName: CardName;
+      effectCardName?: CardName;
       targetId: string;
       options: GuessOption[];
       guesses?: GuessOption[];

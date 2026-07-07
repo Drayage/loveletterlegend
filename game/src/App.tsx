@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import type { ArchiveCardState, CardName, GameState, PendingDecision, PlayerConfig } from "./engine/types";
-import { chooseCardToPlay, chooseTarget, chooseGuess } from "./engine/rules";
+import {
+  chooseCardToPlay,
+  chooseTarget,
+  chooseGuess,
+  chooseIdentitySwap,
+  chooseIdentityCancel,
+  chooseIdentityReplacement,
+  chooseIdentityExtraTurn,
+} from "./engine/rules";
 import {
   chooseCardToPlayAI,
   chooseGuessAI,
@@ -11,6 +19,7 @@ import {
   chooseArchiveChoiceAI,
 } from "./engine/ai";
 import { computeRemainingCounts } from "./engine/remaining";
+import { cardRank } from "./engine/effects";
 import {
   startSession,
   applyToRound,
@@ -92,7 +101,10 @@ function decisionKey(decision: PendingDecision): string {
   if (decision.kind === "chooseTarget") {
     return `${decision.kind}:${decision.playerId}:${decision.cardInstanceId}:${decision.eligiblePlayerIds.join(",")}`;
   }
-  return `${decision.kind}:${decision.playerId}:${decision.cardInstanceId}:${decision.targetId}`;
+  if (decision.kind === "guessCard") return `${decision.kind}:${decision.playerId}:${decision.cardInstanceId}:${decision.targetId}:${decision.guesses?.join(",") ?? ""}`;
+  if (decision.kind === "identityReplaceEffect") return `${decision.kind}:${decision.playerId}:${decision.cardInstanceId}:${decision.options.map((c) => c.instanceId).join(",")}`;
+  if (decision.kind === "identityCancel") return `${decision.kind}:${decision.playerId}:${decision.cardInstanceId}:${decision.targetId}`;
+  return `${decision.kind}:${decision.playerId}`;
 }
 
 function applyAiDecision(state: GameState, decision: PendingDecision): GameState {
@@ -104,7 +116,14 @@ function applyAiDecision(state: GameState, decision: PendingDecision): GameState
     const targetId = chooseTargetAI(decision.playerId, decision.cardName, decision.eligiblePlayerIds);
     return chooseTarget(state, targetId);
   }
-  return chooseGuess(state, chooseGuessAI(state, decision.playerId));
+  if (decision.kind === "guessCard") return chooseGuess(state, chooseGuessAI(state, decision.playerId));
+  if (decision.kind === "identitySwap") {
+    const p = state.players.find((player) => player.id === decision.playerId);
+    return chooseIdentitySwap(state, Boolean(state.hiddenRemovedCard && p?.hand[0] && cardRank(state.hiddenRemovedCard.name) > cardRank(p.hand[0].name)));
+  }
+  if (decision.kind === "identityCancel") return chooseIdentityCancel(state, true);
+  if (decision.kind === "identityReplaceEffect") return chooseIdentityReplacement(state, decision.options[0]?.instanceId ?? null);
+  return chooseIdentityExtraTurn(state, state.deck.length > 0);
 }
 
 function safely<T>(fn: () => T): T | null {
@@ -119,7 +138,11 @@ function safely<T>(fn: () => T): T | null {
 function decisionLabel(decision: PendingDecision): string {
   if (decision.kind === "playCard") return `카드 선택: ${decision.options.map((c) => `「${c.name}」`).join(" / ")}`;
   if (decision.kind === "chooseTarget") return `대상 선택: 「${decision.cardName}」`;
-  return `카드 추측: 「${decision.cardName}」`;
+  if (decision.kind === "guessCard") return `카드 추측: 「${decision.cardName}」`;
+  if (decision.kind === "identitySwap") return "정체 능력: 비공개 카드 교환";
+  if (decision.kind === "identityCancel") return "정체 능력: 효과 취소";
+  if (decision.kind === "identityReplaceEffect") return "정체 능력: 효과 대체";
+  return "정체 능력: 추가 차례";
 }
 
 function chooseRoundStartCardsAI(): CardName[] {
@@ -473,6 +496,18 @@ export default function App() {
   function handleChooseGuess(name: Parameters<typeof chooseGuess>[1]) {
     setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseGuess(s, name))) ?? prev : prev));
   }
+  function handleIdentitySwap(use: boolean) {
+    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseIdentitySwap(s, use))) ?? prev : prev));
+  }
+  function handleIdentityCancel(use: boolean) {
+    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseIdentityCancel(s, use))) ?? prev : prev));
+  }
+  function handleIdentityReplacement(instanceId: string | null) {
+    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseIdentityReplacement(s, instanceId))) ?? prev : prev));
+  }
+  function handleIdentityExtraTurn(use: boolean) {
+    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseIdentityExtraTurn(s, use))) ?? prev : prev));
+  }
 
   function proceedToNextRound(route: Route, selectedOptionalCards: CardName[] = []) {
     handledDecisionRef.current = null;
@@ -779,6 +814,10 @@ export default function App() {
           remaining={remaining}
           onChooseTarget={handleChooseTarget}
           onChooseGuess={handleChooseGuess}
+          onIdentitySwap={handleIdentitySwap}
+          onIdentityCancel={handleIdentityCancel}
+          onIdentityReplacement={handleIdentityReplacement}
+          onIdentityExtraTurn={handleIdentityExtraTurn}
         />
       )}
 

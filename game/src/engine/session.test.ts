@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { chooseCardToPlay, chooseTarget, chooseGuess, beginTurn } from "./rules";
+import {
+  chooseCardToPlay,
+  chooseTarget,
+  chooseGuess,
+  beginTurn,
+  chooseIdentitySwap,
+  chooseIdentityCancel,
+  chooseIdentityReplacement,
+  chooseIdentityExtraTurn,
+} from "./rules";
 import { chooseCardToPlayAI, chooseGuessAI, chooseTargetAI, chooseRouteAI, chooseLetterTargetAI } from "./ai";
 import { needsTarget, targetsFor, applyEffect } from "./effects";
 import {
@@ -15,7 +24,7 @@ import {
   ROUTE_SLOT,
 } from "./session";
 import type { SessionState } from "./session";
-import type { PlayerConfig, GameState } from "./types";
+import type { CardName, PlayerConfig, GameState } from "./types";
 import { ARCHIVE_CARD_SEEDS } from "../data/scenario";
 
 const PLAYERS: PlayerConfig[] = [
@@ -87,9 +96,17 @@ function driveOneSessionRound(session: SessionState): SessionState {
     } else if (decision.kind === "chooseTarget") {
       const targetId = chooseTargetAI(decision.playerId, decision.cardName, decision.eligiblePlayerIds);
       s = applyToRound(s, (r) => chooseTarget(r, targetId));
-    } else {
+    } else if (decision.kind === "guessCard") {
       const guess = chooseGuessAI(s.round, decision.playerId);
       s = applyToRound(s, (r) => chooseGuess(r, guess));
+    } else if (decision.kind === "identitySwap") {
+      s = applyToRound(s, (r) => chooseIdentitySwap(r, false));
+    } else if (decision.kind === "identityCancel") {
+      s = applyToRound(s, (r) => chooseIdentityCancel(r, true));
+    } else if (decision.kind === "identityReplaceEffect") {
+      s = applyToRound(s, (r) => chooseIdentityReplacement(r, null));
+    } else {
+      s = applyToRound(s, (r) => chooseIdentityExtraTurn(r, false));
     }
   }
   return s;
@@ -135,7 +152,8 @@ function forceImmediateWin(
   winnerHand?: GameState["players"][number]["hand"],
   extraArchiveCards: SessionState["storyArchive"] = [],
   presetClock = 0,
-  extraSessionEvents: NonNullable<GameState["sessionEvents"]> = []
+  extraSessionEvents: NonNullable<GameState["sessionEvents"]> = [],
+  presetExtraDeckCardNames: CardName[] = []
 ): SessionState {
   const s: SessionState = structuredClone(session);
   // The random initial deal can occasionally (~2-3% of the time) already
@@ -157,7 +175,7 @@ function forceImmediateWin(
   s.pendingArchivePlacement = null;
   s.pendingChoice = null;
   s.pendingIdentityChoice = null;
-  s.extraDeckCardNames = [];
+  s.extraDeckCardNames = [...presetExtraDeckCardNames];
   s.removedBaseCardNames = [];
   const winner = s.round.players.find((p) => p.id === winnerId)!;
   for (const p of s.round.players) {
@@ -1025,7 +1043,8 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
           { type: "compareResolved", actingPlayerId: "p1", targetPlayerId: "p2", cardName: "기사", outcome: "actorLoses" },
         ]
       );
-      const resolvedCard103 = session.storyArchive.find((c) => c.id === "103");
+      const resolvedCard103 = session.archiveHistory["103"];
+      expect(session.storyArchive.some((c) => c.id === "103")).toBe(false);
       expect(resolvedCard103?.conditions.find((c) => c.id === "103-fail")?.fired).toBe(true);
       // 113 itself never lingers -- its autoRevealIds fires and removes it
       // in the same pass that reveals 114.
@@ -1049,6 +1068,52 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
       expect(session.archiveHistory["102"]?.name).toBe("극단의 출발");
       expect(session.removedBaseCardNames).toEqual(expect.arrayContaining(["배우", "무희"]));
       expect(session.extraDeckCardNames).toContain("광대의제자");
+    });
+
+    it("154 resolves 15세 immediately but delays 20세 until the next round-end pass", () => {
+      let session = startSession(PLAYERS);
+      session.storyArchive = [seedArchiveForTest("154")];
+      session.archiveHistory = { "154": session.storyArchive[0] };
+      session.pendingChoice = {
+        cardId: "154",
+        eligiblePlayerId: "p1",
+        options: ARCHIVE_CARD_SEEDS["154"].choices!.map((c) => ({ id: c.id, label: c.label })),
+      };
+      session = resolveArchiveChoice(session, "p1", "154-15");
+      expect(session.storyArchive.some((c) => c.id === "154")).toBe(false);
+      expect(session.storyArchive.some((c) => c.id === "157")).toBe(true);
+      expect(session.storyArchive.some((c) => c.id === "158")).toBe(true);
+      expect(session.extraDeckCardNames).toContain("대마도사15");
+
+      session = startSession(PLAYERS);
+      session.storyArchive = [seedArchiveForTest("154")];
+      session.archiveHistory = { "154": session.storyArchive[0] };
+      session.pendingChoice = {
+        cardId: "154",
+        eligiblePlayerId: "p1",
+        options: ARCHIVE_CARD_SEEDS["154"].choices!.map((c) => ({ id: c.id, label: c.label })),
+      };
+      session = resolveArchiveChoice(session, "p1", "154-20");
+      expect(session.storyArchive.some((c) => c.id === "159")).toBe(true);
+      expect(session.storyArchive.some((c) => c.id === "160")).toBe(false);
+      expect(session.storyArchive.some((c) => c.id === "161")).toBe(false);
+
+      session = forceImmediateWin(session, "p1", undefined, [seedArchiveForTest("159")]);
+      expect(session.storyArchive.some((c) => c.id === "159")).toBe(false);
+      expect(session.storyArchive.some((c) => c.id === "160")).toBe(true);
+      expect(session.storyArchive.some((c) => c.id === "161")).toBe(true);
+      expect(session.extraDeckCardNames).toContain("대마도사20");
+    });
+
+    it("111 「여기사」 replaces the extra 복면기사 instead of leaving both in the deck", () => {
+      let session = startSession(PLAYERS);
+      const seededCard108 = {
+        ...seedArchiveForTest("108"),
+        successTokens: 1,
+      };
+      session = forceImmediateWin(session, "p1", undefined, [seededCard108], 0, [], ["복면기사"]);
+      expect(session.extraDeckCardNames).not.toContain("복면기사");
+      expect(session.extraDeckCardNames).toContain("여기사");
     });
 
     it("compareResolved 기사 targetLoses credits 103's [성공]; actorLoses credits its own [실패] separately from the general 들고탈락 check", () => {

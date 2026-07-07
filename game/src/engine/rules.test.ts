@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { setupRound, chooseCardToPlay, chooseTarget, chooseGuess } from "./rules";
+import {
+  setupRound,
+  chooseCardToPlay,
+  chooseTarget,
+  chooseGuess,
+  chooseIdentitySwap,
+  chooseIdentityCancel,
+  chooseIdentityReplacement,
+  chooseIdentityExtraTurn,
+} from "./rules";
 import { chooseCardToPlayAI, chooseGuessAI, chooseTargetAI } from "./ai";
 import { applyEffect, checkKingElimination, checkMinisterElimination, discardCard, eliminatePlayer } from "./effects";
 import type { CardName, GameState, PlayerConfig } from "./types";
@@ -32,6 +41,14 @@ function driveOneAiVsAiGame(): GameState {
     } else if (decision.kind === "guessCard") {
       const guess = chooseGuessAI(state, decision.playerId);
       state = chooseGuess(state, guess);
+    } else if (decision.kind === "identitySwap") {
+      state = chooseIdentitySwap(state, false);
+    } else if (decision.kind === "identityCancel") {
+      state = chooseIdentityCancel(state, true);
+    } else if (decision.kind === "identityReplaceEffect") {
+      state = chooseIdentityReplacement(state, null);
+    } else {
+      state = chooseIdentityExtraTurn(state, false);
     }
   }
   return state;
