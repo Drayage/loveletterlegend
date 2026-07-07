@@ -814,7 +814,7 @@ export default function App() {
         !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
-        (!pendingStoryEvent || endSummaryAcknowledged) &&
+        !pendingStoryEvent &&
         roundStartLocked && (
           <Modal title={`${session.roundNumber}주차 시작`} onClose={() => {}} dismissible={false}>
             <div className="round-start-gate">
@@ -838,6 +838,7 @@ export default function App() {
         !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
+        !pendingStoryEvent &&
         !roundStartLocked &&
         humanNeedsLetterChoice && (
           <LetterTokenChoiceModal
@@ -855,6 +856,7 @@ export default function App() {
         !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
+        !pendingStoryEvent &&
         !roundStartLocked &&
         !needsLetterChoice &&
         humanNeedsIdentityChoice && (
@@ -867,6 +869,7 @@ export default function App() {
         !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
+        !pendingStoryEvent &&
         !roundStartLocked &&
         !needsLetterChoice &&
         !needsIdentityChoice &&
@@ -885,6 +888,7 @@ export default function App() {
         !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
+        !pendingStoryEvent &&
         !roundStartLocked &&
         !needsLetterChoice &&
         !needsIdentityChoice &&
@@ -932,7 +936,7 @@ export default function App() {
         !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
-        (!pendingStoryEvent || endSummaryAcknowledged) &&
+        !pendingStoryEvent &&
         !roundStartLocked &&
         roundOver &&
         !session.ended &&
@@ -967,7 +971,7 @@ export default function App() {
         !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
-        (!pendingStoryEvent || endSummaryAcknowledged) &&
+        !pendingStoryEvent &&
         !roundStartLocked &&
         roundOver &&
         session.ended &&
