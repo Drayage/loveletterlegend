@@ -27,17 +27,54 @@ export function RoundStartGate({
   onToggleOptionalCard,
   onStart,
 }: RoundStartGateProps) {
+  const routeSwapCardNames = new Set<CardName>(["공주둘째", "공주셋째"]);
+  const routeSwapCards = optionalCards.filter((name) => routeSwapCardNames.has(name));
+  const additionalCards = optionalCards.filter((name) => !routeSwapCardNames.has(name));
+  const selectedRouteSwap = selectedOptionalCards.find((name) => routeSwapCards.includes(name)) ?? null;
+
   return (
     <Modal title={`${upcomingRoundNumber}주차 준비`} onClose={() => {}} dismissible={false}>
       <div className="round-start-gate">
         <p className="round-start-gate__prompt">
           {chooserName}이(가) 「{ROUTE_DEFS[route].displayName}」을(를) 추구하기로 했습니다.
         </p>
-        {optionalCards.length > 0 && (
+        {routeSwapCards.length > 0 && (
           <div className="round-start-gate__optional">
-            <p className="round-start-gate__optional-title">이번 라운드 덱에 넣을 8번 카드</p>
+            <p className="round-start-gate__optional-title">공주/왕자 카드 선택 (택1)</p>
             <div className="round-start-gate__optional-list">
-              {optionalCards.map((cardName) => (
+              <label className="round-start-gate__optional-item">
+                <input
+                  type="radio"
+                  name="route-rank8-card"
+                  checked={selectedRouteSwap === null}
+                  onChange={() => {
+                    if (selectedRouteSwap) onToggleOptionalCard?.(selectedRouteSwap);
+                  }}
+                />
+                <span>기본 공주/왕자</span>
+              </label>
+              {routeSwapCards.map((cardName) => (
+                <label key={cardName} className="round-start-gate__optional-item">
+                  <input
+                    type="radio"
+                    name="route-rank8-card"
+                    checked={selectedOptionalCards.includes(cardName)}
+                    onChange={() => {
+                      if (selectedRouteSwap && selectedRouteSwap !== cardName) onToggleOptionalCard?.(selectedRouteSwap);
+                      if (!selectedOptionalCards.includes(cardName)) onToggleOptionalCard?.(cardName);
+                    }}
+                  />
+                  <span>「{cardName}」</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+        {additionalCards.length > 0 && (
+          <div className="round-start-gate__optional">
+            <p className="round-start-gate__optional-title">추가 8번 카드 선택</p>
+            <div className="round-start-gate__optional-list">
+              {additionalCards.map((cardName) => (
                 <label key={cardName} className="round-start-gate__optional-item">
                   <input
                     type="checkbox"

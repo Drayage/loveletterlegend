@@ -407,6 +407,7 @@ export default function App() {
     handledLetterChoiceRef.current = null;
     handledIdentityRef.current = null;
     handledChoiceRef.current = null;
+    setEndSummaryAcknowledged(false);
     setRoundStartLockedNumber(session ? session.roundNumber + 1 : null);
     setSession((prev) => (prev ? safely(() => beginNextRound(prev, route, selectedOptionalCards)) ?? prev : prev));
     setShowRouteSwitch(false);
@@ -697,12 +698,13 @@ export default function App() {
         !pendingElimination &&
         !pendingChoiceResult &&
         pendingStoryEvent && (
+        (!roundOver || endSummaryAcknowledged) && (
           <StoryEventModal
             cards={pendingStoryEvent}
             clockTokens={session.clockTokens}
             onNext={handleStoryEventNext}
           />
-        )}
+        ))}
 
       {!pendingHumanReveal &&
         !pendingGuessEffect &&
@@ -710,7 +712,7 @@ export default function App() {
         !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
-        !pendingStoryEvent &&
+        (!pendingStoryEvent || endSummaryAcknowledged) &&
         roundStartLocked && (
           <Modal title={`${session.roundNumber}주차 시작`} onClose={() => {}} dismissible={false}>
             <div className="round-start-gate">
@@ -734,7 +736,6 @@ export default function App() {
         !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
-        !pendingStoryEvent &&
         !roundStartLocked &&
         humanNeedsLetterChoice && (
           <LetterTokenChoiceModal
@@ -751,7 +752,6 @@ export default function App() {
         !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
-        !pendingStoryEvent &&
         !roundStartLocked &&
         !needsLetterChoice &&
         humanNeedsIdentityChoice && (
@@ -764,7 +764,6 @@ export default function App() {
         !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
-        !pendingStoryEvent &&
         !roundStartLocked &&
         !needsLetterChoice &&
         !needsIdentityChoice &&
@@ -783,7 +782,6 @@ export default function App() {
         !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
-        !pendingStoryEvent &&
         !roundStartLocked &&
         !needsLetterChoice &&
         !needsIdentityChoice &&
@@ -802,7 +800,6 @@ export default function App() {
         !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
-        !pendingStoryEvent &&
         !roundStartLocked &&
         !needsLetterChoice &&
         !needsIdentityChoice &&
@@ -818,8 +815,8 @@ export default function App() {
             players={session.playerConfigs}
             ended={session.ended}
             onContinue={() => {
+              setEndSummaryAcknowledged(true);
               if (session.ended) {
-                setEndSummaryAcknowledged(true);
                 return;
               }
               // 다음 라운드의 선플레이어(직전 라운드 승자)만 라우트 전환을
@@ -841,7 +838,7 @@ export default function App() {
         !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
-        !pendingStoryEvent &&
+        (!pendingStoryEvent || endSummaryAcknowledged) &&
         !roundStartLocked &&
         !needsLetterChoice &&
         !needsIdentityChoice &&
@@ -862,7 +859,7 @@ export default function App() {
         !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
-        !pendingStoryEvent &&
+        (!pendingStoryEvent || endSummaryAcknowledged) &&
         !roundStartLocked &&
         roundOver &&
         !session.ended &&
@@ -876,7 +873,12 @@ export default function App() {
             onToggleOptionalCard={(cardName) =>
               setPendingRoundStart((prev) => {
                 if (!prev) return prev;
-                const selected = prev.selectedOptionalCards.includes(cardName) ? [] : [cardName];
+                const routeSwapCards = new Set<CardName>(["공주둘째", "공주셋째"]);
+                const selected = prev.selectedOptionalCards.includes(cardName)
+                  ? prev.selectedOptionalCards.filter((name) => name !== cardName)
+                  : routeSwapCards.has(cardName)
+                    ? [...prev.selectedOptionalCards.filter((name) => !routeSwapCards.has(name)), cardName]
+                    : [...prev.selectedOptionalCards, cardName];
                 return { ...prev, selectedOptionalCards: selected };
               })
             }
@@ -890,7 +892,7 @@ export default function App() {
         !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
-        !pendingStoryEvent &&
+        (!pendingStoryEvent || endSummaryAcknowledged) &&
         !roundStartLocked &&
         roundOver &&
         session.ended &&

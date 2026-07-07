@@ -127,6 +127,11 @@ export interface SessionState {
   extraDeckCardNames: CardName[];
   optionalRoundDeckCardNames: CardName[];
   activeOptionalRoundDeckCardNames: CardName[];
+  /** Archive ids that existed when the current round ended. Delayed
+   * round-end decisions (letter placement -> identity/archive placement)
+   * must use this snapshot so cards revealed by this same round do not
+   * retroactively consume that round's result. */
+  roundEndEligibleArchiveIds: string[] | null;
   /** 032가 공개하면 채워지는, 아직 아무도 고르지 않은 「정체」 카드 id 풀
    * (033~038). 032가 아직 공개되지 않았다면 빈 배열. */
   identityPool: string[];
@@ -235,6 +240,7 @@ export function startSession(playerConfigs: PlayerConfig[], initialRoute: Route 
     extraDeckCardNames: [],
     optionalRoundDeckCardNames: [],
     activeOptionalRoundDeckCardNames: [],
+    roundEndEligibleArchiveIds: null,
     identityPool: [],
     playerIdentities,
     pendingIdentityChoice: null,
@@ -485,6 +491,7 @@ function applySessionRoundEnd(session: SessionState): SessionState {
     ...Object.keys(next.archiveHistory),
     ...next.storyArchive.map((c) => c.id),
   ]);
+  next.roundEndEligibleArchiveIds = [...roundEndEligibleArchiveIds];
   const summaryKnownArchiveIds = new Set(Object.keys(next.archiveHistory));
 
   const recordNewReveals = (knownIds: Set<string>) => {
@@ -857,6 +864,9 @@ function applySessionRoundEnd(session: SessionState): SessionState {
  * letter goes before token counts are read. */
 function finalizeRoundEndDecisions(session: SessionState, winnerId: string | null): SessionState {
   const next = session;
+  const roundEndEligibleArchiveIds = new Set(
+    next.roundEndEligibleArchiveIds ?? [...Object.keys(next.archiveHistory), ...next.storyArchive.map((c) => c.id)]
+  );
   // 018/020 「잉그리드 공주/아레스 왕자」의 종료 tag: 한 플레이어가 그
   // 캐릭터 위에 [편지] 10개를 놓으면 즉시 게임 종료 (051 공개). 이건
   // "10개를 다 쓰면 게임이 계속된다"는 개인 풀 소진과는 다른 규칙 --
@@ -879,6 +889,7 @@ function finalizeRoundEndDecisions(session: SessionState, winnerId: string | nul
   // letterTokens를 읽어야 하므로 일반 조건 체커가 아닌 별도 체크로 둔다.
   if (
     winnerId &&
+    roundEndEligibleArchiveIds.has("050") &&
     next.storyArchive.some((c) => c.id === "050") &&
     !next.storyArchive.some((c) => c.id === "051") &&
     next.round.roundResult?.revealedHands[winnerId]?.name === "공주"
@@ -899,7 +910,7 @@ function finalizeRoundEndDecisions(session: SessionState, winnerId: string | nul
 
   // 032 「역사 4」의 "중요" tag: 이번 라운드에 탈락했지만 아직 「정체」가
   // 없는 플레이어는 남은 풀에서 하나를 골라 영구히 갖는다.
-  if (next.storyArchive.some((c) => c.id === "032") && next.identityPool.length > 0) {
+  if (roundEndEligibleArchiveIds.has("032") && next.storyArchive.some((c) => c.id === "032") && next.identityPool.length > 0) {
     const needsIdentity = next.round.players.find((p) => p.eliminated && !next.playerIdentities[p.id]);
     if (needsIdentity) {
       next.pendingIdentityChoice = { eligiblePlayerId: needsIdentity.id, options: [...next.identityPool] };
@@ -911,6 +922,7 @@ function finalizeRoundEndDecisions(session: SessionState, winnerId: string | nul
   // 문구 그대로 "[조건]을 가진 카드"뿐이다 (053류) -- 시작/종료 공개표만
   // 가진 카드(017/023 등)에는 놓을 수 없다.
   if (
+    roundEndEligibleArchiveIds.has("031") &&
     next.storyArchive.some((c) => c.id === "031") &&
     next.round.firstEliminatedThisRound &&
     next.storyArchive.some((c) => c.conditionTag && c.conditions.some((cond) => !cond.fired))
@@ -979,6 +991,7 @@ function resolveEnding(
     }) ?? null;
   next.pendingArchivePlacement = null;
   next.pendingLetterChoice = null;
+  next.roundEndEligibleArchiveIds = null;
   return next;
 }
 
@@ -1015,6 +1028,7 @@ export function beginNextRound(session: SessionState, route: Route, activeOption
   const leaderId = nextRoundLeader(next);
   next.currentRoute = route;
   next.activeOptionalRoundDeckCardNames = activeOptionalRoundDeckCardNames ?? next.activeOptionalRoundDeckCardNames;
+  next.roundEndEligibleArchiveIds = null;
   next.roundNumber += 1;
   // 017 「시간」의 "시작" 태그: 라운드 시작 시 [시계] 개수를 확인해 공개.
   // 라운드 종료 이벤트와 순서가 섞이지 않도록 여기(다음 라운드가 실제로

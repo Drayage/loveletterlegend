@@ -1878,7 +1878,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     art: nobleLady,
     flavor:
       "「오호홋! 이 몸의 매력을 알아채다니! 안목이 있네요! 그래요! 공주보다 내가 더 말이죠!」요란한 웃음소리를 내며 당신에게 손가락질하는 영애, 이 상황을 보면 당신이 그녀에게 단단히 빠진 것은 분명합니다. 그녀의 종이 되는 것은 어렵지 않을 겁니다. 허나 과연 그녀의 진정한 사랑을 손에 넣을 수 있겠습니까?",
-    deckEffect: { kind: "add", cardName: "귀족영애" },
+    deckEffect: { kind: "optionalRound", cardName: "귀족영애" },
     conditionsTitle: "라운드 종료 시 확인",
     conditions: [
       {

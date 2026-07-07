@@ -45,6 +45,23 @@ function pristineStoryArchive(): SessionState["storyArchive"] {
   });
 }
 
+function seedArchiveForTest(id: string): SessionState["storyArchive"][number] {
+  const seed = ARCHIVE_CARD_SEEDS[id];
+  return {
+    id: seed.id,
+    name: seed.name,
+    category: seed.category,
+    art: seed.art,
+    flavor: seed.flavor,
+    conditionTag: seed.conditionTag,
+    expiresAtClock: seed.expiresAtClock,
+    conditionsTitle: seed.conditionsTitle,
+    conditions: seed.conditions.map((c) => ({ ...c, fired: false })),
+    successTokens: 0,
+    failTokens: 0,
+  };
+}
+
 // startSession's random initial deal can rarely (~2-3%) already trigger
 // 「대신」's passive elimination, ending round 1 before a test that wants to
 // call beginNextRound directly (without going through forceImmediateWin's
@@ -132,7 +149,7 @@ function forceImmediateWin(
   // result only reflects the round it's about to force, not whatever the
   // untamed initial deal happened to do first.
   s.round.roundResult = null;
-  s.round.firstEliminatedThisRound = null;
+  s.round.firstEliminatedThisRound = s.round.players.find((p) => p.id !== winnerId)?.id ?? null;
   s.clockTokens = presetClock;
   s.storyArchive = [...pristineStoryArchive(), ...extraArchiveCards];
   s.archiveHistory = Object.fromEntries(s.storyArchive.map((card) => [card.id, card]));
@@ -345,6 +362,61 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
     expect(session.storyArchive.some((c) => c.id === "039")).toBe(true);
     // 039의 [등장]: 축제 덱 8장이 즉시 채워진다.
     expect(session.festivalDeck.slice().sort()).toEqual(["040", "041", "042", "043", "044", "045", "046", "047"]);
+  });
+
+  it("031 revealed by the just-ended round does not grant archive-token placement for that same round", () => {
+    let session = startSession(PLAYERS);
+    session = forceImmediateWin(
+      session,
+      "p1",
+      [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "장군" },
+      ],
+      [seedArchiveForTest("024"), seedArchiveForTest("053"), seedArchiveForTest("103")]
+    );
+    expect(session.storyArchive.some((c) => c.id === "031")).toBe(true);
+    session = resolveLetterChoice(session, "p1", { type: "place", slot: "잉그리드공주" });
+    expect(session.pendingArchivePlacement).toBeNull();
+  });
+
+  it("031 that was already active before round end still grants archive-token placement to the first eliminated player", () => {
+    let session = startSession(PLAYERS);
+    session = forceImmediateWin(
+      session,
+      "p1",
+      [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "장군" },
+      ],
+      [seedArchiveForTest("031"), seedArchiveForTest("053")]
+    );
+    session = resolveLetterChoice(session, "p1", { type: "place", slot: "잉그리드공주" });
+    expect(session.pendingArchivePlacement?.eligiblePlayerId).toBe("p2");
+  });
+
+  it("025 gains a failure token when a king-eliminated player has at least 8 total letter tokens", () => {
+    let session = startSession(PLAYERS);
+    session.letterTokens["잉그리드공주"]["p2"] = 5;
+    session.letterTokens["아레스왕자"]["p2"] = 3;
+    session = forceImmediateWin(
+      session,
+      "p1",
+      [
+        { instanceId: "c1", name: "대신" },
+        { instanceId: "c2", name: "장군" },
+      ],
+      [seedArchiveForTest("025")],
+      0,
+      [{ type: "kingElimination", playerId: "p2" }]
+    );
+    const kingCard = session.archiveHistory["025"];
+    expect(kingCard?.failTokens).toBe(1);
+    expect(session.lastRoundSummary?.archiveTokensGained).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ cardId: "025", token: "실패", amount: 1 }),
+      ])
+    );
   });
 
   it("beginNextRound draws the top festival card, and round end recycles it to the bottom", () => {
@@ -1090,7 +1162,7 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
       expect(session.storyArchive.some((c) => c.id === "147")).toBe(true);
     });
 
-    it("188 「공주님들」's 3rd choice resolves to 195 -> 200 「거만한 귀족 영애」 (deckEffect add, winnerHeldCard-style reveal to 202/203)", () => {
+    it("188 「공주님들」's 3rd choice resolves to 195 -> 200 「거만한 귀족 영애」 (optional rank-8 deck card)", () => {
       let session = startSession(PLAYERS);
       session = forceImmediateWin(session, "p1", [
         { instanceId: "c1", name: "대신" },
@@ -1101,11 +1173,11 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
       expect(session.pendingChoice?.cardId).toBe("195");
       session = resolveArchiveChoice(session, session.pendingChoice!.eligiblePlayerId, "195-noble");
       expect(session.storyArchive.some((c) => c.id === "200")).toBe(true);
-      expect(session.extraDeckCardNames).toContain("귀족영애");
+      expect(session.optionalRoundDeckCardNames).toContain("귀족영애");
 
       // Now force a win holding 귀족영애 to complete 200's own reveal.
       session = resolveLetterChoice(session, "p1", { type: "place", slot: "잉그리드공주" });
-      session = beginNextRound(session, "공주");
+      session = beginNextRound(session, "공주", ["귀족영애"]);
       session = forceImmediateWin(
         session,
         "p1",
