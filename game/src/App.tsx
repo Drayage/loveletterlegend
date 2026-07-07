@@ -364,16 +364,19 @@ export default function App() {
   ]);
 
   // Show a readable popup (with full flavor text + conditions) whenever new
-  // cards appear in the story archive.
+  // cards are revealed. Use archiveHistory instead of only the live archive
+  // so auto-revealed cards that are immediately consumed/removed still get
+  // their story beat before the next card appears.
   useEffect(() => {
     if (!session) return;
-    const currentIds = session.storyArchive.map((c) => c.id);
-    const newly = session.storyArchive.filter((c) => !seenArchiveIdsRef.current.has(c.id));
+    const historyCards = Object.values(session.archiveHistory);
+    const currentIds = historyCards.map((c) => c.id);
+    const newly = historyCards.filter((c) => !seenArchiveIdsRef.current.has(c.id));
     for (const id of currentIds) seenArchiveIdsRef.current.add(id);
     if (newly.length === 0) return;
     setPendingStoryEvent(newly);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.storyArchive.map((c) => c.id).join(",")]);
+  }, [Object.keys(session?.archiveHistory ?? {}).join(",")]);
 
   // Show which option was picked (and what the alternatives were) whenever
   // a 실카드 "선택" 분기 resolves -- before the resulting reveals' own

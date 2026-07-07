@@ -165,6 +165,21 @@ const SLOT_REVEAL_CARD_ID: Record<CharacterSlotId, string> = {
   귀족영애아나스타샤: "203",
 };
 
+function isLetterRuleFlavor(flavor: string): boolean {
+  const text = flavor.trim();
+  return text.startsWith("《") || text.includes("+[편지]") || /편지\s*\d+개\s*이상/.test(text);
+}
+
+function displayFlavorForSlot(session: SessionState, slot: CharacterSlotId, fallback?: string): string | undefined {
+  const revealId = SLOT_REVEAL_CARD_ID[slot];
+  const revealCard = session.archiveHistory[revealId];
+  if (!revealCard) return fallback;
+  const sameNameCards = Object.values(session.archiveHistory).filter(
+    (card) => card.category === "character" && card.name === revealCard.name
+  );
+  return sameNameCards.find((card) => card.flavor && !isLetterRuleFlavor(card.flavor))?.flavor ?? revealCard.flavor ?? fallback;
+}
+
 /** Stable per-player color, assigned by seat order -- used so every
  * character row can show each player's [편지] count in "their" color
  * instead of only surfacing the human's own pursued route. */
@@ -186,7 +201,7 @@ function SlotRow({
   const info = SLOT_INFO[slot];
   const revealCard = session.archiveHistory[SLOT_REVEAL_CARD_ID[slot]];
   const art = info.art ?? revealCard?.art;
-  const flavor = revealCard?.flavor ?? info.quote;
+  const flavor = displayFlavorForSlot(session, slot, info.quote);
   const humanTokens = letterTokens[slot]?.[humanId] ?? 0;
   const effectRules = EFFECT_RULES[slot] ?? [];
   return (
