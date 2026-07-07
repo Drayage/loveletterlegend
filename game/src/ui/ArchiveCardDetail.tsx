@@ -21,6 +21,8 @@ function splitEarnRule(rule: string): { text: string; token: "성공" | "실패"
 const CHARACTER_CARD_TO_SLOT: Partial<Record<string, CharacterSlotId>> = {
   "018": "잉그리드공주",
   "020": "아레스왕자",
+  "190": "루나공주",
+  "193": "마가렛공주",
   "056": "경비병알리오스",
   "061": "신병아니스",
   "029": "마을소녀미란다",
@@ -54,8 +56,10 @@ const CHARACTER_CARD_TO_SLOT: Partial<Record<string, CharacterSlotId>> = {
 const CHARACTER_LETTER_RULES: Partial<Record<CharacterSlotId, string[]>> = {
   잉그리드공주: ["라운드 승리: 공개된 공주/왕자 중 선택해 +1", "《공주》를 들고 승리: 추가 +1"],
   아레스왕자: ["라운드 승리: 공개된 공주/왕자 중 선택해 +1", "《왕자》를 들고 승리: 추가 +1"],
+  루나공주: ["라운드 승리: 공개된 공주/왕자 중 선택해 +1", "《공주(둘째)》를 들고 승리: 추가 +1"],
+  마가렛공주: ["라운드 승리: 공개된 공주/왕자 중 선택해 +1", "《공주(셋째)》를 들고 승리: 추가 +1"],
   경비병알리오스: ["경비병을 들고 라운드 승리: +2", "경비병 추측 적중으로 탈락시킴: +1"],
-  신병아니스: ["신병을 들고 라운드 승리: +3", "신병 홀짝 추측 적중으로 탈락시킴: +2"],
+  신병아니스: ["신병을 들고 라운드 승리: +3", "신병 숫자 추측 적중으로 탈락시킴: +2"],
   마을소녀미란다: ["마을소녀를 들고 라운드 승리: +1"],
   시종트래비스: ["시종이 버림 더미에 놓인 채로 라운드 승리: +2"],
   시녀메이블: ["시녀가 버림 더미에 놓인 채로 라운드 승리: +2"],
@@ -107,6 +111,8 @@ const CHARACTER_ACHIEVEMENTS: Partial<
 > = {
   잉그리드공주: [{ threshold: 10, label: "게임 종료, [051] 공개" }],
   아레스왕자: [{ threshold: 10, label: "게임 종료, [051] 공개" }],
+  루나공주: [{ threshold: 10, label: "게임 종료, [051] 공개" }],
+  마가렛공주: [{ threshold: 10, label: "게임 종료, [051] 공개" }],
   마술사의도제: [
     {
       threshold: WIZARD_APPRENTICE.tier1.threshold,

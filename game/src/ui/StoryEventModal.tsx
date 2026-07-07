@@ -7,7 +7,7 @@ interface StoryEventModalProps {
   cards: ArchiveCardState[];
   /** Elapsed [시계] -- drives the expiring card's "남은 시간 (N주)" badge. */
   clockTokens: number;
-  onNext: () => void;
+  onNext: (count?: number) => void;
 }
 
 /** Shows exactly one newly-revealed card at a time -- even when several
@@ -17,18 +17,24 @@ interface StoryEventModalProps {
  * last card. */
 export function StoryEventModal({ cards, clockTokens, onNext }: StoryEventModalProps) {
   if (cards.length === 0) return null;
-  const [current, ...rest] = cards;
-  const hasMore = rest.length > 0;
+  const current = cards[0];
+  const identityGroup = current.category === "identity" ? cards.filter((card) => card.category === "identity") : [];
+  const visibleCards = identityGroup.length > 0 ? identityGroup : [current];
+  const advanceCount = visibleCards.length;
+  const remainingAfter = cards.length - advanceCount;
+  const hasMore = remainingAfter > 0;
 
   return (
     <Modal title="이야기 보관소에 새로 공개된 카드" onClose={onNext} dismissible={false}>
       <div className="story-event">
-        <div className="story-event__card">
-          <ArchiveCardDetail card={current} clockTokens={clockTokens} />
+        <div className={visibleCards.length > 1 ? "story-event__card story-event__card--grid" : "story-event__card"}>
+          {visibleCards.map((card) => (
+            <ArchiveCardDetail key={card.id} card={card} clockTokens={clockTokens} />
+          ))}
         </div>
         <div className="story-event__actions">
-          {hasMore && <span className="story-event__counter">다음 카드 {rest.length}장 남음</span>}
-          <button type="button" className="story-event__next-btn" onClick={onNext}>
+          {hasMore && <span className="story-event__counter">다음 카드 {remainingAfter}장 남음</span>}
+          <button type="button" className="story-event__next-btn" onClick={() => onNext(advanceCount)}>
             {hasMore ? "다음" : "확인"}
           </button>
         </div>

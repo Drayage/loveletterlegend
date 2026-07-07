@@ -56,7 +56,8 @@ export type CardName =
   | "백작부인"
   | "귀족영애";
 
-export type GuessOption = CardName | "홀수" | "짝수";
+export type RankGuess = "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
+export type GuessOption = CardName | RankGuess;
 
 export interface CardDef {
   name: CardName;
@@ -404,6 +405,8 @@ export interface ArchiveCardState {
 export type CharacterSlotId =
   | "잉그리드공주"
   | "아레스왕자"
+  | "루나공주"
+  | "마가렛공주"
   | "경비병알리오스"
   | "신병아니스"
   | "마을소녀미란다"

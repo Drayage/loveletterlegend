@@ -1,14 +1,17 @@
 import { useState } from "react";
 import type { CharacterSlotId, LetterChoice } from "../engine/session";
-import { RANK8_SLOTS } from "../engine/session";
 import { ROUTE_DEFS } from "../data/routes";
 import { WIZARD_APPRENTICE } from "../data/characters";
+import princessSecond from "../assets/cards/extra/8. 공주(둘째).jpg";
+import princessThird from "../assets/cards/extra/8. 공주(셋째).jpg";
 import { Modal } from "./Modal";
 import "./LetterTokenChoiceModal.css";
 
 const SLOT_INFO: Record<CharacterSlotId, { name: string; art?: string }> = {
   잉그리드공주: { name: ROUTE_DEFS.공주.displayName, art: ROUTE_DEFS.공주.art },
   아레스왕자: { name: ROUTE_DEFS.왕자.displayName, art: ROUTE_DEFS.왕자.art },
+  루나공주: { name: "루나 공주", art: princessSecond },
+  마가렛공주: { name: "마가렛 공주", art: princessThird },
   경비병알리오스: { name: "경비병 알리오스" },
   신병아니스: { name: "신병 아니스" },
   마을소녀미란다: { name: "간판 점원 미란다" },
@@ -43,6 +46,7 @@ interface LetterTokenChoiceModalProps {
   amount: number;
   atCap: boolean;
   tokens: Record<CharacterSlotId, number>;
+  availableSlots: CharacterSlotId[];
   onChoose: (choice: LetterChoice) => void;
 }
 
@@ -50,7 +54,7 @@ interface LetterTokenChoiceModalProps {
  * 공주/왕자 to place it on (independent of the shared route). Once their
  * 10-token pool is full, placement is replaced by an optional move between
  * whichever slots already hold tokens. */
-export function LetterTokenChoiceModal({ amount, atCap, tokens, onChoose }: LetterTokenChoiceModalProps) {
+export function LetterTokenChoiceModal({ amount, atCap, tokens, availableSlots, onChoose }: LetterTokenChoiceModalProps) {
   const [moveFrom, setMoveFrom] = useState<CharacterSlotId | null>(null);
   const allSlots = Object.keys(SLOT_INFO) as CharacterSlotId[];
 
@@ -60,7 +64,7 @@ export function LetterTokenChoiceModal({ amount, atCap, tokens, onChoose }: Lett
         <div className="letter-token-choice">
           <p className="letter-token-choice__prompt">편지 토큰 {amount}개를 어느 캐릭터에 놓으시겠습니까?</p>
           <div className="letter-token-choice__options">
-            {RANK8_SLOTS.map((slot) => (
+            {availableSlots.map((slot) => (
               <button
                 key={slot}
                 type="button"

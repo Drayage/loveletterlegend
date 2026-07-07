@@ -1,5 +1,5 @@
 import { cardRank } from "./effects";
-import type { ArchiveCardState, CardInstance, CardName, CharacterSlotId, GameState, GuessOption } from "./types";
+import type { ArchiveCardState, CardInstance, CardName, CharacterSlotId, GameState, GuessOption, RankGuess } from "./types";
 import type { Route } from "../data/routes";
 
 /**
@@ -65,15 +65,17 @@ function bestGuess(dist: Record<CardName, number>): { name: CardName; p: number 
 export function chooseGuessAI(state: GameState, playerId: string): GuessOption {
   if (state.pendingDecision?.kind === "guessCard" && state.pendingDecision.cardName === "신병") {
     const dist = estimateUnseenDistribution(state, playerId);
-    const odd = (Object.keys(dist) as CardName[]).filter((n) => n !== "경비병" && cardRank(n) % 2 === 1).reduce(
-      (acc, n) => acc + (dist[n] ?? 0),
-      0
-    );
-    const even = (Object.keys(dist) as CardName[]).filter((n) => cardRank(n) !== 0 && cardRank(n) % 2 === 0).reduce(
-      (acc, n) => acc + (dist[n] ?? 0),
-      0
-    );
-    return odd >= even ? "홀수" : "짝수";
+    const byRank = new Map<RankGuess, number>();
+    let best: { rank: RankGuess; p: number } | null = null;
+    for (const name of Object.keys(dist) as CardName[]) {
+      const rank = cardRank(name);
+      if (rank < 2 || rank > 9) continue;
+      const guess = String(rank) as RankGuess;
+      const p = (byRank.get(guess) ?? 0) + (dist[name] ?? 0);
+      byRank.set(guess, p);
+      if (!best || p > best.p) best = { rank: guess, p };
+    }
+    return best?.rank ?? "2";
   }
   const dist = estimateUnseenDistribution(state, playerId);
   return bestGuess(dist).name;

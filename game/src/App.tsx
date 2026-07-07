@@ -23,6 +23,7 @@ import {
   resolveArchiveChoice,
   nextRoundLeader,
   ROUTE_SLOT,
+  availableRank8LetterSlots,
 } from "./engine/session";
 import type { CharacterSlotId, LetterChoice, ResolvedChoiceInfo, Route, SessionState } from "./engine/session";
 import { LetterTokenChoiceModal } from "./ui/LetterTokenChoiceModal";
@@ -51,6 +52,7 @@ import { ForcedDiscardModal } from "./ui/ForcedDiscardModal";
 import { EffectBlockedModal } from "./ui/EffectBlockedModal";
 import { Modal } from "./ui/Modal";
 import { ARCHIVE_CARD_SEEDS } from "./data/scenario";
+import type { IdentityVariantId } from "./data/identityVariants";
 import "./App.css";
 
 const HUMAN_ID = "human";
@@ -228,7 +230,7 @@ export default function App() {
     // otherwise once those popups clear, the dependency-array re-run sees
     // handledLetterChoiceRef already pointing at this exact `pending`
     // object and skips rescheduling forever.
-    if (flowBlocked) {
+    if (flowBlocked && !pendingStoryEvent) {
       handledLetterChoiceRef.current = null;
       return;
     }
@@ -249,6 +251,7 @@ export default function App() {
   }, [
     session,
     flowBlocked,
+    pendingStoryEvent,
   ]);
 
   // AI's story-archive token placement, when it's the AI who was first
@@ -261,7 +264,7 @@ export default function App() {
     const placement = session.pendingArchivePlacement;
     // Same "don't get stuck" fix as the letter-choice effect above: clear
     // the marker rather than leaving it stale while blocked.
-    if (flowBlocked) {
+    if (flowBlocked && !pendingStoryEvent) {
       handledArchiveRef.current = null;
       return;
     }
@@ -287,6 +290,7 @@ export default function App() {
   }, [
     session,
     flowBlocked,
+    pendingStoryEvent,
   ]);
 
   // AI's 032 「정체」 card selection, when the AI was eliminated without one.
@@ -296,7 +300,7 @@ export default function App() {
       return;
     }
     const pending = session.pendingIdentityChoice;
-    if (flowBlocked) {
+    if (flowBlocked && !pendingStoryEvent) {
       handledIdentityRef.current = null;
       return;
     }
@@ -309,13 +313,14 @@ export default function App() {
       setSession((prev) => {
         if (!prev || prev.pendingIdentityChoice !== pending) return prev;
         const identityId = chooseIdentityAI(pending.options);
-        return safely(() => chooseIdentity(prev, pending.eligiblePlayerId, identityId)) ?? prev;
+        return safely(() => chooseIdentity(prev, pending.eligiblePlayerId, identityId, "male")) ?? prev;
       });
     }, 700);
     return () => clearTimeout(timer);
   }, [
     session,
     flowBlocked,
+    pendingStoryEvent,
   ]);
 
   // AI's 실카드 "선택" 분기 결정, when the eligible player (round winner) is the AI.
@@ -325,7 +330,7 @@ export default function App() {
       return;
     }
     const pending = session.pendingChoice;
-    if (flowBlocked) {
+    if (flowBlocked && !pendingStoryEvent) {
       handledChoiceRef.current = null;
       return;
     }
@@ -345,6 +350,7 @@ export default function App() {
   }, [
     session,
     flowBlocked,
+    pendingStoryEvent,
   ]);
 
   // Show a readable popup (with full flavor text + conditions) whenever new
@@ -440,17 +446,17 @@ export default function App() {
     setSession((prev) => (prev ? safely(() => resolveLetterChoice(prev, HUMAN_ID, choice)) ?? prev : prev));
   }
 
-  function handleChooseIdentity(identityId: string) {
-    setSession((prev) => (prev ? safely(() => chooseIdentity(prev, HUMAN_ID, identityId)) ?? prev : prev));
+  function handleChooseIdentity(identityId: string, variantId: IdentityVariantId) {
+    setSession((prev) => (prev ? safely(() => chooseIdentity(prev, HUMAN_ID, identityId, variantId)) ?? prev : prev));
   }
 
   function handleChooseArchiveOption(optionId: string) {
     setSession((prev) => (prev ? safely(() => resolveArchiveChoice(prev, HUMAN_ID, optionId)) ?? prev : prev));
   }
 
-  function handleStoryEventNext() {
-    const isLastStoryCard = !pendingStoryEvent || pendingStoryEvent.length <= 1;
-    setPendingStoryEvent((prev) => (prev && prev.length > 1 ? prev.slice(1) : null));
+  function handleStoryEventNext(count = 1) {
+    const isLastStoryCard = !pendingStoryEvent || pendingStoryEvent.length <= count;
+    setPendingStoryEvent((prev) => (prev && prev.length > count ? prev.slice(count) : null));
     if (!isLastStoryCard) return;
     setSession((prev) => {
       if (!prev?.pendingChoice) return prev;
@@ -742,6 +748,7 @@ export default function App() {
             amount={session.pendingLetterChoice!.amount}
             atCap={session.pendingLetterChoice!.atCap}
             tokens={humanLetterTokens}
+            availableSlots={availableRank8LetterSlots(session)}
             onChoose={handleLetterChoice}
           />
         )}

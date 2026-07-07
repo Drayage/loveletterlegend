@@ -1,4 +1,5 @@
 import { CARD_DEFS } from "../engine/cards";
+import { cardRank } from "../engine/effects";
 import type { CardName, GameState, GuessOption, PendingDecision } from "../engine/types";
 import { Card } from "./Card";
 import { Modal } from "./Modal";
@@ -36,16 +37,27 @@ export function DecisionPanel({ state, decision, remaining, onChooseTarget, onCh
 
   if (decision.kind === "guessCard") {
     const isRecruit = decision.cardName === "신병";
+    const sortedOptions = [...decision.options].sort((a, b) => {
+      const aIsCard = a in CARD_DEFS;
+      const bIsCard = b in CARD_DEFS;
+      const aRemaining = aIsCard ? (remaining[a as CardName] ?? 0) : 1;
+      const bRemaining = bIsCard ? (remaining[b as CardName] ?? 0) : 1;
+      if ((aRemaining === 0) !== (bRemaining === 0)) return aRemaining === 0 ? 1 : -1;
+      const aRank = aIsCard ? cardRank(a as CardName) : Number(a);
+      const bRank = bIsCard ? cardRank(b as CardName) : Number(b);
+      if (aRank !== bRank) return aRank - bRank;
+      return String(a).localeCompare(String(b), "ko");
+    });
     return (
       <Modal title={`「${decision.cardName}」 추측`} onClose={() => {}} dismissible={false}>
         <div className="decision-panel">
           <p className="decision-panel__prompt">
             {isRecruit
-              ? "상대가 들고 있을 카드의 숫자가 「1을 제외한 홀수」인지 「짝수」인지 추측하세요."
+              ? "상대가 들고 있을 카드의 숫자를 추측하세요 (0과 1 제외)."
               : "상대가 들고 있을 카드를 추측하세요 (「경비병」 제외)."}
           </p>
           <div className="decision-panel__guess-grid">
-            {decision.options.map((guess) => {
+            {sortedOptions.map((guess) => {
               const isCardName = guess in CARD_DEFS;
               const remainingCount = isCardName ? (remaining[guess as CardName] ?? 0) : null;
               return (

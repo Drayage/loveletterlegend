@@ -12,6 +12,8 @@ interface SessionEndScreenProps {
 const SLOT_DISPLAY_NAME: Record<CharacterSlotId, string> = {
   잉그리드공주: "잉그리드 공주",
   아레스왕자: "아레스 왕자",
+  루나공주: "루나 공주",
+  마가렛공주: "마가렛 공주",
   경비병알리오스: "경비병 알리오스",
   신병아니스: "신병 아니스",
   마을소녀미란다: "간판 점원 미란다",

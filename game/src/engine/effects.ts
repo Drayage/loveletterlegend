@@ -1,4 +1,4 @@
-import type { CardInstance, CardName, CharacterUpgradeTier, GameState, GuessOption, PlayerState } from "./types";
+import type { CardInstance, CardName, CharacterUpgradeTier, GameState, GuessOption, PlayerState, RankGuess } from "./types";
 import { nextLogId } from "./clone";
 
 export function log(draft: GameState, message: string): void {
@@ -172,7 +172,14 @@ export function currentRoundCardNames(state: GameState): CardName[] {
 }
 
 export function guessOptionsFor(cardName: CardName, state?: GameState): GuessOption[] {
-  if (cardName === "신병") return ["홀수", "짝수"];
+  if (cardName === "신병") {
+    const ranks = new Set<RankGuess>();
+    for (const name of state ? currentRoundCardNames(state) : []) {
+      const rank = cardRank(name);
+      if (rank >= 2 && rank <= 9) ranks.add(String(rank) as RankGuess);
+    }
+    return [...ranks].sort((a, b) => Number(a) - Number(b));
+  }
   return (state ? currentRoundCardNames(state) : []).filter((n) => n !== "경비병");
 }
 
@@ -187,9 +194,7 @@ export interface ResolveArgs {
 function guessHits(cardName: CardName, targetCardName: CardName, guess: GuessOption): boolean {
   if (cardName === "신병") {
     const rank = cardRank(targetCardName);
-    if (guess === "홀수") return rank !== 1 && rank % 2 === 1;
-    if (guess === "짝수") return rank !== 0 && rank % 2 === 0;
-    return false;
+    return rank >= 2 && String(rank) === guess;
   }
   return targetCardName === guess;
 }

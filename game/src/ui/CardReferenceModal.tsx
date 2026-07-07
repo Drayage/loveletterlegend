@@ -20,16 +20,22 @@ function currentDeckEntries(session?: SessionState): Array<{ name: CardName; cou
   for (const name of session?.extraDeckCardNames ?? []) {
     counts[name] = (counts[name] ?? 0) + 1;
   }
-  for (const name of session?.activeOptionalRoundDeckCardNames ?? []) {
+  const rank8ReplacementNames = new Set<CardName>(["공주둘째", "공주셋째"]);
+  for (const name of session?.activeOptionalRoundDeckCardNames.filter((n) => !rank8ReplacementNames.has(n)) ?? []) {
     counts[name] = (counts[name] ?? 0) + 1;
   }
-  if (session?.activeOptionalRoundDeckCardNames.some((name) => name === "공주둘째" || name === "공주셋째")) {
+  const activeRank8Replacement =
+    session?.activeOptionalRoundDeckCardNames.find((name) => rank8ReplacementNames.has(name)) ??
+    (session?.currentRoute === "왕자" ? "왕자" : null);
+  if (activeRank8Replacement) {
     counts.공주 = Math.max(0, (counts.공주 ?? 0) - 1);
+    counts[activeRank8Replacement] = (counts[activeRank8Replacement] ?? 0) + 1;
   }
 
   const extraNames = [
     ...(session?.extraDeckCardNames ?? []),
     ...(session?.activeOptionalRoundDeckCardNames ?? []),
+    ...(activeRank8Replacement ? [activeRank8Replacement] : []),
   ].filter((name) => !CARD_ORDER.includes(name));
   const orderedNames = [...CARD_ORDER, ...Array.from(new Set(extraNames))];
   return orderedNames

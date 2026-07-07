@@ -1,6 +1,7 @@
 import { setupRound } from "./rules";
 import { ARCHIVE_CARD_SEEDS } from "../data/scenario";
 import { WIZARD_APPRENTICE } from "../data/characters";
+import { IDENTITY_VARIANTS, type IdentityVariantId } from "../data/identityVariants";
 import type { Route } from "../data/routes";
 import { conditionTiming } from "./types";
 import type {
@@ -24,10 +25,12 @@ export type { CharacterSlotId } from "./types";
  * matter of adding slots here + seed data -- this module's algorithms don't
  * change. */
 export const ROUTE_SLOT: Record<Route, CharacterSlotId> = { 공주: "잉그리드공주", 왕자: "아레스왕자" };
-export const RANK8_SLOTS: readonly CharacterSlotId[] = ["잉그리드공주", "아레스왕자"];
+export const RANK8_SLOTS: readonly CharacterSlotId[] = ["잉그리드공주", "아레스왕자", "루나공주", "마가렛공주"];
 const ALL_SLOTS: readonly CharacterSlotId[] = [
   "잉그리드공주",
   "아레스왕자",
+  "루나공주",
+  "마가렛공주",
   "경비병알리오스",
   "신병아니스",
   "마을소녀미란다",
@@ -137,6 +140,9 @@ export interface SessionState {
   identityPool: string[];
   /** playerId -> 배정된 「정체」 카드 id (아직 없으면 null). */
   playerIdentities: Record<string, string | null>;
+  /** playerId -> 선택한 정체의 실제 이름/초상. Rules still key off
+   * playerIdentities' 033~038 ids; this is for display and permanence. */
+  playerIdentityFaces: Record<string, { identityId: string; variantId: IdentityVariantId; name: string; art: string } | null>;
   /** 탈락했지만 아직 「정체」가 없는 플레이어가 라운드 종료 시 하나를 골라야
    * 하는 차례 -- see chooseIdentity. */
   pendingIdentityChoice: { eligiblePlayerId: string; options: string[] } | null;
@@ -215,7 +221,11 @@ export function startSession(playerConfigs: PlayerConfig[], initialRoute: Route 
     for (const cfg of playerConfigs) letterTokens[slot][cfg.id] = 0;
   }
   const playerIdentities: Record<string, string | null> = {};
-  for (const cfg of playerConfigs) playerIdentities[cfg.id] = null;
+  const playerIdentityFaces: SessionState["playerIdentityFaces"] = {};
+  for (const cfg of playerConfigs) {
+    playerIdentities[cfg.id] = null;
+    playerIdentityFaces[cfg.id] = null;
+  }
 
   const initialArchive = [seedArchiveCard("017"), seedArchiveCard("018"), seedArchiveCard("020"), seedArchiveCard("023")];
 
@@ -243,6 +253,7 @@ export function startSession(playerConfigs: PlayerConfig[], initialRoute: Route 
     roundEndEligibleArchiveIds: null,
     identityPool: [],
     playerIdentities,
+    playerIdentityFaces,
     pendingIdentityChoice: null,
     festivalDeck: [],
     removedBaseCardNames: [],
@@ -472,6 +483,7 @@ function applyRevealSideEffects(
     }
     for (const cfg of session.playerConfigs) {
       if (!(cfg.id in session.playerIdentities)) session.playerIdentities[cfg.id] = null;
+      if (!(cfg.id in session.playerIdentityFaces)) session.playerIdentityFaces[cfg.id] = null;
     }
   }
   // 039는 이 generic 경로로 공개되지 않는다 -- 032의 "전원 정체 보유"
@@ -555,7 +567,7 @@ function applySessionRoundEnd(session: SessionState): SessionState {
     // 카드 017 「시간」: 라운드 승리 -> 공개된 공주/왕자 중 하나를 골라
     // [편지] +1 (「공주」를 들고 승리했다면 +2). 어느 캐릭터에 놓을지는
     // currentRoute와 무관하게 승자의 선택 -- see resolveLetterChoice.
-    let amount = winnerCard?.name === "공주" ? 2 : 1;
+    let amount = winnerCard?.name === "공주" || winnerCard?.name === "왕자" ? 2 : 1;
     // 049 「역사 7」의 "중요" tag: 캐릭터 카드에 [편지]를 놓을 때 추가 +1
     // (실제 카드는 이 추가분을 "선택"으로 두지만, v1은 017 자체의 승리
     // 포상과 동일하게 자동 지급으로 단순화한다).
@@ -568,7 +580,7 @@ function applySessionRoundEnd(session: SessionState): SessionState {
     // 승리했다면 대응 캐릭터에 추가 +2 더 (역시 자동 지급으로 단순화).
     if (next.storyArchive.some((c) => c.id === "050")) {
       amount += 1;
-      if (winnerCard?.name === "공주") amount += 2;
+      if (winnerCard?.name === "공주" || winnerCard?.name === "왕자") amount += 2;
     }
     next.pendingLetterChoice = {
       playerId: winnerId,
@@ -892,7 +904,8 @@ function finalizeRoundEndDecisions(session: SessionState, winnerId: string | nul
     roundEndEligibleArchiveIds.has("050") &&
     next.storyArchive.some((c) => c.id === "050") &&
     !next.storyArchive.some((c) => c.id === "051") &&
-    next.round.roundResult?.revealedHands[winnerId]?.name === "공주"
+    (next.round.roundResult?.revealedHands[winnerId]?.name === "공주" ||
+      next.round.roundResult?.revealedHands[winnerId]?.name === "왕자")
   ) {
     const slot = ROUTE_SLOT[next.currentRoute];
     const mine = next.letterTokens[slot][winnerId] ?? 0;
@@ -1016,6 +1029,47 @@ export function nextRoundLeader(session: SessionState): string {
   return session.lastRoundSummary?.winnerId ?? session.playerConfigs[0].id;
 }
 
+export function availableRank8LetterSlots(session: SessionState): CharacterSlotId[] {
+  const revealBySlot: Record<CharacterSlotId, string | null> = {
+    잉그리드공주: "018",
+    아레스왕자: "020",
+    루나공주: "190",
+    마가렛공주: "193",
+    경비병알리오스: null,
+    신병아니스: null,
+    마을소녀미란다: null,
+    시종트래비스: null,
+    시녀메이블: null,
+    광대제자리카드: null,
+    광대제자피오: null,
+    점술사그리셀다: null,
+    배우파비오: null,
+    무희미나: null,
+    기사라이언: null,
+    여기사캐리: null,
+    여상인수잔나: null,
+    승려올리비아: null,
+    수사알베르트: null,
+    수녀로베리아: null,
+    집사세바스티안: null,
+    마술사의도제: null,
+    마녀베아트릭스: null,
+    대마도사15알비스: null,
+    대마도사20알비스: null,
+    여장군아즈사: null,
+    군사시어도어: null,
+    정무관오즈릭: null,
+    정무관오즈리나: null,
+    여후작엘마: null,
+    백작부인카밀라: null,
+    귀족영애아나스타샤: null,
+  };
+  return RANK8_SLOTS.filter((slot) => {
+    const revealId = revealBySlot[slot];
+    return revealId == null || Boolean(session.archiveHistory[revealId]);
+  });
+}
+
 /** `route`는 다음 라운드를 이끄는 플레이어(nextRoundLeader -- 직전 라운드
  * 승자)가 결정한다. 다른 플레이어는 결과만 본다. */
 export function beginNextRound(session: SessionState, route: Route, activeOptionalRoundDeckCardNames?: CardName[]): SessionState {
@@ -1044,13 +1098,16 @@ export function beginNextRound(session: SessionState, route: Route, activeOption
     next.storyArchive.some((c) => c.id === "039") && next.festivalDeck.length > 0
       ? (next.festivalDeck.shift() ?? null)
       : null;
-  const optionalPrincessCardNames = new Set<CardName>(["공주둘째", "공주셋째"]);
-  const activeOptionalPrincess = next.activeOptionalRoundDeckCardNames.find((name) => optionalPrincessCardNames.has(name));
+  const rank8ReplacementCardNames = new Set<CardName>(["왕자", "공주둘째", "공주셋째"]);
+  const defaultRank8CardName: CardName = route === "왕자" ? "왕자" : "공주";
+  const activeRank8Replacement = next.activeOptionalRoundDeckCardNames.find((name) => rank8ReplacementCardNames.has(name));
+  const activeRank8CardName = activeRank8Replacement ?? defaultRank8CardName;
   const roundExtraDeckCardNames = [
-    ...next.extraDeckCardNames.filter((name) => !optionalPrincessCardNames.has(name)),
-    ...next.activeOptionalRoundDeckCardNames,
+    ...next.extraDeckCardNames.filter((name) => !rank8ReplacementCardNames.has(name)),
+    ...next.activeOptionalRoundDeckCardNames.filter((name) => !rank8ReplacementCardNames.has(name)),
+    ...(activeRank8CardName === "공주" ? [] : [activeRank8CardName]),
   ];
-  const roundRemovedBaseCardNames: CardName[] = activeOptionalPrincess
+  const roundRemovedBaseCardNames: CardName[] = activeRank8CardName !== "공주"
     ? [...next.removedBaseCardNames, "공주"]
     : next.removedBaseCardNames;
   next.round = {
@@ -1069,7 +1126,12 @@ export function beginNextRound(session: SessionState, route: Route, activeOption
  * [편지] 2개 배치" 보너스도 함께 트리거 (기존 pendingLetterChoice 흐름
  * 재사용). 032가 전원 배정으로 완료되면 039를 공개하고 032를 제거한다
  * (배정 직후 상태가 필요해 bespoke 체크 -- 050->051과 동일 패턴). */
-export function chooseIdentity(session: SessionState, playerId: string, identityId: string): SessionState {
+export function chooseIdentity(
+  session: SessionState,
+  playerId: string,
+  identityId: string,
+  variantId: IdentityVariantId = "male"
+): SessionState {
   if (!session.pendingIdentityChoice || session.pendingIdentityChoice.eligiblePlayerId !== playerId) {
     throw new Error("지금은 이 플레이어가 정체 카드를 고를 차례가 아닙니다.");
   }
@@ -1077,7 +1139,9 @@ export function chooseIdentity(session: SessionState, playerId: string, identity
     throw new Error("이미 선택되었거나 존재하지 않는 정체 카드입니다.");
   }
   const next: SessionState = structuredClone(session);
+  const variant = IDENTITY_VARIANTS[identityId]?.find((v) => v.id === variantId) ?? IDENTITY_VARIANTS[identityId]?.[0];
   next.playerIdentities[playerId] = identityId;
+  if (variant) next.playerIdentityFaces[playerId] = { identityId, variantId: variant.id, name: variant.name, art: variant.art };
   next.identityPool = next.identityPool.filter((id) => id !== identityId);
   next.pendingIdentityChoice = null;
 

@@ -1,10 +1,11 @@
 import { ARCHIVE_CARD_SEEDS } from "../data/scenario";
+import { IDENTITY_VARIANTS, type IdentityVariantId } from "../data/identityVariants";
 import { Modal } from "./Modal";
 import "./IdentityChoiceModal.css";
 
 interface IdentityChoiceModalProps {
   options: string[];
-  onChoose: (identityId: string) => void;
+  onChoose: (identityId: string, variantId: IdentityVariantId) => void;
 }
 
 /** 032 「역사 4」의 "중요" tag: 탈락했지만 아직 「정체」가 없는 플레이어가
@@ -20,16 +21,25 @@ export function IdentityChoiceModal({ options, onChoose }: IdentityChoiceModalPr
         <div className="identity-choice__cards">
           {options.map((id) => {
             const seed = ARCHIVE_CARD_SEEDS[id];
+            const variants = IDENTITY_VARIANTS[id] ?? [];
             return (
-              <button
-                key={id}
-                type="button"
-                className="identity-choice__card"
-                onClick={() => onChoose(id)}
-              >
-                {seed.art && <img className="identity-choice__portrait" src={seed.art} alt={seed.name} />}
+              <div key={id} className="identity-choice__card">
                 <span className="identity-choice__name">{seed.name}</span>
-              </button>
+                <span className="identity-choice__ability">{seed.flavor}</span>
+                <div className="identity-choice__variants">
+                  {variants.map((variant) => (
+                    <button
+                      key={variant.id}
+                      type="button"
+                      className="identity-choice__variant"
+                      onClick={() => onChoose(id, variant.id)}
+                    >
+                      <img className="identity-choice__portrait" src={variant.art} alt={variant.name} />
+                      <span>{variant.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             );
           })}
         </div>

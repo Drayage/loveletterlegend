@@ -1,6 +1,8 @@
 import type { CharacterSlotId, SessionState } from "../engine/session";
 import { ROUTE_DEFS } from "../data/routes";
 import { WIZARD_APPRENTICE } from "../data/characters";
+import princessSecond from "../assets/cards/extra/8. 공주(둘째).jpg";
+import princessThird from "../assets/cards/extra/8. 공주(셋째).jpg";
 import type { PlayerConfig } from "../engine/types";
 import "./SessionHeader.css";
 
@@ -13,6 +15,8 @@ interface SessionHeaderProps {
 const ALL_SLOTS: CharacterSlotId[] = [
   "잉그리드공주",
   "아레스왕자",
+  "루나공주",
+  "마가렛공주",
   "경비병알리오스",
   "신병아니스",
   "마을소녀미란다",
@@ -46,6 +50,8 @@ const ALL_SLOTS: CharacterSlotId[] = [
 const SLOT_INFO: Record<CharacterSlotId, { name: string; art?: string; quote?: string }> = {
   잉그리드공주: { name: ROUTE_DEFS.공주.displayName, art: ROUTE_DEFS.공주.art },
   아레스왕자: { name: ROUTE_DEFS.왕자.displayName, art: ROUTE_DEFS.왕자.art },
+  루나공주: { name: "루나 공주", art: princessSecond },
+  마가렛공주: { name: "마가렛 공주", art: princessThird },
   경비병알리오스: { name: "경비병 알리오스" },
   신병아니스: { name: "신병 아니스" },
   마을소녀미란다: { name: "간판 점원 미란다" },
@@ -79,8 +85,10 @@ const SLOT_INFO: Record<CharacterSlotId, { name: string; art?: string; quote?: s
 const LETTER_RULES: Partial<Record<CharacterSlotId, string[]>> = {
   잉그리드공주: ["라운드 승리: 공개된 공주/왕자 중 선택해 +1", "《공주》를 들고 승리: 추가 +1"],
   아레스왕자: ["라운드 승리: 공개된 공주/왕자 중 선택해 +1", "《왕자》를 들고 승리: 추가 +1"],
+  루나공주: ["라운드 승리: 공개된 공주/왕자 중 선택해 +1", "《공주(둘째)》를 들고 승리: 추가 +1"],
+  마가렛공주: ["라운드 승리: 공개된 공주/왕자 중 선택해 +1", "《공주(셋째)》를 들고 승리: 추가 +1"],
   경비병알리오스: ["경비병을 들고 라운드 승리: +2", "경비병 추측 적중으로 탈락시킴: +1"],
-  신병아니스: ["신병을 들고 라운드 승리: +3", "신병 홀짝 추측 적중으로 탈락시킴: +2"],
+  신병아니스: ["신병을 들고 라운드 승리: +3", "신병 숫자 추측 적중으로 탈락시킴: +2"],
   마을소녀미란다: ["마을소녀를 들고 라운드 승리: +1"],
   시종트래비스: ["시종이 버림 더미에 놓인 채 라운드 승리: +2"],
   시녀메이블: ["시녀가 버림 더미에 놓인 채 라운드 승리: +2"],
@@ -124,6 +132,8 @@ const EFFECT_RULES: Partial<Record<CharacterSlotId, Array<{ threshold: number; r
 const SLOT_REVEAL_CARD_ID: Record<CharacterSlotId, string> = {
   잉그리드공주: "018",
   아레스왕자: "020",
+  루나공주: "190",
+  마가렛공주: "193",
   경비병알리오스: "056",
   신병아니스: "061",
   마을소녀미란다: "029",

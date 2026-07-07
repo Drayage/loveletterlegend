@@ -103,9 +103,9 @@ export const CARD_DEFS: Record<CardName, CardDef> = {
     rank: 1,
     count: 1,
     englishAlias: "Recruit",
-    shortAbility: "「1을 제외한 홀수」또는 「짝수」로 추측, 적중하면 상대 탈락",
+    shortAbility: "0과 1을 제외한 숫자 하나 추측, 적중하면 상대 탈락",
     ability:
-      "다른 플레이어를 지목한 뒤, 「1을 제외한 홀수」또는 「짝수」를 하나 댑니다. 만약 지목된 플레이어가 그 숫자 카드를 갖고 있다면 라운드에서 탈락합니다.",
+      "다른 플레이어를 지목한 뒤, 0과 1을 제외한 숫자 하나를 댑니다. 만약 지목된 플레이어가 그 숫자 카드를 갖고 있다면 라운드에서 탈락합니다.",
   },
   시종: {
     name: "시종",
