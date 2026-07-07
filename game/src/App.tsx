@@ -447,6 +447,20 @@ export default function App() {
     setSession((prev) => (prev ? safely(() => resolveArchiveChoice(prev, HUMAN_ID, optionId)) ?? prev : prev));
   }
 
+  function handleStoryEventNext() {
+    const isLastStoryCard = !pendingStoryEvent || pendingStoryEvent.length <= 1;
+    setPendingStoryEvent((prev) => (prev && prev.length > 1 ? prev.slice(1) : null));
+    if (!isLastStoryCard) return;
+    setSession((prev) => {
+      if (!prev?.pendingChoice) return prev;
+      const pending = prev.pendingChoice;
+      const actor = prev.playerConfigs.find((p) => p.id === pending.eligiblePlayerId);
+      if (!actor?.isAI) return prev;
+      const optionId = chooseArchiveChoiceAI(pending.options);
+      return safely(() => resolveArchiveChoice(prev, pending.eligiblePlayerId, optionId)) ?? prev;
+    });
+  }
+
   if (!session || !round) {
     return (
       <div className="start-screen">
@@ -686,7 +700,7 @@ export default function App() {
           <StoryEventModal
             cards={pendingStoryEvent}
             clockTokens={session.clockTokens}
-            onNext={() => setPendingStoryEvent((prev) => (prev && prev.length > 1 ? prev.slice(1) : null))}
+            onNext={handleStoryEventNext}
           />
         )}
 
