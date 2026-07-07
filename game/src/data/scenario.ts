@@ -81,9 +81,12 @@
 import type { CardName, DeckEffect } from "../engine/types";
 import { ROUTE_DEFS } from "./routes";
 import guard from "../assets/cards/guard.jpg";
+import clown from "../assets/cards/clown.jpg";
 import knight from "../assets/cards/knight.jpg";
 import priestess from "../assets/cards/priestess.jpg";
 import wizard from "../assets/cards/wizard.jpg";
+import general from "../assets/cards/general.jpg";
+import minister from "../assets/cards/minister.jpg";
 // 정체(identity) 카드 6장 -- 실카드는 남/여 변형 각 2장씩 존재하지만
 // (성별에 따른 효과 차이 없음), UI는 카드 1장당 초상화 1개만 보여주므로
 // 각 쌍 중 하나만 대표로 쓴다.
@@ -101,6 +104,7 @@ import maid from "../assets/cards/extra/1. 시녀.jpg";
 import clownApprentice from "../assets/cards/extra/2. 광대의 제자(남).jpg";
 import clownApprenticeFemale from "../assets/cards/extra/2. 광대의 제자(여).jpg";
 import fortuneTeller from "../assets/cards/extra/2. 점술사.jpg";
+import maskedKnight from "../assets/cards/extra/3. 복면기사.jpg";
 import actor from "../assets/cards/extra/9. 배우.jpg";
 import dancer from "../assets/cards/extra/0. 무희.jpg";
 import ladyKnight from "../assets/cards/extra/3. 여기사.jpg";
@@ -113,6 +117,8 @@ import archmage15 from "../assets/cards/extra/5. 대마도사(15세).jpg";
 import archmage20 from "../assets/cards/extra/5. 대마도사(20세).jpg";
 import ladyGeneral from "../assets/cards/extra/6. 여장군.jpg";
 import tactician from "../assets/cards/extra/6. 군사.jpg";
+import regentMale from "../assets/cards/extra/7. 정무관(남자).jpg";
+import regentFemale from "../assets/cards/extra/7. 정무관(여자).jpg";
 import marchioness from "../assets/cards/extra/7. 여후작.jpg";
 import wizardApprentice from "../assets/cards/extra/5. 마술사의 도제.jpg";
 import princessSecond from "../assets/cards/extra/8. 공주(둘째).jpg";
@@ -426,6 +432,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "053",
     name: "고지식한 병사",
     category: "scenario",
+    art: guard,
     flavor:
       "당신은 성문 앞에서 자주 보는 성실한 병사에게 편지를 전해달라고 부탁합니다. 그는 무뚝뚝한 얼굴로 그 편지를 받습니다. 「하는 수 없군. 해보지. 너무 기대는 하지 마시오.」 고지식한 병사가 편지를 전하러 나선 결과가 궁금해집니다.",
     // Real 054's threshold branches carry the [조건] tag -- this is what
@@ -483,6 +490,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "062",
     name: "왕의 불호령",
     category: "scenario",
+    art: king,
     flavor:
       "병사들이 편지의 전갈을 맡고 있는 것이 왕에게 알려지고 말았습니다. 그들은 왕에게 꾸중을 듣고, 주선을 해 주지 않게 되어 버렸습니다. 다른 수단을 생각하지 않으면....",
     conditions: [],
@@ -504,6 +512,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "052",
     name: "성문 앞에서",
     category: "scenario",
+    art: guard,
     flavor: "이런저런 사정으로 성에 들어갈 수 없는 당신이 편지를 맡겨야 한다면, 역시 성문 앞에 있는 병사들이겠지요.",
     conditions: [],
     choices: [
@@ -515,6 +524,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "057",
     name: "풋풋한 신병",
     category: "scenario",
+    art: recruit,
     flavor:
       "당신은 처음 보는 젋은 여자 병사에게 편지를 부탁합니다. 그녀는 건강한 미소로 부탁을 받아줍니다. 「알겠습니다! 해볼게요!」",
     conditionTag: true,
@@ -660,6 +670,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "079",
     name: "광대의 초대",
     category: "scenario",
+    art: clown,
     flavor:
       "편지의 전갈을 부탁하는 중에 광대와 친해진 당신은 그와 함께 성 안의 행사를 구경하러 왔습니다. 광대의 말에 따르면 성 안으로 자주 초대되는 지인들이 있다고 합니다.",
     conditions: [],
@@ -673,6 +684,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "080",
     name: "광대의 제자",
     category: "scenario",
+    art: clownApprentice,
     flavor:
       "공연 중인 광대처럼 제대로 분장한 인물이 당신에게 인사합니다. 아무래도 말을 멈춘 채 팬터마임 연습 중인 것 같습니다.",
     deckEffect: { kind: "replace", removeName: "광대", addName: "광대의제자" },
@@ -714,6 +726,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "093",
     name: "무대에 빠져들다",
     category: "scenario",
+    art: actor,
     flavor:
       "커다란 환성에 이끌려, 행사의 한가운데 있는 무대를 방문합니다. 당신은 거기에서 공연 중인 연극의 주역에 눈길을 빼앗깁니다. 아, 정말 멋진 연기에 빼어난 외모입니다!",
     conditions: [],
@@ -726,6 +739,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "082",
     name: "분장 속 맨얼굴",
     category: "scenario",
+    art: clownApprentice,
     flavor:
       "어느 날, 낯선 사람이 당신에게 말을 걸어옵니다. 얼굴을 유심히 들여다보니, 얼마 전 만났던 광대의 제자가 아니겠습니까. 몰라봤던 그 모습은....",
     conditions: [],
@@ -880,6 +894,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "102",
     name: "극단의 출발",
     category: "scenario",
+    art: actor,
     flavor: "인기를 얻은 배우와 무희는 갑작스러운 행사 의뢰로 성을 떠나 버렸습니다.",
     deckEffect: {
       kind: "batch",
@@ -894,6 +909,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "103",
     name: "성실한 기사",
     category: "scenario",
+    art: knight,
     conditionTag: true,
     conditionsTitle: "[조건] 라운드 종료 시 확인",
     flavor: "당신은 전부터 친분이 있던 기사 한 사람에게 편지를 맡기기로 했습니다.",
@@ -926,6 +942,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "105",
     name: "자리를 비운 기사",
     category: "scenario",
+    art: knight,
     flavor:
       "당신은 오늘 기사에게 다시 편지를 맡기기로 약속했지만, 시간이 되었는데도 나타나지 않습니다. 장소를 잘못 찾은 걸까요....",
     conditions: [],
@@ -955,6 +972,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "108",
     name: "전신 갑옷 기사",
     category: "scenario",
+    art: maskedKnight,
     conditionTag: true,
     conditionsTitle: "[조건] 라운드 종료 시 확인",
     flavor:
@@ -995,6 +1013,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "113",
     name: "혹독한 훈련",
     category: "scenario",
+    art: knight,
     flavor:
       "기사가 러브레터를 가져온 것이 왕의 귀에 들어가 버렸고, 틈을 낼 수 없을 정도로 혹독한 훈련을 받게 된 것 같습니다. 어쩔 수 없이 다른 사람을 찾아볼 수 밖에....",
     conditions: [],
@@ -1004,6 +1023,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "114",
     name: "수완 좋은 여상인",
     category: "scenario",
+    art: merchant,
     conditionTag: true,
     conditionsTitle: "[조건] 라운드 종료 시 확인",
     flavor:
@@ -1045,6 +1065,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "119",
     name: "경건한 여승려",
     category: "scenario",
+    art: priestess,
     conditionTag: true,
     conditionsTitle: "[조건] 라운드 종료 시 확인",
     flavor:
@@ -1091,6 +1112,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "122",
     name: "참으로 불미스러운 일",
     category: "scenario",
+    art: priestess,
     flavor:
       "편지 주선에서 좋은 결과를 얻지 못한 승려는 자신의 부족함이 부끄러워 참회실에 틀어박혀 버렸다고 합니다. 어떻게든 그녀가 기운을 되찾기를 빌며, 당신은 주선을 부탁하기 위해 성 아래의 성당에 방문해 보았습니다.",
     conditions: [],
@@ -1103,6 +1125,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "123",
     name: "안색이 나쁜 수사",
     category: "scenario",
+    art: friar,
     conditionTag: true,
     conditionsTitle: "[조건] 라운드 종료 시 확인",
     flavor: "「하아.... 사정은 알겠으나 제가 할 수 있는 것은 기도하는 일 정도라고나 할까요…….」",
@@ -1151,6 +1174,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "129",
     name: "역부족",
     category: "scenario",
+    art: friar,
     flavor:
       "「아아, 나는 정말.... 성 안에 의지할 수 있는 분이 계시니 그분을 소개해 드리겠습니다.」",
     conditions: [],
@@ -1212,6 +1236,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "136",
     name: "수녀의 참회",
     category: "scenario",
+    art: nun,
     flavor: "「역시 나로선 잘 안 되네!」 수녀는 깊이 참회하고, 다시 승려에게 길을 터 줍니다.",
     deckEffect: {
       kind: "batch",
@@ -1270,6 +1295,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "143",
     name: "어둠을 걸친 자",
     category: "scenario",
+    art: wizardApprentice,
     conditionTag: true,
     conditionsTitle: "[조건] 라운드 종료 시 확인",
     flavor:
@@ -1318,6 +1344,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "148",
     name: "감감무소식",
     category: "scenario",
+    art: wizardApprentice,
     flavor:
       "편지를 맡겨 보긴 했지만 그 제자조차 만날 수 없게 되고 말았습니다. 곤란해진 당신은 마술사와 관계가 있는 것 같은 성 아래 마법약 공방을 찾아가 보기로 합니다.",
     conditions: [],
@@ -1365,6 +1392,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "153",
     name: "수수께끼의 아이",
     category: "scenario",
+    art: archmage15,
     flavor:
       "이상한 아이에게 말을 걸어보니 상상도 못했던 어조의 대답이 돌아왔습니다.「흠, 흥미로운 이야기다. 하지만 이 모습으로는 그다지 도움이 될 수 없다.」 도대체, 이 아이는 누구일까요.",
     conditionsTitle: "라운드 종료 시 확인",
@@ -1434,6 +1462,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "162",
     name: "고민하는 장군",
     category: "scenario",
+    art: general,
     conditionTag: true,
     conditionsTitle: "[조건] 라운드 종료 시 확인",
     flavor: "「나에게는 무리다...」 아무래도 장군에게 러브레터를 전달한다는 임무는 부담이 큰 것 같습니다.",
@@ -1461,6 +1490,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "164",
     name: "떠넘기기",
     category: "scenario",
+    art: ladyGeneral,
     flavor:
       "「이, 이런 것을 건네받으면 나도 곤란해!」 아무래도 장군이 임무를 부하인 여장군에게 떠넘겨 버린 것 같은데, 이 여장군도 일을 제대로 해낼 것 같아 보이지는 않습니다.....",
     deckEffect: { kind: "replace", removeName: "장군", addName: "여장군" },
@@ -1497,6 +1527,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "168",
     name: "표표한 군사",
     category: "scenario",
+    art: tactician,
     flavor: "「이런이런, 오르테가 장군도 야무지지 못하네요. 보고 있을 수만은 없겠는데요.」",
     deckEffect: { kind: "replace", removeName: "장군", addName: "군사" },
     conditionsTitle: "라운드 종료 시 확인",
@@ -1534,6 +1565,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "172",
     name: "우려하는 대신",
     category: "scenario",
+    art: minister,
     conditionTag: true,
     conditionsTitle: "[조건] 라운드 종료 시 확인",
     flavor: "「러브레터 따위.... 개탄스럽구나!」",
@@ -1563,6 +1595,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "173",
     name: "대신의 심복들",
     category: "scenario",
+    art: minister,
     flavor:
       "「안돼! 역시 이몸은 러브레터에 반대다. 이제는 모른다!」 익히 알았듯이 대신은 편지의 전달에 납득이 가지 않았던 모양입니다. 자신을 보좌하는 아들과 딸 쌍둥이에게 떠넘기기로 결정하였습니다. 그 대상은....",
     conditions: [],
@@ -1575,6 +1608,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "174",
     name: "우수한 정무관",
     category: "scenario",
+    art: regentMale,
     flavor:
       "「아무래도 아버지가 폐를 끼친 것 같네. 이 왕국에 러브레터를 보내면 안된다는 법은 없으니...」 갑자기 사근사근한 언행의 남성이 비밀리에 당신을 찾아옵니다. 그는 그렇게 말하며 당신의 편지에 쓱쓱 서명했습니다. 아무래도 무언가 인정받은 것 같아 당신의 가슴이 기대로 두근거립니다.",
     deckEffect: { kind: "replace", removeName: "대신", addName: "정무관남" },
@@ -1613,6 +1647,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "178",
     name: "너그러운 정무관",
     category: "scenario",
+    art: regentFemale,
     conditionTag: true,
     conditionsTitle: "[조건] 라운드 종료 시 확인",
     flavor:
@@ -1661,6 +1696,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "182",
     name: "분주한 여후작",
     category: "scenario",
+    art: marchioness,
     conditionTag: true,
     conditionsTitle: "[조건] 라운드 종료 시 확인",
     flavor:
@@ -1711,6 +1747,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "187",
     name: "여후작의 실책",
     category: "scenario",
+    art: marchioness,
     flavor:
       "편지를 전해 주던 중 대신의 눈총을 받은 여후작은, 지금까지보다 더 많은 정무를 맡게 된 것 같습니다. 「힘이 되어주지 못해 미안하다」는 짧은 전언과 함께 여후작과의 연락은 끊어지고 말았습니다.",
     deckEffect: { kind: "revert", removedName: "여후작", restoreName: "대신" },
@@ -1734,6 +1771,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "188",
     name: "공주님들",
     category: "scenario",
+    art: ROUTE_DEFS.공주.art,
     flavor:
       "공주님이라고 한마디로 말하지만, 이 왕국에는 여러 명의 공주가 있습니다. 물론 자주 입에 오르내리는 것은 맏이인 잉그리드 공주입니다. 하지만 다른 공주들도 저마다 인기가 있습니다. 당신이 좋아하는 사람은 사실....",
     conditions: [],
@@ -1783,6 +1821,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "195",
     name: "높은 산 위에 핀 꽃",
     category: "scenario",
+    art: countess,
     flavor: "당신의 마음을 사로잡은 사람은 공주님과 마찬가지로 성 안에 들어가지 않으면 좀처럼 볼 수 없는 사람 중 하나입니다. 그 사람은....",
     conditions: [],
     choices: [
