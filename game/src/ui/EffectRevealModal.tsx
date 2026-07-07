@@ -32,7 +32,7 @@ export function EffectRevealModal({ reveal, onDismiss }: EffectRevealModalProps)
     if (!reveal?.compare) return;
     const timer = setTimeout(() => setCompareRevealed(true), 650);
     return () => clearTimeout(timer);
-  }, [reveal?.id, reveal?.compare]);
+  }, [reveal?.id]);
 
   if (!reveal) return null;
 
@@ -59,13 +59,13 @@ export function EffectRevealModal({ reveal, onDismiss }: EffectRevealModalProps)
           <div className="reveal-modal__row">
             <div className="reveal-modal__col">
               <p className="reveal-modal__caption">{reveal.actorDisplayName ?? "사용자"}의 카드</p>
-              <div key={`actor-${compareRevealed}`} className="reveal-modal__flip-card">
+              <div className={`reveal-modal__flip-card${compareRevealed ? " reveal-modal__flip-card--revealed" : ""}`}>
                 <Card name={actorCard} size="md" faceDown={!compareRevealed} />
               </div>
             </div>
             <div className="reveal-modal__col">
               <p className="reveal-modal__caption">{reveal.targetDisplayName}의 카드</p>
-              <div key={`target-${compareRevealed}`} className="reveal-modal__flip-card">
+              <div className={`reveal-modal__flip-card${compareRevealed ? " reveal-modal__flip-card--revealed" : ""}`}>
                 <Card name={targetCard} size="md" faceDown={!compareRevealed} />
               </div>
             </div>

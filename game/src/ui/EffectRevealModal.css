@@ -30,7 +30,7 @@
   font-weight: 700;
 }
 
-.reveal-modal__flip-card {
+.reveal-modal__flip-card--revealed {
   animation: reveal-pop 180ms ease-out;
 }
 
