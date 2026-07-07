@@ -112,6 +112,20 @@ export function beginTurn(state: GameState): GameState {
   const player = draft.players[draft.currentPlayerIndex];
   player.protected = false;
 
+  if (
+    draft.activeIdentities?.[player.id] === "033" &&
+    !draft.identityRoundUsed?.[`${player.id}:033`] &&
+    draft.hiddenRemovedCard &&
+    player.hand[0] &&
+    cardRank(draft.hiddenRemovedCard.name) > cardRank(player.hand[0].name)
+  ) {
+    const previous = player.hand[0];
+    player.hand[0] = draft.hiddenRemovedCard;
+    draft.hiddenRemovedCard = previous;
+    draft.identityRoundUsed = { ...(draft.identityRoundUsed ?? {}), [`${player.id}:033`]: true };
+    log(draft, `${player.displayName}: 「농부/양치기」 효과로 비공개 카드와 손패를 교환합니다.`);
+  }
+
   const drawn = drawCardFor(draft, player.id);
   if (draft.deck.length === 0) {
     draft.deckExhaustedThisTurn = true;
@@ -157,7 +171,7 @@ export function chooseCardToPlay(state: GameState, cardInstanceId: string): Game
   }
   log(draft, `${player.displayName}: 「${card.name}」 카드를 냅니다.`);
 
-  const upgrade = resolveUpgradeTier(draft, card.name);
+  const upgrade = resolveUpgradeTier(draft, card.name, playerId);
   if (needsTarget(card.name, upgrade)) {
     const eligible = targetsFor(draft, playerId, card.name, upgrade);
     draft.pendingDecision = {
@@ -185,6 +199,7 @@ export function chooseTarget(state: GameState, targetId: string): GameState {
   const { playerId, cardName } = draft.pendingDecision;
 
   if (needsGuess(cardName)) {
+    const upgrade = resolveUpgradeTier(draft, cardName, playerId);
     draft.pendingDecision = {
       kind: "guessCard",
       playerId,
@@ -192,6 +207,8 @@ export function chooseTarget(state: GameState, targetId: string): GameState {
       cardName,
       targetId,
       options: guessOptionsFor(cardName, draft),
+      guesses: [],
+      maxGuesses: cardName === "경비병" && upgrade ? 2 : 1,
     };
     return draft;
   }
@@ -204,8 +221,17 @@ export function chooseGuess(state: GameState, guess: GuessOption): GameState {
   if (!draft.pendingDecision || draft.pendingDecision.kind !== "guessCard") {
     throw new Error("현재 카드를 추측할 차례가 아닙니다.");
   }
-  const { targetId } = draft.pendingDecision;
-  return finishResolution(draft, { targetId, guess });
+  const decision = draft.pendingDecision;
+  const guesses = [...(decision.guesses ?? []), guess];
+  if ((decision.maxGuesses ?? 1) > guesses.length) {
+    draft.pendingDecision = {
+      ...decision,
+      guesses,
+      options: decision.options.filter((option) => option !== guess),
+    };
+    return draft;
+  }
+  return finishResolution(draft, { targetId: decision.targetId, guess: guesses.join("|") as GuessOption });
 }
 
 function finishResolution(
@@ -216,8 +242,34 @@ function finishResolution(
   const playerId = draft.resolvingPlayerId;
   if (!card || !playerId) throw new Error("진행 중인 카드가 없습니다.");
 
-  const upgrade = resolveUpgradeTier(draft, card.name);
-  applyEffect(draft, { actingPlayerId: playerId, card, upgrade, ...extra });
+  let effectCard = card;
+  let effectExtra = extra;
+  let upgrade = resolveUpgradeTier(draft, card.name, playerId);
+  const actorBeforeEffect = getPlayer(draft, playerId);
+  if (draft.activeIdentities?.[playerId] === "036" && !draft.identityRoundUsed?.[`${playerId}:036`]) {
+    const reusable = draft.players
+      .flatMap((p) => p.discardPile)
+      .filter((c) => c.name !== card.name && c.name !== "공주" && c.name !== "왕자" && c.name !== "공주둘째" && c.name !== "공주셋째" && c.name !== "귀족영애")
+      .sort((a, b) => cardRank(b.name) - cardRank(a.name));
+    const replacement = reusable.find((c) => {
+      const candidateUpgrade = resolveUpgradeTier(draft, c.name, playerId);
+      if (!needsTarget(c.name, candidateUpgrade)) return true;
+      return targetsFor(draft, playerId, c.name, candidateUpgrade).length > 0;
+    });
+    if (replacement && cardRank(replacement.name) >= cardRank(card.name)) {
+      const candidateUpgrade = resolveUpgradeTier(draft, replacement.name, playerId);
+      const targetId = needsTarget(replacement.name, candidateUpgrade)
+        ? targetsFor(draft, playerId, replacement.name, candidateUpgrade)[0]
+        : undefined;
+      const guess = needsGuess(replacement.name) ? guessOptionsFor(replacement.name, draft)[0] : undefined;
+      effectCard = replacement;
+      effectExtra = { targetId, guess };
+      upgrade = candidateUpgrade;
+      draft.identityRoundUsed = { ...(draft.identityRoundUsed ?? {}), [`${playerId}:036`]: true };
+      log(draft, `${actorBeforeEffect.displayName}: 「학생/여학생」 효과로 「${card.name}」 대신 버림 더미의 「${replacement.name}」 효과를 사용합니다.`);
+    }
+  }
+  applyEffect(draft, { actingPlayerId: playerId, card: effectCard, upgrade, ...effectExtra });
 
   const actor = getPlayer(draft, playerId);
   if (!actor.eliminated) {
@@ -249,6 +301,16 @@ function afterTurnResolved(draft: GameState, endedTurnPlayerId?: string): GameSt
   }
   if (draft.deckExhaustedThisTurn) {
     return endRound(draft, "deckExhausted");
+  }
+  if (
+    actor &&
+    !actor.eliminated &&
+    draft.activeIdentities?.[actor.id] === "037" &&
+    !draft.identityGameUsed?.[`${actor.id}:037`]
+  ) {
+    draft.identityGameUsed = { ...(draft.identityGameUsed ?? {}), [`${actor.id}:037`]: true };
+    log(draft, `${actor.displayName}: 「여행자/순례자」 효과로 한 번 더 차례를 가집니다.`);
+    return beginTurn(draft);
   }
   return advanceTurn(draft);
 }

@@ -125,6 +125,17 @@ const CHARACTER_ACHIEVEMENTS: Partial<
       label: WIZARD_APPRENTICE.tier2.abilityText,
     },
   ],
+  경비병알리오스: [{ threshold: 3, cardName: "경비병", label: "한 번에 서로 다른 숫자 2개를 추측" }],
+  마을소녀미란다: [{ threshold: 3, cardName: "마을소녀", label: "라운드 종료 숫자가 9로 변경" }],
+  배우파비오: [{ threshold: 3, cardName: "배우", label: "라운드 종료 숫자가 2로 변경" }],
+  무희미나: [{ threshold: 3, cardName: "무희", label: "라운드 종료 숫자가 7로 변경" }],
+  여상인수잔나: [{ threshold: 3, cardName: "상인", label: "비교 대상 카드가 5 이하이면 탈락" }],
+  수사알베르트: [{ threshold: 2, cardName: "수사", label: "수사 공개 시 승려 1장을 수사 1장으로 교체" }],
+  수녀로베리아: [{ threshold: 3, cardName: "수녀", label: "사용 후 다음 자기 차례까지 보호" }],
+  마녀베아트릭스: [{ threshold: 3, cardName: "마녀", label: "분배 결과를 자신에게 유리하게 정함" }],
+  대마도사20알비스: [{ threshold: 3, cardName: "대마도사(20세)", label: "효과 문구가 '당신은 탈락합니다'로 변경" }],
+  정무관오즈릭: [{ threshold: 3, cardName: "정무관(남자)", label: "상대를 지목해 탈락시킬 수 있음" }],
+  정무관오즈리나: [{ threshold: 3, cardName: "정무관(여자)", label: "다른 플레이어가 가능한 한 이 플레이어를 대상으로 선택" }],
 };
 
 /** `clockTokens` (the session's elapsed [시계]) enables the "남은 시간 (N주)"

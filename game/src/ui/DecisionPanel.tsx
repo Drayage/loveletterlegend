@@ -54,7 +54,9 @@ export function DecisionPanel({ state, decision, remaining, onChooseTarget, onCh
           <p className="decision-panel__prompt">
             {isRecruit
               ? "상대가 들고 있을 카드의 숫자를 추측하세요 (0과 1 제외)."
-              : "상대가 들고 있을 카드를 추측하세요 (「경비병」 제외)."}
+              : decision.maxGuesses && decision.maxGuesses > 1
+                ? `${decision.guesses?.length ?? 0}/${decision.maxGuesses} 선택. 상대가 들고 있을 카드 2개를 추측하세요 (「경비병」 제외).`
+                : "상대가 들고 있을 카드를 추측하세요 (「경비병」 제외)."}
           </p>
           <div className="decision-panel__guess-grid">
             {sortedOptions.map((guess) => {

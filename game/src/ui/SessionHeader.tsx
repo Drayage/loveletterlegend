@@ -122,41 +122,41 @@ const EFFECT_RULES: Partial<
   Record<CharacterSlotId, Array<{ threshold: number; result: string; cardName?: string; implemented?: boolean }>>
 > = {
   경비병알리오스: [
-    { threshold: 3, result: "한 번에 서로 다른 숫자 2개를 추측", cardName: "경비병" },
+    { threshold: 3, result: "한 번에 서로 다른 숫자 2개를 추측", cardName: "경비병", implemented: true },
   ],
   마을소녀미란다: [
-    { threshold: 3, result: "라운드 종료 숫자가 9로 변경", cardName: "마을소녀" },
+    { threshold: 3, result: "라운드 종료 숫자가 9로 변경", cardName: "마을소녀", implemented: true },
   ],
   배우파비오: [
-    { threshold: 3, result: "라운드 종료 숫자가 2로 변경", cardName: "배우" },
+    { threshold: 3, result: "라운드 종료 숫자가 2로 변경", cardName: "배우", implemented: true },
   ],
   무희미나: [
-    { threshold: 3, result: "라운드 종료 숫자가 7로 변경", cardName: "무희" },
+    { threshold: 3, result: "라운드 종료 숫자가 7로 변경", cardName: "무희", implemented: true },
   ],
   여상인수잔나: [
-    { threshold: 3, result: "비교 대상 카드가 5 이하이면 탈락", cardName: "상인" },
+    { threshold: 3, result: "비교 대상 카드가 5 이하이면 탈락", cardName: "상인", implemented: true },
   ],
   수사알베르트: [
-    { threshold: 2, result: "승려 1장을 수사 1장으로 교체", cardName: "수사" },
+    { threshold: 2, result: "수사 공개 시 승려 1장을 수사 1장으로 교체", cardName: "수사", implemented: true },
   ],
   수녀로베리아: [
-    { threshold: 3, result: "사용 후 다음 자기 차례까지 보호", cardName: "수녀" },
+    { threshold: 3, result: "사용 후 다음 자기 차례까지 보호", cardName: "수녀", implemented: true },
   ],
   마술사의도제: [
     { threshold: WIZARD_APPRENTICE.tier1.threshold, result: WIZARD_APPRENTICE.tier1.abilityText, cardName: "마술사", implemented: true },
     { threshold: WIZARD_APPRENTICE.tier2.threshold, result: WIZARD_APPRENTICE.tier2.abilityText, cardName: "마술사", implemented: true },
   ],
   마녀베아트릭스: [
-    { threshold: 3, result: "분배 결과를 원하는 대로 정함", cardName: "마녀" },
+    { threshold: 3, result: "분배 결과를 자신에게 유리하게 정함", cardName: "마녀", implemented: true },
   ],
   대마도사20알비스: [
-    { threshold: 3, result: "효과 문구가 '당신은 탈락합니다'로 변경", cardName: "대마도사(20세)" },
+    { threshold: 3, result: "효과 문구가 '당신은 탈락합니다'로 변경", cardName: "대마도사(20세)", implemented: true },
   ],
   정무관오즈릭: [
-    { threshold: 3, result: "탈락하지 않음 / 상대 탈락 중 하나를 선택", cardName: "정무관(남자)" },
+    { threshold: 3, result: "상대를 지목해 탈락시킬 수 있음", cardName: "정무관(남자)", implemented: true },
   ],
   정무관오즈리나: [
-    { threshold: 3, result: "다른 플레이어가 가능한 한 이 카드를 대상으로 선택", cardName: "정무관(여자)" },
+    { threshold: 3, result: "다른 플레이어가 가능한 한 이 플레이어를 대상으로 선택", cardName: "정무관(여자)", implemented: true },
   ],
 };
 

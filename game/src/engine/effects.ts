@@ -1,5 +1,6 @@
 import type { CardInstance, CardName, CharacterUpgradeTier, GameState, GuessOption, PlayerState, RankGuess } from "./types";
 import { nextLogId } from "./clone";
+import { resolveUpgradeTier } from "./upgrades";
 
 export function log(draft: GameState, message: string): void {
   draft.log.push({ id: nextLogId(), message });
@@ -107,6 +108,10 @@ export function targetsFor(
   cardName: CardName,
   upgrade?: CharacterUpgradeTier
 ): string[] {
+  const regentTarget = alivePlayers(draft).find(
+    (p) => p.id !== actingPlayerId && resolveUpgradeTier(draft, "정무관여", p.id)
+  );
+  if (regentTarget && cardName !== "정무관남") return [regentTarget.id];
   switch (cardName) {
     case "경비병":
     case "광대":
@@ -124,6 +129,8 @@ export function targetsFor(
     case "대마도사15":
     case "대마도사20":
       return eligibleTargets(draft, actingPlayerId, false);
+    case "정무관남":
+      return upgrade ? eligibleTargets(draft, actingPlayerId, false) : [];
     case "마술사":
       // 「마술사의 도제」 편지 5개 이상 개정판: 대상 없이 스스로 카드를 교체.
       if (upgrade === "tier2") return [];
@@ -135,6 +142,7 @@ export function targetsFor(
 
 export function needsTarget(cardName: CardName, upgrade?: CharacterUpgradeTier): boolean {
   if (cardName === "마술사" && upgrade === "tier2") return false;
+  if (cardName === "정무관남" && upgrade) return true;
   return (
     cardName === "경비병" ||
     cardName === "광대" ||
@@ -192,6 +200,11 @@ export interface ResolveArgs {
 }
 
 function guessHits(cardName: CardName, targetCardName: CardName, guess: GuessOption): boolean {
+  if (String(guess).includes("|")) {
+    return String(guess)
+      .split("|")
+      .some((single) => guessHits(cardName, targetCardName, single as GuessOption));
+  }
   if (cardName === "신병") {
     const rank = cardRank(targetCardName);
     return rank >= 2 && String(rank) === guess;
@@ -199,10 +212,23 @@ function guessHits(cardName: CardName, targetCardName: CardName, guess: GuessOpt
   return targetCardName === guess;
 }
 
+function cancelByIdentity(draft: GameState, card: CardInstance, actingPlayerId: string, targetId?: string): boolean {
+  if (!targetId || targetId === actingPlayerId) return false;
+  if (draft.activeIdentities?.[targetId] !== "034") return false;
+  const key = `${targetId}:034`;
+  if (draft.identityRoundUsed?.[key]) return false;
+  const target = getPlayer(draft, targetId);
+  draft.identityRoundUsed = { ...(draft.identityRoundUsed ?? {}), [key]: true };
+  log(draft, `${target.displayName}: 「사냥꾼/약초꾼」 효과로 「${card.name}」 효과를 취소합니다.`);
+  setPlayOutcome(draft, card.instanceId, `${target.displayName}이(가) 정체 능력으로 효과 취소`);
+  return true;
+}
+
 export function applyEffect(draft: GameState, args: ResolveArgs): void {
   const { actingPlayerId, card, targetId, guess, upgrade } = args;
   const actor = getPlayer(draft, actingPlayerId);
   draft.sessionEvents?.push({ type: "cardPlayed", actingPlayerId, cardName: card.name });
+  if (cancelByIdentity(draft, card, actingPlayerId, targetId)) return;
 
   switch (card.name) {
     case "경비병":
@@ -214,7 +240,7 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       const target = getPlayer(draft, targetId);
       const revealedCard = target.hand.find((c) => guessHits(card.name, c.name, guess));
       const hit = Boolean(revealedCard);
-      log(draft, `${actor.displayName}: ${target.displayName}을(를) 지목하고 「${guess}」(이)라고 추측합니다.`);
+      log(draft, `${actor.displayName}: ${target.displayName}을(를) 지목하고 「${String(guess).replace("|", ", ")}」(이)라고 추측합니다.`);
       draft.sessionEvents?.push({ type: "guardGuessResolved", actingPlayerId, hit, cardName: card.name });
       draft.lastGuessEffect = {
         id: nextLogId(),
@@ -227,10 +253,10 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       };
       if (hit) {
         eliminatePlayer(draft, targetId, `「${card.name}」 추측 적중`);
-        setPlayOutcome(draft, card.instanceId, `「${guess}」 추측 적중! ${target.displayName} 탈락`);
+        setPlayOutcome(draft, card.instanceId, `「${String(guess).replace("|", ", ")}」 추측 적중! ${target.displayName} 탈락`);
       } else {
         log(draft, `${target.displayName}: 추측이 빗나갔습니다.`);
-        setPlayOutcome(draft, card.instanceId, `「${guess}」 추측 → 빗나감`);
+        setPlayOutcome(draft, card.instanceId, `「${String(guess).replace("|", ", ")}」 추측 → 빗나감`);
       }
       return;
     }
@@ -354,7 +380,8 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       const target = getPlayer(draft, targetId);
       const targetCard = target.hand[0];
       log(draft, `${actor.displayName}: 「상인」 효과로 ${target.displayName}을(를) 지목합니다.`);
-      if (targetCard && cardRank(targetCard.name) <= 3) {
+      const threshold = upgrade ? 5 : 3;
+      if (targetCard && cardRank(targetCard.name) <= threshold) {
         draft.sessionEvents?.push({
           type: "compareResolved",
           actingPlayerId,
@@ -362,8 +389,8 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
           cardName: card.name,
           outcome: "targetLoses",
         });
-        eliminatePlayer(draft, targetId, "「상인」 효과 (손패 숫자 3 이하)");
-        setPlayOutcome(draft, card.instanceId, `${target.displayName} 탈락 (숫자 3 이하)`);
+        eliminatePlayer(draft, targetId, `「상인」 효과 (손패 숫자 ${threshold} 이하)`);
+        setPlayOutcome(draft, card.instanceId, `${target.displayName} 탈락 (숫자 ${threshold} 이하)`);
       } else {
         draft.sessionEvents?.push({
           type: "compareResolved",
@@ -372,8 +399,8 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
           cardName: card.name,
           outcome: "tie",
         });
-        log(draft, `${target.displayName}의 손패는 숫자 3을 초과해 아무 일도 일어나지 않습니다.`);
-        setPlayOutcome(draft, card.instanceId, `${target.displayName}에게 효과 없음 (숫자 4 이상)`);
+        log(draft, `${target.displayName}의 손패는 숫자 ${threshold}을 초과해 아무 일도 일어나지 않습니다.`);
+        setPlayOutcome(draft, card.instanceId, `${target.displayName}에게 효과 없음 (숫자 ${threshold + 1} 이상)`);
       }
       return;
     }
@@ -406,6 +433,10 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
         guess: reusedGuess,
         upgrade,
       });
+      if (card.name === "수녀" && upgrade) {
+        actor.protected = true;
+        log(draft, `${actor.displayName}: 강화된 「수녀」 효과로 다음 차례까지 보호받습니다.`);
+      }
       return;
     }
     case "마녀": {
@@ -418,12 +449,21 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
         const j = Math.floor(Math.random() * (i + 1));
         [pooled[i], pooled[j]] = [pooled[j], pooled[i]];
       }
-      for (const p of alivePlayers(draft)) {
-        const dealt = pooled.pop();
-        if (dealt) p.hand.push(dealt);
+      const alive = alivePlayers(draft);
+      if (upgrade) {
+        pooled.sort((a, b) => cardRank(a.name) - cardRank(b.name));
+        for (const p of alive) {
+          const dealt = p.id === actingPlayerId ? pooled.pop() : pooled.shift();
+          if (dealt) p.hand.push(dealt);
+        }
+      } else {
+        for (const p of alive) {
+          const dealt = pooled.pop();
+          if (dealt) p.hand.push(dealt);
+        }
       }
       log(draft, `${actor.displayName}: 「마녀」 효과로 모든 손패를 모아 무작위로 다시 나눕니다.`);
-      setPlayOutcome(draft, card.instanceId, "모든 손패 무작위 재분배");
+      setPlayOutcome(draft, card.instanceId, upgrade ? "모든 손패 재분배 (자신에게 높은 카드)" : "모든 손패 무작위 재분배");
       return;
     }
     case "대마도사15": {
@@ -445,6 +485,11 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
         return;
       }
       const target = getPlayer(draft, targetId);
+      if (upgrade) {
+        eliminatePlayer(draft, targetId, "강화된 「대마도사(20세)」 효과");
+        setPlayOutcome(draft, card.instanceId, `${target.displayName} 탈락`);
+        return;
+      }
       const taken = target.hand.pop();
       if (taken) actor.hand.push(taken);
       if (!target.eliminated) target.hand.push({ instanceId: nextLogId(), name: "쥐" });
@@ -498,6 +543,11 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
     }
     case "정무관남":
     case "정무관여": {
+      if (card.name === "정무관남" && upgrade && targetId) {
+        eliminatePlayer(draft, targetId, "강화된 「정무관(남자)」 효과");
+        setPlayOutcome(draft, card.instanceId, `${getPlayer(draft, targetId).displayName} 탈락`);
+        return;
+      }
       actor.immuneThisRound = true;
       log(draft, `${actor.displayName}: 「${card.name}」 효과로 이번 라운드 동안 탈락하지 않습니다.`);
       setPlayOutcome(draft, card.instanceId, "이번 라운드 탈락 면역");
@@ -736,9 +786,10 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
  * 않는다 (실카드 문구가 "비교"만 명시). */
 export function effectiveCardRank(draft: GameState, playerId: string, name: CardName): number {
   let base = cardRank(name);
-  if (name === "마을소녀") base = 7;
-  if (name === "배우") base = 0;
-  if (name === "무희") base = 9;
+  const upgrade = resolveUpgradeTier(draft, name, playerId);
+  if (name === "마을소녀") base = upgrade ? 9 : 7;
+  if (name === "배우") base = upgrade ? 2 : 0;
+  if (name === "무희") base = upgrade ? 7 : 9;
   const player = draft.players.find((p) => p.id === playerId);
   if (player?.discardPile.some((c) => c.name === "집사")) base += 2;
   return draft.activeIdentities?.[playerId] === "035" ? base + 2 : base;

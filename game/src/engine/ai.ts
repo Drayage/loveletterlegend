@@ -62,6 +62,17 @@ function bestGuess(dist: Record<CardName, number>): { name: CardName; p: number 
   return best ?? { name: "광대", p: 0 };
 }
 
+function bestAllowedGuess(dist: Record<CardName, number>, options?: GuessOption[]): CardName {
+  const allowed = new Set(options?.filter((o): o is CardName => typeof o === "string" && o in dist));
+  let best: { name: CardName; p: number } | null = null;
+  for (const name of Object.keys(dist) as CardName[]) {
+    if (name === "경비병") continue;
+    if (options && !allowed.has(name)) continue;
+    if (!best || dist[name] > best.p) best = { name, p: dist[name] };
+  }
+  return best?.name ?? (options?.find((o): o is CardName => typeof o === "string" && o in dist) ?? "광대");
+}
+
 export function chooseGuessAI(state: GameState, playerId: string): GuessOption {
   if (state.pendingDecision?.kind === "guessCard" && state.pendingDecision.cardName === "신병") {
     const dist = estimateUnseenDistribution(state, playerId);
@@ -78,6 +89,7 @@ export function chooseGuessAI(state: GameState, playerId: string): GuessOption {
     return best?.rank ?? "2";
   }
   const dist = estimateUnseenDistribution(state, playerId);
+  if (state.pendingDecision?.kind === "guessCard") return bestAllowedGuess(dist, state.pendingDecision.options);
   return bestGuess(dist).name;
 }
 

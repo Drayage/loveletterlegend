@@ -143,6 +143,7 @@ export interface SessionState {
   /** playerId -> 선택한 정체의 실제 이름/초상. Rules still key off
    * playerIdentities' 033~038 ids; this is for display and permanence. */
   playerIdentityFaces: Record<string, { identityId: string; variantId: IdentityVariantId; name: string; art: string } | null>;
+  identityGameUsed: Record<string, boolean>;
   /** 탈락했지만 아직 「정체」가 없는 플레이어가 라운드 종료 시 하나를 골라야
    * 하는 차례 -- see chooseIdentity. */
   pendingIdentityChoice: { eligiblePlayerId: string; options: string[] } | null;
@@ -254,6 +255,7 @@ export function startSession(playerConfigs: PlayerConfig[], initialRoute: Route 
     identityPool: [],
     playerIdentities,
     playerIdentityFaces,
+    identityGameUsed: {},
     pendingIdentityChoice: null,
     festivalDeck: [],
     removedBaseCardNames: [],
@@ -499,6 +501,7 @@ function applyRevealSideEffects(
 
 function applySessionRoundEnd(session: SessionState): SessionState {
   const next: SessionState = structuredClone(session);
+  next.identityGameUsed = { ...next.identityGameUsed, ...(next.round.identityGameUsed ?? {}) };
   const result = next.round.roundResult!;
   const winnerId = result.winnerId;
   const winnerCard = winnerId ? result.revealedHands[winnerId] : null;
@@ -1018,18 +1021,34 @@ function resolveEnding(
   return next;
 }
 
-function resolveActiveUpgrades(session: SessionState): Partial<Record<CardName, CharacterUpgradeTier>> {
+function upgradesForPlayer(session: SessionState, playerId: string): Partial<Record<CardName, CharacterUpgradeTier>> {
   const upgrades: Partial<Record<CardName, CharacterUpgradeTier>> = {};
-  // v1: only the human's own progress changes what their card actually
-  // does/shows; the AI's progress still counts toward the ending algorithm
-  // via letterTokens either way (see plan's noted asymmetry).
-  const humanId = session.playerConfigs.find((p) => !p.isAI)?.id;
-  if (humanId) {
-    const progress = session.letterTokens["마술사의도제"][humanId] ?? 0;
-    if (progress >= WIZARD_APPRENTICE.tier2.threshold) upgrades["마술사"] = "tier2";
-    else if (progress >= WIZARD_APPRENTICE.tier1.threshold) upgrades["마술사"] = "tier1";
-  }
+  const setTier1 = (slot: CharacterSlotId, card: CardName, threshold: number) => {
+    if ((session.letterTokens[slot]?.[playerId] ?? 0) >= threshold) upgrades[card] = "tier1";
+  };
+  setTier1("경비병알리오스", "경비병", 3);
+  setTier1("마을소녀미란다", "마을소녀", 3);
+  setTier1("배우파비오", "배우", 3);
+  setTier1("무희미나", "무희", 3);
+  setTier1("여상인수잔나", "상인", 3);
+  setTier1("수녀로베리아", "수녀", 3);
+  setTier1("마녀베아트릭스", "마녀", 3);
+  setTier1("대마도사20알비스", "대마도사20", 3);
+  setTier1("정무관오즈릭", "정무관남", 3);
+  setTier1("정무관오즈리나", "정무관여", 3);
+  const wizardProgress = session.letterTokens["마술사의도제"][playerId] ?? 0;
+  if (wizardProgress >= WIZARD_APPRENTICE.tier2.threshold) upgrades["마술사"] = "tier2";
+  else if (wizardProgress >= WIZARD_APPRENTICE.tier1.threshold) upgrades["마술사"] = "tier1";
   return upgrades;
+}
+
+function resolveActiveUpgradesByPlayer(session: SessionState): Record<string, Partial<Record<CardName, CharacterUpgradeTier>>> {
+  return Object.fromEntries(session.playerConfigs.map((cfg) => [cfg.id, upgradesForPlayer(session, cfg.id)]));
+}
+
+function resolveHumanActiveUpgrades(session: SessionState): Partial<Record<CardName, CharacterUpgradeTier>> {
+  const humanId = session.playerConfigs.find((p) => !p.isAI)?.id;
+  return humanId ? upgradesForPlayer(session, humanId) : {};
 }
 
 /** 이전 라운드에서 승리한 플레이어가 새로운 라운드의 시작 플레이어(선플레이어)가
@@ -1098,7 +1117,8 @@ export function beginNextRound(session: SessionState, route: Route, activeOption
   // 라운드 종료 이벤트와 순서가 섞이지 않도록 여기(다음 라운드가 실제로
   // 시작되는 시점)에서만 처리한다.
   applyRevealSideEffects(next, resolveArchiveConditions(next, "roundStart"));
-  const upgrades = resolveActiveUpgrades(next);
+  const upgradesByPlayer = resolveActiveUpgradesByPlayer(next);
+  const upgrades = resolveHumanActiveUpgrades(next);
   const activeIdentities: Record<string, string> = {};
   for (const [pid, identityId] of Object.entries(next.playerIdentities)) {
     if (identityId) activeIdentities[pid] = identityId;
@@ -1129,7 +1149,10 @@ export function beginNextRound(session: SessionState, route: Route, activeOption
   next.round = {
     ...setupRound(next.playerConfigs, leaderId, roundExtraDeckCardNames, roundRemovedBaseCardNames),
     activeCardUpgrades: upgrades,
+    activeCardUpgradesByPlayer: upgradesByPlayer,
     activeIdentities,
+    identityRoundUsed: {},
+    identityGameUsed: { ...next.identityGameUsed },
     activeFestivalCardId,
     sessionEvents: [],
   };

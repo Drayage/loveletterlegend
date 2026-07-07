@@ -9,11 +9,11 @@ interface IdentityChoiceModalProps {
 }
 
 const IDENTITY_USAGE_STATUS: Record<string, string> = {
-  "033": "구현 필요: 자기 차례 시작 시 손패와 비공개 카드를 교환하는 선택 UI가 아직 없습니다.",
-  "034": "구현 필요: 자신에게 온 효과를 취소할지 묻는 선택 UI가 아직 없습니다.",
+  "033": "자동 적용: 자기 차례 시작 시 비공개 카드가 더 높으면 손패와 교환합니다.",
+  "034": "자동 적용: 자신을 대상으로 한 카드 효과를 라운드 중 1회 취소합니다.",
   "035": "자동 적용: 기사 비교와 라운드 종료 숫자 판정에 손패 숫자 +2가 적용됩니다.",
-  "036": "구현 필요: 플레이 효과를 버림 더미 효과로 바꾸는 선택 UI가 아직 없습니다.",
-  "037": "구현 필요: 게임 중 1회 추가 차례를 받을지 묻는 선택 UI가 아직 없습니다.",
+  "036": "자동 적용: 라운드 중 1회, 낸 카드보다 좋은 버림 더미 효과가 있으면 대체합니다.",
+  "037": "자동 적용: 게임 중 1회, 차례 종료 후 바로 한 번 더 차례를 가집니다.",
   "038": "즉시 적용: 선택 직후 편지 2개를 배치하거나 이동하는 화면이 열립니다.",
 };
 
@@ -35,7 +35,7 @@ export function IdentityChoiceModal({ options, onChoose }: IdentityChoiceModalPr
               <div key={id} className="identity-choice__card">
                 <span className="identity-choice__name">{seed.name}</span>
                 <span className="identity-choice__ability">{seed.flavor}</span>
-                <span className={id === "035" || id === "038" ? "identity-choice__status" : "identity-choice__status identity-choice__status--pending"}>
+                <span className="identity-choice__status">
                   {IDENTITY_USAGE_STATUS[id]}
                 </span>
                 <div className="identity-choice__variants">

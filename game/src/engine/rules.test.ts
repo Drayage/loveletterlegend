@@ -188,6 +188,44 @@ describe("Love Letter engine", () => {
     expect(state.players[0].eliminated).toBe(true);
     expect(state.players[1].eliminated).toBe(false);
   });
+
+  it("034 「사냥꾼/약초꾼」 cancels one targeted effect per round", () => {
+    const state = knightMatchupState({ p1: "034" });
+    applyEffect(state, { actingPlayerId: "p2", card: { instanceId: "b", name: "기사" }, targetId: "p1" });
+    expect(state.players[0].eliminated).toBe(false);
+    expect(state.players[1].eliminated).toBe(false);
+    expect(state.identityRoundUsed?.["p1:034"]).toBe(true);
+  });
+
+  it("upgraded 경비병 accepts two guesses and hits if either one matches", () => {
+    let state = setupRound(PLAYERS);
+    state.activeCardUpgradesByPlayer = { p1: { 경비병: "tier1" } };
+    state.players[0].hand = [
+      { instanceId: "g1", name: "경비병" },
+      { instanceId: "g2", name: "광대" },
+    ];
+    state.players[1].hand = [{ instanceId: "t1", name: "기사" }];
+    state.currentPlayerIndex = 0;
+    state.pendingDecision = { kind: "playCard", playerId: "p1", options: state.players[0].hand };
+
+    state = chooseCardToPlay(state, "g1");
+    expect(state.pendingDecision?.kind).toBe("chooseTarget");
+    state = chooseTarget(state, "p2");
+    expect(state.pendingDecision?.kind).toBe("guessCard");
+    state = chooseGuess(state, "광대");
+    expect(state.pendingDecision?.kind).toBe("guessCard");
+    state = chooseGuess(state, "기사");
+    expect(state.players[1].eliminated).toBe(true);
+  });
+
+  it("upgraded 상인 eliminates targets with rank 5 or lower", () => {
+    const state = knightMatchupState();
+    state.activeCardUpgradesByPlayer = { p2: { 상인: "tier1" } };
+    state.players[0].hand = [{ instanceId: "w", name: "마술사" }];
+    state.players[1].hand = [{ instanceId: "m", name: "상인" }];
+    applyEffect(state, { actingPlayerId: "p2", card: { instanceId: "m", name: "상인" }, targetId: "p1", upgrade: "tier1" });
+    expect(state.players[0].eliminated).toBe(true);
+  });
 });
 
 describe("039 「역사 5」축제 덱 -- 덱 소진 시 승자 결정 규칙 대체", () => {

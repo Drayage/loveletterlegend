@@ -116,6 +116,8 @@ export type PendingDecision =
       cardName: CardName;
       targetId: string;
       options: GuessOption[];
+      guesses?: GuessOption[];
+      maxGuesses?: number;
     };
 
 export interface RevealInfo {
@@ -224,11 +226,13 @@ export interface GameState {
    * know about sessions (e.g. rules.test.ts) -- everything defaults to
    * base-card behavior when this is undefined. */
   activeCardUpgrades?: Partial<Record<CardName, CharacterUpgradeTier>>;
+  activeCardUpgradesByPlayer?: Record<string, Partial<Record<CardName, CharacterUpgradeTier>>>;
   /** 032 「역사 4」로 배정된 「정체」 카드 id, playerId별 (see
    * engine/session.ts's playerIdentities). Only 035's own [지속] +2 순위
-   * 보정이 이걸 참조한다 (see effects.ts's effectiveCardRank) -- 나머지
-   * 5장의 능력은 v1에서 flavor 텍스트만 표시되고 미연결. */
+   * 보정이 이걸 참조한다 (see effects.ts's effectiveCardRank). */
   activeIdentities?: Record<string, string>;
+  identityRoundUsed?: Record<string, boolean>;
+  identityGameUsed?: Record<string, boolean>;
   /** 039 「역사 5」가 공개하면 매 라운드 시작시 뽑는 "축제 덱" 카드 id
    * (040~047) -- 그 라운드의 덱 소진 승자 결정 규칙을 바꾼다 (see
    * rules.ts's endRound). 종료 시 engine/session.ts가 세션의 festivalDeck
