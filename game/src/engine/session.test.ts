@@ -1322,6 +1322,7 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
       // test's technique) to remove it from the live archive.
       const card053 = session.storyArchive.find((c) => c.id === "053")!;
       card053.successTokens = 1;
+      session.roundEndEligibleArchiveIds = Object.keys(session.archiveHistory);
       session.pendingArchivePlacement = { eligiblePlayerId: "p1" };
       session = placeArchiveToken(session, "p1", "053", "성공");
 

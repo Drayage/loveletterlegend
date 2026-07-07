@@ -945,6 +945,7 @@ export default function App() {
         humanNeedsArchivePlacement && (
           <ArchiveTokenModal
             archive={session.storyArchive}
+            eligibleArchiveIds={session.roundEndEligibleArchiveIds}
             onPlace={handlePlaceArchiveToken}
             onSkip={handleSkipArchivePlacement}
           />

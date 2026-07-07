@@ -1,4 +1,5 @@
 import type { ArchiveCardState } from "../engine/types";
+import { ARCHIVE_CARD_SEEDS } from "../data/scenario";
 import { ArchiveCardDetail } from "./ArchiveCardDetail";
 import { Modal } from "./Modal";
 import "./StoryEventModal.css";
@@ -19,8 +20,28 @@ export function StoryEventModal({ cards, clockTokens, onNext }: StoryEventModalP
   if (cards.length === 0) return null;
   const current = cards[0];
   const identityGroup = current.category === "identity" ? cards.filter((card) => card.category === "identity") : [];
-  const visibleCards = identityGroup.length > 0 ? identityGroup : [current];
-  const advanceCount = visibleCards.length;
+  const contiguousSameName: ArchiveCardState[] = [];
+  for (const card of cards) {
+    if (card.name !== current.name || card.category !== current.category) break;
+    contiguousSameName.push(card);
+  }
+  const sameNameGroup =
+    identityGroup.length === 0
+      ? contiguousSameName
+      : [];
+  const mergedSameName =
+    sameNameGroup.length > 1
+      ? (() => {
+          const preferred =
+            sameNameGroup.find((card) => ARCHIVE_CARD_SEEDS[card.id]?.deckEffect || card.conditions.length > 0) ??
+            sameNameGroup.find((card) => card.flavor.includes("《")) ??
+            sameNameGroup[sameNameGroup.length - 1];
+          const mergedFlavor = Array.from(new Set(sameNameGroup.map((card) => card.flavor).filter(Boolean))).join("\n");
+          return [{ ...preferred, flavor: mergedFlavor }];
+        })()
+      : null;
+  const visibleCards = identityGroup.length > 0 ? identityGroup : mergedSameName ?? [current];
+  const advanceCount = identityGroup.length > 0 ? identityGroup.length : sameNameGroup.length > 1 ? sameNameGroup.length : 1;
   const remainingAfter = cards.length - advanceCount;
   const hasMore = remainingAfter > 0;
 

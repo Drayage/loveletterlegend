@@ -6,14 +6,18 @@ import "./ArchiveTokenModal.css";
 
 interface ArchiveTokenModalProps {
   archive: ArchiveCardState[];
+  eligibleArchiveIds?: string[] | null;
   onPlace: (cardId: string, token: "성공" | "실패") => void;
   onSkip: () => void;
 }
 
-export function ArchiveTokenModal({ archive, onPlace, onSkip }: ArchiveTokenModalProps) {
+export function ArchiveTokenModal({ archive, eligibleArchiveIds, onPlace, onSkip }: ArchiveTokenModalProps) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const eligibleSnapshot = eligibleArchiveIds ? new Set(eligibleArchiveIds) : null;
   // 031의 실카드 문구대로 "[조건]을 가진 카드" 위에만 놓을 수 있다.
-  const candidates = archive.filter((c) => c.conditionTag && c.conditions.some((cond) => !cond.fired));
+  const candidates = archive.filter(
+    (c) => (!eligibleSnapshot || eligibleSnapshot.has(c.id)) && c.conditionTag && c.conditions.some((cond) => !cond.fired)
+  );
   const candidateIds = new Set(candidates.map((c) => c.id));
   const selectedCard = archive.find((c) => c.id === selectedCardId) ?? archive[0] ?? null;
   const canPlace = Boolean(selectedCard && candidateIds.has(selectedCard.id));

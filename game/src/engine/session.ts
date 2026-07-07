@@ -343,7 +343,8 @@ function addArchiveToken(session: SessionState, cardId: string, token: "성공" 
 function resolveArchiveConditions(
   session: SessionState,
   timing: ArchiveConditionTiming,
-  winnerCardName?: CardName | null
+  winnerCardName?: CardName | null,
+  eligibleIds?: Set<string>
 ): Set<string> {
   const everRevealed = new Set<string>();
   let changed = true;
@@ -352,6 +353,7 @@ function resolveArchiveConditions(
     const toReveal = new Map<string, { sourceName: string; reason: string }>();
     const toRemove = new Set<string>();
     for (const card of session.storyArchive) {
+      if (eligibleIds && !eligibleIds.has(card.id)) continue;
       for (const cond of card.conditions) {
         if (cond.fired || conditionTiming(cond.kind) !== timing) continue;
         let met = false;
@@ -556,12 +558,12 @@ function applySessionRoundEnd(session: SessionState): SessionState {
   // 023 「역사 1」의 "승자가 든 카드 확인" 조건 등을 이번 라운드의 [성공]/
   // [실패] 부여보다 먼저 처리한다 -- 그래야 이번 라운드에 새로 공개되는
   // 카드(예: 053)가 존재하는 상태에서 그 아래쪽 addArchiveToken 호출이
-  // 토큰을 놓을 수 있다. (반대로, 새로 공개된 카드 자신의 [조건] 충족
-  // 여부는 원래 "공개된 라운드 중에는 처리하지 않는다"는 규칙이 있지만,
-  // v1에서는 이 재확인을 별도로 억제하지 않는다 -- 같은 라운드에 정확히
-  // 임계값에 도달하는 경우는 드물고, 억제 로직을 넣을 만큼 가치가 크지
-  // 않다고 판단.)
-  revealWithSummary(resolveArchiveConditions(next, "roundEnd", winnerCard?.name ?? null), winnerId ?? undefined);
+  // 토큰을 놓을 수 있다. 단, 이 라운드 중 새로 공개된 조건 카드는 이
+  // 라운드 결과를 소급 적용받지 않도록 roundEndEligibleArchiveIds로 제한한다.
+  revealWithSummary(
+    resolveArchiveConditions(next, "roundEnd", winnerCard?.name ?? null, roundEndEligibleArchiveIds),
+    winnerId ?? undefined
+  );
 
   if (winnerId) {
     // 카드 017 「시간」: 라운드 승리 -> 공개된 공주/왕자 중 하나를 골라
@@ -837,7 +839,10 @@ function applySessionRoundEnd(session: SessionState): SessionState {
   }
 
   // Re-check now that this round's [성공]/[실패] grants are in.
-  revealWithSummary(resolveArchiveConditions(next, "roundEnd", winnerCard?.name ?? null), winnerId ?? undefined);
+  revealWithSummary(
+    resolveArchiveConditions(next, "roundEnd", winnerCard?.name ?? null, roundEndEligibleArchiveIds),
+    winnerId ?? undefined
+  );
 
   // 만료 처리 -- "[시계] N개: 이 카드를 제거합니다." 실카드 종료 태그.
   // 같은 라운드의 공개 조건을 먼저 처리한 뒤에 제거한다 (시계가 4가 되는
@@ -1258,6 +1263,12 @@ export function placeArchiveToken(
     throw new Error("지금은 이 플레이어가 토큰을 놓을 차례가 아닙니다.");
   }
   const next: SessionState = structuredClone(session);
+  const roundEndEligibleArchiveIds = new Set(
+    next.roundEndEligibleArchiveIds ?? [...Object.keys(next.archiveHistory), ...next.storyArchive.map((c) => c.id)]
+  );
+  if (!roundEndEligibleArchiveIds.has(cardId)) {
+    throw new Error("이번 라운드 종료 전에 공개되어 있던 조건 카드에만 토큰을 놓을 수 있습니다.");
+  }
   const target = next.storyArchive.find((c) => c.id === cardId);
   if (!target?.conditionTag) {
     throw new Error("[조건]을 가진 카드 위에만 토큰을 놓을 수 있습니다.");
@@ -1266,7 +1277,7 @@ export function placeArchiveToken(
   next.pendingArchivePlacement = null;
   // 이 배치는 라운드 종료 시퀀스의 일부 -- 시작 태그(017의 시계표)는 여기서
   // 발동시키지 않는다.
-  applyRevealSideEffects(next, resolveArchiveConditions(next, "roundEnd"));
+  applyRevealSideEffects(next, resolveArchiveConditions(next, "roundEnd", null, roundEndEligibleArchiveIds));
   return next;
 }
 

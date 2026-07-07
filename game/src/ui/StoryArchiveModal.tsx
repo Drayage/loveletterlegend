@@ -23,32 +23,40 @@ interface StoryArchiveModalProps {
   onClose: () => void;
 }
 
+function groupedCards(
+  cards: ArchiveCardState[],
+  activeIds: Set<string>,
+  isVisible: (card: ArchiveCardState) => boolean
+): Array<{ key: string; card: ArchiveCardState; inactive: boolean }> {
+  const groups = new Map<string, ArchiveCardState[]>();
+  for (const card of cards) {
+    groups.set(card.name, [...(groups.get(card.name) ?? []), card]);
+  }
+  return Array.from(groups.entries())
+    .filter(([, group]) => group.some(isVisible))
+    .map(([name, group]) => {
+      const preferred =
+        group.find((card) => ARCHIVE_CARD_SEEDS[card.id]?.deckEffect || card.conditions.length > 0) ??
+        group.find((card) => card.flavor.includes("《")) ??
+        group[group.length - 1];
+      const mergedFlavor = Array.from(new Set(group.map((card) => card.flavor).filter(Boolean))).join("\n");
+      return {
+        key: group.map((card) => card.id).join("-"),
+        inactive: !group.some((card) => activeIds.has(card.id)),
+        card: { ...preferred, name, flavor: mergedFlavor },
+      };
+    });
+}
+
 export function StoryArchiveModal({ archive, archiveHistory, clockTokens, session, humanId, onClose }: StoryArchiveModalProps) {
   const [showInactive, setShowInactive] = useState(false);
   const activeIds = new Set(archive.map((c) => c.id));
   const allCards = Object.values(archiveHistory);
   const isVisible = (c: ArchiveCardState) => showInactive || activeIds.has(c.id);
 
-  const characterGroups = new Map<string, ArchiveCardState[]>();
-  for (const card of allCards.filter((c) => c.category === "character")) {
-    characterGroups.set(card.name, [...(characterGroups.get(card.name) ?? []), card]);
-  }
-  const characters = Array.from(characterGroups.entries())
-    .filter(([, cards]) => cards.some(isVisible))
-    .map(([name, cards]) => {
-      const preferred =
-        cards.find((card) => ARCHIVE_CARD_SEEDS[card.id]?.deckEffect) ??
-        cards.find((card) => card.flavor.includes("《")) ??
-        cards[cards.length - 1];
-      const mergedFlavor = Array.from(new Set(cards.map((card) => card.flavor).filter(Boolean))).join("\n");
-      return {
-        key: cards.map((card) => card.id).join("-"),
-        inactive: !cards.some((card) => activeIds.has(card.id)),
-        card: { ...preferred, name, flavor: mergedFlavor },
-      };
-    });
+  const characters = groupedCards(allCards.filter((c) => c.category === "character"), activeIds, isVisible);
   const identities = allCards.filter((c) => c.category === "identity" && isVisible(c));
-  const scenarios = allCards.filter((c) => c.category === "scenario" && isVisible(c));
+  const scenarios = groupedCards(allCards.filter((c) => c.category === "scenario"), activeIds, isVisible);
   const inactiveCount = allCards.filter((c) => !activeIds.has(c.id)).length;
 
   return (
@@ -101,12 +109,12 @@ export function StoryArchiveModal({ archive, archiveHistory, clockTokens, sessio
           <section className="story-archive__section">
             <h3 className="story-archive__section-title">시나리오</h3>
             <div className="story-archive__cards">
-              {scenarios.map((card) => (
-                <div key={card.id} className="story-archive__card">
+              {scenarios.map(({ key, card, inactive }) => (
+                <div key={key} className="story-archive__card">
                   <ArchiveCardDetail
                     card={card}
                     clockTokens={clockTokens}
-                    inactive={!activeIds.has(card.id)}
+                    inactive={inactive}
                     playerConfigs={session.playerConfigs}
                     humanId={humanId}
                     letterTokens={session.letterTokens}

@@ -72,8 +72,10 @@ export function EffectRevealModal({ reveal, onDismiss }: EffectRevealModalProps)
           </div>
           {compareRevealed && (
             <p className="reveal-modal__result">
-              {result === "win" && `승리! ${reveal.targetDisplayName}이(가) 탈락합니다.`}
-              {result === "lose" && `${reveal.actorDisplayName ?? "사용자"}이(가) 탈락합니다.`}
+              {result === "win" &&
+                `${reveal.actorDisplayName ?? "사용자"} 승리: ${reveal.targetDisplayName}이(가) 탈락합니다.`}
+              {result === "lose" &&
+                `${reveal.targetDisplayName} 승리: ${reveal.actorDisplayName ?? "사용자"}이(가) 탈락합니다.`}
               {result === "tie" && "무승부, 아무 일도 일어나지 않습니다."}
             </p>
           )}
