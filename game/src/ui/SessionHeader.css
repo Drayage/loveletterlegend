@@ -211,6 +211,7 @@
   font-weight: 800;
 }
 
+.session-header__flow-btn,
 .session-header__archive-btn {
   font-family: inherit;
   font-size: 12.5px;
@@ -225,6 +226,15 @@
   white-space: nowrap;
 }
 
+.session-header__flow-btn {
+  margin-left: auto;
+}
+
+.session-header__archive-btn {
+  margin-left: 0;
+}
+
+.session-header__flow-btn:hover,
 .session-header__archive-btn:hover {
   border-color: var(--accent);
   color: var(--accent);

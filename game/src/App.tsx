@@ -48,6 +48,7 @@ import { GuessEffectModal } from "./ui/GuessEffectModal";
 import { ForcedDiscardModal } from "./ui/ForcedDiscardModal";
 import { EffectBlockedModal } from "./ui/EffectBlockedModal";
 import { Modal } from "./ui/Modal";
+import { FlowStatusModal, type FlowStatusItem } from "./ui/FlowStatusModal";
 import { ARCHIVE_CARD_SEEDS } from "./data/scenario";
 import type { IdentityVariantId } from "./data/identityVariants";
 import "./App.css";
@@ -106,10 +107,17 @@ function safely<T>(fn: () => T): T | null {
   }
 }
 
+function decisionLabel(decision: PendingDecision): string {
+  if (decision.kind === "playCard") return `카드 선택: ${decision.options.map((c) => `「${c.name}」`).join(" / ")}`;
+  if (decision.kind === "chooseTarget") return `대상 선택: 「${decision.cardName}」`;
+  return `카드 추측: 「${decision.cardName}」`;
+}
+
 export default function App() {
   const [session, setSession] = useState<SessionState | null>(null);
   const [showCardReference, setShowCardReference] = useState(false);
   const [showStoryArchive, setShowStoryArchive] = useState(false);
+  const [showFlowStatus, setShowFlowStatus] = useState(false);
   const [dismissedRevealId, setDismissedRevealId] = useState<string | null>(null);
   const [dismissedEliminationId, setDismissedEliminationId] = useState<string | null>(null);
   const [dismissedGuessEffectId, setDismissedGuessEffectId] = useState<string | null>(null);
@@ -179,6 +187,7 @@ export default function App() {
     roundStartLocked ||
     Boolean(showCardReference) ||
     Boolean(showStoryArchive) ||
+    Boolean(showFlowStatus) ||
     Boolean(session?.pendingLetterChoice?.playerId === HUMAN_ID) ||
     Boolean(session?.pendingArchivePlacement?.eligiblePlayerId === HUMAN_ID) ||
     Boolean(session?.pendingIdentityChoice?.eligiblePlayerId === HUMAN_ID) ||
@@ -501,10 +510,108 @@ export default function App() {
       session.letterTokens[slot]?.[HUMAN_ID] ?? 0,
     ])
   ) as Record<CharacterSlotId, number>;
+  const activeBlockers: FlowStatusItem[] = [
+    ...(showFlowStatus ? [{ title: "진행 확인 탭 열림", detail: "이 탭을 닫으면 자동 진행이 다시 움직입니다.", tone: "waiting" as const }] : []),
+    ...(pendingHumanReveal ? [{ title: "비공개 공개 팝업", detail: "내가 확인해야 하는 카드 정보가 떠 있습니다.", tone: "blocked" as const }] : []),
+    ...(pendingGuessEffect ? [{ title: "추측 결과 팝업", detail: "경비병/신병 추측 결과를 확인해야 합니다.", tone: "blocked" as const }] : []),
+    ...(pendingForcedDiscard ? [{ title: "강제 버림 팝업", detail: "마술사 계열 효과로 버려진 카드를 확인해야 합니다.", tone: "blocked" as const }] : []),
+    ...(pendingEffectBlocked ? [{ title: "효과 차단 알림", detail: "보호 등으로 효과가 막힌 내용을 확인해야 합니다.", tone: "blocked" as const }] : []),
+    ...(pendingElimination ? [{ title: "탈락 팝업", detail: `${displayNameFor(pendingElimination.playerId)} 탈락 결과를 확인해야 합니다.`, tone: "blocked" as const }] : []),
+    ...(pendingChoiceResult ? [{ title: "이벤트 선택 결과", detail: "방금 선택된 시나리오 분기 결과를 확인해야 합니다.", tone: "blocked" as const }] : []),
+    ...(pendingStoryEvent ? [{ title: "이야기 이벤트", detail: `${pendingStoryEvent.length}개 이벤트 설명을 읽어야 다음 단계로 갑니다.`, tone: "blocked" as const }] : []),
+    ...(roundStartLocked ? [{ title: "라운드 시작 확인", detail: "시작 이벤트를 다 읽은 뒤 주차 진행 버튼을 눌러야 패가 공개됩니다.", tone: "blocked" as const }] : []),
+    ...(pendingRoundStart ? [{ title: "다음 주차 준비", detail: "공주/왕자 카드와 추가 8번 카드를 선택한 뒤 시작해야 합니다.", tone: "blocked" as const }] : []),
+    ...(showCardReference ? [{ title: "카드 확인 창", detail: "카드 목록 창을 닫으면 진행됩니다.", tone: "waiting" as const }] : []),
+    ...(showStoryArchive ? [{ title: "이야기 보관소 창", detail: "보관소 창을 닫으면 진행됩니다.", tone: "waiting" as const }] : []),
+  ];
+  const aiTasks: FlowStatusItem[] = [];
+  const playerTasks: FlowStatusItem[] = [];
+  if (decision) {
+    const actorName = displayNameFor(decision.playerId);
+    const item = {
+      title: `${actorName} 턴`,
+      detail: `${decisionLabel(decision)}${flowBlocked ? " - 먼저 막는 팝업/선택을 처리해야 합니다." : ""}`,
+      tone: flowBlocked ? "blocked" as const : "ready" as const,
+    };
+    if (decision.playerId === AI_ID) aiTasks.push(item);
+    if (decision.playerId === HUMAN_ID) playerTasks.push(item);
+  }
+  if (session.pendingLetterChoice) {
+    const item = {
+      title: "편지 토큰 선택",
+      detail: `${displayNameFor(session.pendingLetterChoice.playerId)}이(가) 편지 ${session.pendingLetterChoice.amount}개를 받을 대상을 골라야 합니다.`,
+      tone: flowBlocked ? "blocked" as const : "ready" as const,
+    };
+    if (session.pendingLetterChoice.playerId === AI_ID) aiTasks.push(item);
+    if (session.pendingLetterChoice.playerId === HUMAN_ID) playerTasks.push(item);
+  }
+  if (session.pendingArchivePlacement) {
+    const item = {
+      title: "이야기 보관소 토큰 배치",
+      detail: `${displayNameFor(session.pendingArchivePlacement.eligiblePlayerId)}이(가) 성공/실패 토큰을 놓아야 합니다.`,
+      tone: flowBlocked ? "blocked" as const : "ready" as const,
+    };
+    if (session.pendingArchivePlacement.eligiblePlayerId === AI_ID) aiTasks.push(item);
+    if (session.pendingArchivePlacement.eligiblePlayerId === HUMAN_ID) playerTasks.push(item);
+  }
+  if (session.pendingIdentityChoice) {
+    const item = {
+      title: "정체 선택",
+      detail: `${displayNameFor(session.pendingIdentityChoice.eligiblePlayerId)}이(가) 정체와 성별을 골라야 합니다.`,
+      tone: flowBlocked ? "blocked" as const : "ready" as const,
+    };
+    if (session.pendingIdentityChoice.eligiblePlayerId === AI_ID) aiTasks.push(item);
+    if (session.pendingIdentityChoice.eligiblePlayerId === HUMAN_ID) playerTasks.push(item);
+  }
+  if (session.pendingChoice) {
+    const item = {
+      title: "시나리오 선택",
+      detail: `${displayNameFor(session.pendingChoice.eligiblePlayerId)}이(가) 「${ARCHIVE_CARD_SEEDS[session.pendingChoice.cardId].name}」 선택지를 골라야 합니다.`,
+      tone: flowBlocked ? "blocked" as const : "ready" as const,
+    };
+    if (session.pendingChoice.eligiblePlayerId === AI_ID) aiTasks.push(item);
+    if (session.pendingChoice.eligiblePlayerId === HUMAN_ID) playerTasks.push(item);
+  }
+  if (roundOver && session.lastRoundSummary && !endSummaryAcknowledged) {
+    playerTasks.push({
+      title: "라운드 결과 확인",
+      detail: "결과 확인 버튼을 눌러 다음 이벤트/주차 준비로 넘어가야 합니다.",
+      tone: "blocked",
+    });
+  }
+  if (roundStartLocked) {
+    playerTasks.push({ title: "주차 시작 확인", detail: "주차 진행 버튼을 눌러 이번 라운드를 시작해야 합니다.", tone: "blocked" });
+  }
+  if (pendingRoundStart) {
+    playerTasks.push({ title: "다음 주차 시작", detail: "카드 선택을 확인하고 시작 버튼을 눌러야 합니다.", tone: "blocked" });
+  }
+  if (aiTasks.length === 0) {
+    aiTasks.push({
+      title: "AI 자동 처리 없음",
+      detail: flowBlocked ? "현재는 플레이어 확인이나 팝업이 먼저입니다." : "AI가 기다리는 결정은 없습니다.",
+      tone: flowBlocked ? "waiting" : "ready",
+    });
+  }
+  if (playerTasks.length === 0) {
+    playerTasks.push({
+      title: "내가 할 일 없음",
+      detail: flowBlocked ? "팝업이나 확인창이 흐름을 잡고 있는지 막는 것 탭을 확인하세요." : "현재 필요한 내 선택은 없습니다.",
+      tone: flowBlocked ? "waiting" : "ready",
+    });
+  }
+  const blockerItems =
+    activeBlockers.length > 0
+      ? activeBlockers
+      : [{ title: "막는 요소 없음", detail: "자동 진행을 막는 팝업이나 선택창이 없습니다.", tone: "ready" as const }];
 
   return (
     <div className="app-layout">
-      <SessionHeader session={session} humanId={HUMAN_ID} onShowArchive={() => setShowStoryArchive(true)} />
+      <SessionHeader
+        session={session}
+        humanId={HUMAN_ID}
+        onShowArchive={() => setShowStoryArchive(true)}
+        onShowFlowStatus={() => setShowFlowStatus(true)}
+      />
 
       {/* 스크롤이 필요하면 이 보드 영역 내부에서만 일어난다 -- 로그가
        * 쌓여도 문서 자체는 절대 아래로 자라지 않는다 (100dvh 셸). */}
@@ -564,7 +671,6 @@ export default function App() {
           onClose={() => setShowStoryArchive(false)}
         />
       )}
-
       <EffectRevealModal
         reveal={pendingHumanReveal}
         onDismiss={() => setDismissedRevealId(pendingHumanReveal?.id ?? null)}
@@ -868,6 +974,19 @@ export default function App() {
         endSummaryAcknowledged && (
           <SessionEndScreen session={session} players={session.playerConfigs} onNewGame={startGame} />
         )}
+
+      <button type="button" className="flow-status-fab" onClick={() => setShowFlowStatus(true)}>
+        진행 확인
+      </button>
+
+      {showFlowStatus && (
+        <FlowStatusModal
+          aiTasks={aiTasks}
+          playerTasks={playerTasks}
+          blockers={blockerItems}
+          onClose={() => setShowFlowStatus(false)}
+        />
+      )}
     </div>
   );
 }

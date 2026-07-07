@@ -144,6 +144,27 @@
   margin-top: -2px;
 }
 
+.flow-status-fab {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 30;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 8px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  background: var(--panel);
+  color: var(--accent);
+  box-shadow: 0 8px 20px rgba(40, 30, 18, 0.2);
+  cursor: pointer;
+}
+
+.flow-status-fab:hover {
+  background: var(--accent-soft);
+}
+
 .round-result {
   text-align: center;
   background: var(--accent-soft);

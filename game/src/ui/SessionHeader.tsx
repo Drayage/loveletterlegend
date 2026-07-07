@@ -10,6 +10,7 @@ interface SessionHeaderProps {
   session: SessionState;
   humanId: string;
   onShowArchive: () => void;
+  onShowFlowStatus: () => void;
 }
 
 const ALL_SLOTS: CharacterSlotId[] = [
@@ -238,7 +239,7 @@ function SlotRow({
   );
 }
 
-export function SessionHeader({ session, humanId, onShowArchive }: SessionHeaderProps) {
+export function SessionHeader({ session, humanId, onShowArchive, onShowFlowStatus }: SessionHeaderProps) {
   const revealedSlots = ALL_SLOTS.filter((slot) =>
     session.storyArchive.some((c) => c.id === SLOT_REVEAL_CARD_ID[slot])
   );
@@ -281,6 +282,10 @@ export function SessionHeader({ session, humanId, onShowArchive }: SessionHeader
           ))}
         </div>
       </details>
+
+      <button type="button" className="session-header__flow-btn" onClick={onShowFlowStatus}>
+        진행 확인
+      </button>
 
       <button type="button" className="session-header__archive-btn" onClick={onShowArchive}>
         이야기 보관소 보기
