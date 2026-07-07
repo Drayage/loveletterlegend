@@ -958,7 +958,6 @@ export default function App() {
         !pendingEffectBlocked &&
         !pendingElimination &&
         !pendingChoiceResult &&
-        !pendingStoryEvent &&
         !roundStartLocked &&
         roundOver &&
         session.lastRoundSummary &&
