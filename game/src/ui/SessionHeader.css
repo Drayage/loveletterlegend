@@ -211,6 +211,17 @@
   font-weight: 800;
 }
 
+.session-header__pending-mark {
+  display: inline-flex;
+  margin-left: 5px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(188, 67, 52, 0.1);
+  color: var(--danger);
+  font-size: 10px;
+  font-weight: 800;
+}
+
 .session-header__flow-btn,
 .session-header__archive-btn {
   font-family: inherit;

@@ -372,7 +372,7 @@ export interface ArchiveCardState {
    * (see engine/session.ts's RANK8_SLOTS, which only ever names the two
    * route characters), so they're shown as their own section rather than
    * lumped in with 캐릭터. */
-  category: "character" | "scenario" | "identity";
+  category: "character" | "scenario" | "identity" | "festival";
   /** Portrait shown next to cards that have a readable face/person cue. */
   art?: string;
   flavor: string;

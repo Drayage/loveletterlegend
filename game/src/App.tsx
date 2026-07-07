@@ -61,6 +61,15 @@ const PLAYERS: PlayerConfig[] = [
   { id: AI_ID, displayName: "AI", isAI: true },
 ];
 
+const IDENTITY_USAGE_TEXT: Record<string, string> = {
+  "033": "현재 구현 필요: 차례 시작 카드 교환 UI 없음",
+  "034": "현재 구현 필요: 대상 효과 취소 UI 없음",
+  "035": "자동 적용 중: 카드 숫자 비교/라운드 종료 숫자 +2",
+  "036": "현재 구현 필요: 버림 더미 효과 대체 UI 없음",
+  "037": "현재 구현 필요: 추가 차례 선택 UI 없음",
+  "038": "획득 즉시 적용: 편지 2개 배치/이동",
+};
+
 const CHARACTER_SLOTS: CharacterSlotId[] = [
   "잉그리드공주",
   "아레스왕자",
@@ -528,7 +537,10 @@ export default function App() {
     session.playerIdentityFaces[playerId]?.name ?? (playerId === HUMAN_ID ? human.displayName : ai.displayName);
   const identityAbilityFor = (playerId: string) => {
     const identityId = session.playerIdentities[playerId];
-    return identityId ? ARCHIVE_CARD_SEEDS[identityId]?.flavor ?? null : null;
+    if (!identityId) return null;
+    const flavor = ARCHIVE_CARD_SEEDS[identityId]?.flavor;
+    const usage = IDENTITY_USAGE_TEXT[identityId];
+    return [flavor, usage].filter(Boolean).join("\n");
   };
   const decision = round.pendingDecision;
   const isHumanDecision = decision?.playerId === HUMAN_ID;

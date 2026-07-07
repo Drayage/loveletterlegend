@@ -441,6 +441,8 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
     session = session2;
     expect(session.round.activeFestivalCardId).toBe("040");
     expect(session.festivalDeck).toEqual(["041", "042"]);
+    expect(session.storyArchive.some((c) => c.id === "040")).toBe(true);
+    expect(session.archiveHistory["040"]?.name).toBe("축제: 평온한 날");
 
     // Round-end recycling only reads round.activeFestivalCardId (already set
     // to "040" above), independent of 039's storyArchive presence -- so it
@@ -451,6 +453,7 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
       { instanceId: "c4", name: "장군" },
     ]);
     expect(session.festivalDeck).toEqual(["041", "042", "040"]);
+    expect(session.storyArchive.some((c) => c.id === "040")).toBe(false);
   });
 
   it("025's [실패] threshold reveals 027 and removes 왕 from future decks", () => {
@@ -1031,6 +1034,21 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
       expect(card114?.conditionTag).toBe(true);
       expect(session.removedBaseCardNames.filter((n) => n === "기사").length).toBe(2);
       expect(session.extraDeckCardNames.filter((n) => n === "상인").length).toBe(2);
+    });
+
+    it("102 「극단의 출발」 applies its deck change and is consumed immediately after reveal", () => {
+      let session = startSession(PLAYERS);
+      const seededCard098 = {
+        ...ARCHIVE_CARD_SEEDS["098"],
+        conditions: ARCHIVE_CARD_SEEDS["098"].conditions.map((c) => ({ ...c, fired: false })),
+        successTokens: 0,
+        failTokens: 2,
+      };
+      session = forceImmediateWin(session, "p1", undefined, [seededCard098]);
+      expect(session.storyArchive.some((c) => c.id === "102")).toBe(false);
+      expect(session.archiveHistory["102"]?.name).toBe("극단의 출발");
+      expect(session.removedBaseCardNames).toEqual(expect.arrayContaining(["배우", "무희"]));
+      expect(session.extraDeckCardNames).toContain("광대의제자");
     });
 
     it("compareResolved 기사 targetLoses credits 103's [성공]; actorLoses credits its own [실패] separately from the general 들고탈락 check", () => {

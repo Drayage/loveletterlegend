@@ -155,7 +155,7 @@ export interface ArchiveCardSeed {
    * 캐릭터/정체/시나리오 split in the story archive UI (see types.ts's
    * ArchiveCardState.category). Cards with art show a portrait alongside
    * their text, including character-like scenario cards such as 025/027. */
-  category: "character" | "scenario" | "identity";
+  category: "character" | "scenario" | "identity" | "festival";
   /** Portrait shown next to character/identity cards. */
   art?: string;
   flavor: string;
@@ -385,7 +385,64 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "039",
     name: "역사 5 축제의 나날들",
     category: "scenario",
-    flavor: "여름이 끝나면, 수확제를 비롯한 여러 행사가 왕국을 떠들썩하게 합니다. 평소와는 다른 분위기 속에서 사람들의 기분은 몹시 고조되어 갑니다.",
+    flavor:
+      "여름이 끝나면, 수확제를 비롯한 여러 행사가 왕국을 떠들썩하게 합니다. 평소와는 다른 분위기 속에서 사람들의 기분은 몹시 고조되어 갑니다.\n\n효과: 모든 플레이어가 「정체」를 가진 뒤 공개됩니다. 이후 매 라운드 시작 시 축제 덱에서 1장을 공개하고, 그 라운드의 덱 소진 승자 판정을 해당 축제 효과로 바꿉니다. 사용한 축제 카드는 라운드 종료 후 축제 덱 맨 아래로 돌아갑니다.",
+    conditions: [],
+  },
+  "040": {
+    id: "040",
+    name: "축제: 평온한 날",
+    category: "festival",
+    flavor: "효과: 덱이 소진되면 기본 규칙대로 손패 숫자가 가장 높은 플레이어가 승리합니다. 동률이면 승자 없음.",
+    conditions: [],
+  },
+  "041": {
+    id: "041",
+    name: "축제: 수확제",
+    category: "festival",
+    flavor: "효과: 덱이 소진되면 손패 숫자를 비교할 때 홀수 카드에 +8을 더합니다.",
+    conditions: [],
+  },
+  "042": {
+    id: "042",
+    name: "축제: 강탄제",
+    category: "festival",
+    flavor: "효과: 덱이 소진되면 손패 숫자를 비교할 때 짝수 카드에 +8을 더합니다.",
+    conditions: [],
+  },
+  "043": {
+    id: "043",
+    name: "축제: 알현식",
+    category: "festival",
+    flavor: "효과: 덱이 소진되면 두 번째로 높은 손패 숫자를 가진 플레이어가 승리합니다.",
+    conditions: [],
+  },
+  "044": {
+    id: "044",
+    name: "축제: 원탁회의",
+    category: "festival",
+    flavor: "효과: 덱이 소진되면 손패 숫자가 가장 낮은 플레이어가 승리합니다. 동률이면 승자 없음.",
+    conditions: [],
+  },
+  "045": {
+    id: "045",
+    name: "축제: 건국제",
+    category: "festival",
+    flavor: "효과: 덱이 소진되면 손패 대신 각 플레이어의 버림 더미 숫자 합이 가장 높은 플레이어가 승리합니다.",
+    conditions: [],
+  },
+  "046": {
+    id: "046",
+    name: "축제: 별의 축복",
+    category: "festival",
+    flavor: "효과: 덱 소진으로는 승자가 나오지 않습니다. 최후의 1인만 라운드 승자가 됩니다.",
+    conditions: [],
+  },
+  "047": {
+    id: "047",
+    name: "축제: 정원파티",
+    category: "festival",
+    flavor: "효과: 덱이 소진되면 비공개 제거 카드도 비교 대상에 포함합니다. 비공개 카드가 단독 최고 숫자라면 승자 없음.",
     conditions: [],
   },
   "049": {
@@ -901,6 +958,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
       remove: [{ cardName: "배우" }, { cardName: "무희" }],
       add: [{ cardName: "광대의제자" }],
     },
+    autoRevealIds: [],
     conditions: [],
   },
 

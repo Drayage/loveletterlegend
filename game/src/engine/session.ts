@@ -557,6 +557,7 @@ function applySessionRoundEnd(session: SessionState): SessionState {
   // 아래로 되돌린다.
   if (next.round.activeFestivalCardId) {
     next.festivalDeck.push(next.round.activeFestivalCardId);
+    next.storyArchive = next.storyArchive.filter((c) => c.id !== next.round.activeFestivalCardId);
   }
 
   // 023 「역사 1」의 "승자가 든 카드 확인" 조건 등을 이번 라운드의 [성공]/
@@ -1107,6 +1108,12 @@ export function beginNextRound(session: SessionState, route: Route, activeOption
     next.storyArchive.some((c) => c.id === "039") && next.festivalDeck.length > 0
       ? (next.festivalDeck.shift() ?? null)
       : null;
+  if (activeFestivalCardId) {
+    pushArchiveCard(next, activeFestivalCardId, {
+      sourceName: ARCHIVE_CARD_SEEDS["039"].name,
+      reason: "이번 라운드 축제 카드 공개",
+    });
+  }
   const rank8ReplacementCardNames = new Set<CardName>(["공주", "왕자", "공주둘째", "공주셋째"]);
   const defaultRank8CardName: CardName = route === "왕자" ? "왕자" : "공주";
   const activeRank8Replacement = next.activeOptionalRoundDeckCardNames.find((name) => rank8ReplacementCardNames.has(name));

@@ -68,6 +68,7 @@ export function StoryArchiveModal({ archive, archiveHistory, clockTokens, sessio
 
   const characters = groupedCards(allCards.filter((c) => c.category === "character"), activeIds, isVisible);
   const identities = allCards.filter((c) => c.category === "identity" && isVisible(c));
+  const festivals = allCards.filter((c) => c.category === "festival" && isVisible(c));
   const scenarios = groupedCards(allCards.filter((c) => c.category === "scenario"), activeIds, isVisible);
   const inactiveCount = allCards.filter((c) => !activeIds.has(c.id)).length;
 
@@ -103,6 +104,25 @@ export function StoryArchiveModal({ archive, archiveHistory, clockTokens, sessio
             <h3 className="story-archive__section-title">정체</h3>
             <div className="story-archive__cards">
               {identities.map((card) => (
+                <div key={card.id} className="story-archive__card">
+                  <ArchiveCardDetail
+                    card={card}
+                    clockTokens={clockTokens}
+                    inactive={!activeIds.has(card.id)}
+                    playerConfigs={session.playerConfigs}
+                    humanId={humanId}
+                    letterTokens={session.letterTokens}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+        {festivals.length > 0 && (
+          <section className="story-archive__section">
+            <h3 className="story-archive__section-title">축제</h3>
+            <div className="story-archive__cards">
+              {festivals.map((card) => (
                 <div key={card.id} className="story-archive__card">
                   <ArchiveCardDetail
                     card={card}
