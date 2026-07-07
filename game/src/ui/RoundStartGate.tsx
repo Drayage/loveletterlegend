@@ -6,6 +6,8 @@ import "./RoundStartGate.css";
 interface RoundStartGateProps {
   upcomingRoundNumber: number;
   route: Route;
+  chooserName: string;
+  readOnly?: boolean;
   optionalCards?: CardName[];
   selectedOptionalCards?: CardName[];
   onToggleOptionalCard?: (cardName: CardName) => void;
@@ -24,6 +26,8 @@ const rank8DisplayNames: Partial<Record<CardName, string>> = {
 export function RoundStartGate({
   upcomingRoundNumber,
   route,
+  chooserName,
+  readOnly = false,
   optionalCards = [],
   selectedOptionalCards = [],
   onToggleOptionalCard,
@@ -42,6 +46,9 @@ export function RoundStartGate({
   return (
     <Modal title={`${upcomingRoundNumber}주차 준비`} onClose={() => {}} dismissible={false}>
       <div className="round-start-gate">
+        <p className="round-start-gate__prompt">
+          {chooserName}이(가) 이번 라운드의 공주/왕자 카드를 선택합니다.
+        </p>
         <div className="round-start-gate__optional">
           <p className="round-start-gate__optional-title">공주/왕자 카드 선택 (택1)</p>
           <div className="round-start-gate__optional-list">
@@ -51,8 +58,9 @@ export function RoundStartGate({
                   type="radio"
                   name="route-rank8-card"
                   checked={selectedRouteSwap === cardName}
+                  disabled={readOnly}
                   onChange={() => {
-                    if (selectedRouteSwap !== cardName) onToggleOptionalCard?.(cardName);
+                    if (!readOnly && selectedRouteSwap !== cardName) onToggleOptionalCard?.(cardName);
                   }}
                 />
                 <span>「{rank8DisplayNames[cardName] ?? cardName}」</span>
@@ -69,7 +77,10 @@ export function RoundStartGate({
                   <input
                     type="checkbox"
                     checked={selectedOptionalCards.includes(cardName)}
-                    onChange={() => onToggleOptionalCard?.(cardName)}
+                    disabled={readOnly}
+                    onChange={() => {
+                      if (!readOnly) onToggleOptionalCard?.(cardName);
+                    }}
                   />
                   <span>「{rank8DisplayNames[cardName] ?? cardName}」</span>
                 </label>

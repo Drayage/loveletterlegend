@@ -43,6 +43,11 @@
   cursor: pointer;
 }
 
+.round-start-gate__optional-item:has(input:disabled) {
+  cursor: default;
+  color: var(--muted);
+}
+
 .round-start-gate__start-btn {
   align-self: flex-start;
   font-family: inherit;

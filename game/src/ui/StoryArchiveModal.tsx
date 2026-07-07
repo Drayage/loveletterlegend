@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ArchiveCardState } from "../engine/types";
 import type { SessionState } from "../engine/session";
+import { ARCHIVE_CARD_SEEDS } from "../data/scenario";
 import { ArchiveCardDetail } from "./ArchiveCardDetail";
 import { Modal } from "./Modal";
 import "./StoryArchiveModal.css";
@@ -28,7 +29,24 @@ export function StoryArchiveModal({ archive, archiveHistory, clockTokens, sessio
   const allCards = Object.values(archiveHistory);
   const isVisible = (c: ArchiveCardState) => showInactive || activeIds.has(c.id);
 
-  const characters = allCards.filter((c) => c.category === "character" && isVisible(c));
+  const characterGroups = new Map<string, ArchiveCardState[]>();
+  for (const card of allCards.filter((c) => c.category === "character")) {
+    characterGroups.set(card.name, [...(characterGroups.get(card.name) ?? []), card]);
+  }
+  const characters = Array.from(characterGroups.entries())
+    .filter(([, cards]) => cards.some(isVisible))
+    .map(([name, cards]) => {
+      const preferred =
+        cards.find((card) => ARCHIVE_CARD_SEEDS[card.id]?.deckEffect) ??
+        cards.find((card) => card.flavor.includes("《")) ??
+        cards[cards.length - 1];
+      const mergedFlavor = Array.from(new Set(cards.map((card) => card.flavor).filter(Boolean))).join("\n");
+      return {
+        key: cards.map((card) => card.id).join("-"),
+        inactive: !cards.some((card) => activeIds.has(card.id)),
+        card: { ...preferred, name, flavor: mergedFlavor },
+      };
+    });
   const identities = allCards.filter((c) => c.category === "identity" && isVisible(c));
   const scenarios = allCards.filter((c) => c.category === "scenario" && isVisible(c));
   const inactiveCount = allCards.filter((c) => !activeIds.has(c.id)).length;
@@ -45,12 +63,12 @@ export function StoryArchiveModal({ archive, archiveHistory, clockTokens, sessio
           <section className="story-archive__section">
             <h3 className="story-archive__section-title">캐릭터</h3>
             <div className="story-archive__cards">
-              {characters.map((card) => (
-                <div key={card.id} className="story-archive__card">
+              {characters.map(({ key, card, inactive }) => (
+                <div key={key} className="story-archive__card">
                   <ArchiveCardDetail
                     card={card}
                     clockTokens={clockTokens}
-                    inactive={!activeIds.has(card.id)}
+                    inactive={inactive}
                     playerConfigs={session.playerConfigs}
                     humanId={humanId}
                     letterTokens={session.letterTokens}

@@ -113,6 +113,10 @@ function decisionLabel(decision: PendingDecision): string {
   return `카드 추측: 「${decision.cardName}」`;
 }
 
+function chooseRoundStartCardsAI(): CardName[] {
+  return [];
+}
+
 export default function App() {
   const [session, setSession] = useState<SessionState | null>(null);
   const [showCardReference, setShowCardReference] = useState(false);
@@ -126,7 +130,7 @@ export default function App() {
   const [endSummaryAcknowledged, setEndSummaryAcknowledged] = useState(false);
   const [pendingStoryEvent, setPendingStoryEvent] = useState<ArchiveCardState[] | null>(null);
   const [pendingChoiceResult, setPendingChoiceResult] = useState<ResolvedChoiceInfo | null>(null);
-  const [pendingRoundStart, setPendingRoundStart] = useState<{ route: Route; optionalCards: CardName[]; selectedOptionalCards: CardName[] } | null>(null);
+  const [pendingRoundStart, setPendingRoundStart] = useState<{ route: Route; chooserId: string; optionalCards: CardName[]; selectedOptionalCards: CardName[] } | null>(null);
   const [roundStartLockedNumber, setRoundStartLockedNumber] = useState<number | null>(null);
   const handledDecisionRef = useRef<string | null>(null);
   const handledArchiveRef = useRef<SessionState["pendingArchivePlacement"]>(null);
@@ -402,10 +406,15 @@ export default function App() {
       return;
     }
     const optionalCards = session.optionalRoundDeckCardNames ?? [];
+    const chooserId = session.lastRoundSummary?.winnerId ?? session.playerConfigs[0]?.id ?? HUMAN_ID;
     setPendingRoundStart({
       route: session.currentRoute,
+      chooserId,
       optionalCards,
-      selectedOptionalCards: session.activeOptionalRoundDeckCardNames.filter((name) => optionalCards.includes(name)),
+      selectedOptionalCards:
+        chooserId === HUMAN_ID
+          ? session.activeOptionalRoundDeckCardNames.filter((name) => optionalCards.includes(name))
+          : chooseRoundStartCardsAI(),
     });
   }, [
     endSummaryAcknowledged,
@@ -510,7 +519,12 @@ export default function App() {
 
   const human = round.players.find((p) => p.id === HUMAN_ID)!;
   const ai = round.players.find((p) => p.id === AI_ID)!;
-  const displayNameFor = (playerId: string) => (playerId === HUMAN_ID ? human.displayName : ai.displayName);
+  const displayNameFor = (playerId: string) =>
+    session.playerIdentityFaces[playerId]?.name ?? (playerId === HUMAN_ID ? human.displayName : ai.displayName);
+  const identityAbilityFor = (playerId: string) => {
+    const identityId = session.playerIdentities[playerId];
+    return identityId ? ARCHIVE_CARD_SEEDS[identityId]?.flavor ?? null : null;
+  };
   const decision = round.pendingDecision;
   const isHumanDecision = decision?.playerId === HUMAN_ID;
   const remaining = computeRemainingCounts(round);
@@ -707,6 +721,9 @@ export default function App() {
 
       <PlayerArea
         player={ai}
+        displayName={displayNameFor(AI_ID)}
+        identityFace={session.playerIdentityFaces[AI_ID]}
+        identityAbility={identityAbilityFor(AI_ID)}
         isCurrentTurn={round.pendingDecision?.playerId === AI_ID}
         revealHand={Boolean(round.roundResult) && !concealRoundStart}
         remaining={remaining}
@@ -720,6 +737,9 @@ export default function App() {
 
       <PlayerArea
         player={human}
+        displayName={displayNameFor(HUMAN_ID)}
+        identityFace={session.playerIdentityFaces[HUMAN_ID]}
+        identityAbility={identityAbilityFor(HUMAN_ID)}
         isCurrentTurn={round.pendingDecision?.playerId === HUMAN_ID}
         revealHand={!concealRoundStart}
         selectableCardIds={
@@ -971,6 +991,8 @@ export default function App() {
           <RoundStartGate
             upcomingRoundNumber={session.roundNumber + 1}
             route={pendingRoundStart.route}
+            chooserName={displayNameFor(pendingRoundStart.chooserId)}
+            readOnly={pendingRoundStart.chooserId !== HUMAN_ID}
             optionalCards={pendingRoundStart.optionalCards}
             selectedOptionalCards={pendingRoundStart.selectedOptionalCards}
             onToggleOptionalCard={(cardName) =>

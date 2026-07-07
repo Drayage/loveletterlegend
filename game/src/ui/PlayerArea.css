@@ -77,6 +77,15 @@
   gap: 8px;
 }
 
+.player-area__identity {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center 15%;
+  border: 1px solid var(--border);
+}
+
 .player-area__turn-badge {
   font-size: 11px;
   padding: 2px 8px;
@@ -125,6 +134,12 @@
   background: #f6e0dc;
   color: var(--accent);
   border-color: transparent;
+}
+
+.pill--identity {
+  background: #f2eadf;
+  color: #7d5a2e;
+  border-color: rgba(125, 90, 46, 0.24);
 }
 
 .player-area__row {

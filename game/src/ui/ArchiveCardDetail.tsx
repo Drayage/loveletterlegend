@@ -198,7 +198,7 @@ export function ArchiveCardDetail({
                         {active ? "☑" : "☐"}
                       </span>
                       <span className="archive-card-detail__condition-label">
-                        편지 {achievement.threshold}개 이상:{" "}
+                        편지 {achievement.threshold}개 이상일 시:{" "}
                         {achievement.cardName ? `「${achievement.cardName}」 ` : ""}
                         {achievement.label}
                         <span className="archive-card-detail__condition-progress">

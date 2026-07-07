@@ -6,6 +6,9 @@ import "./PlayerArea.css";
 
 interface PlayerAreaProps {
   player: PlayerState;
+  displayName?: string;
+  identityFace?: { name: string; art: string } | null;
+  identityAbility?: string | null;
   isCurrentTurn: boolean;
   revealHand: boolean;
   selectableCardIds?: string[];
@@ -20,6 +23,9 @@ interface PlayerAreaProps {
 
 export function PlayerArea({
   player,
+  displayName = player.displayName,
+  identityFace,
+  identityAbility,
   isCurrentTurn,
   revealHand,
   selectableCardIds,
@@ -59,7 +65,8 @@ export function PlayerArea({
     >
       <header className="player-area__header">
         <h2>
-          {player.displayName}
+          {identityFace && <img className="player-area__identity" src={identityFace.art} alt={identityFace.name} />}
+          {displayName}
           {isCurrentTurn && !player.eliminated && !concealStatus && <span className="player-area__turn-badge">차례</span>}
         </h2>
         {!concealStatus && <div className="player-area__status">
@@ -76,6 +83,11 @@ export function PlayerArea({
             </span>
           )}
           {player.eliminated && <span className="pill pill--eliminated">탈락</span>}
+          {identityAbility && (
+            <span className="pill pill--identity" title={identityAbility}>
+              정체 능력
+            </span>
+          )}
         </div>}
       </header>
 
@@ -121,7 +133,7 @@ export function PlayerArea({
       </div>
 
       {showDiscards && (
-        <Modal title={`${player.displayName}의 버린 카드`} onClose={() => setShowDiscards(false)}>
+        <Modal title={`${displayName}의 버린 카드`} onClose={() => setShowDiscards(false)}>
           {player.discardPile.map((c) => (
             <Card key={c.instanceId} name={c.name} size="sm" upgradeBadge={upgradeBadges[c.name]} />
           ))}

@@ -225,7 +225,7 @@ function SlotRow({
                 const active = humanTokens >= rule.threshold;
                 return (
                   <li key={rule.threshold} className={active ? "session-header__effect-rule--active" : ""}>
-                    편지 {rule.threshold}개 이상: {rule.cardName ? `「${rule.cardName}」 ` : ""}
+                    편지 {rule.threshold}개 이상일 시: {rule.cardName ? `「${rule.cardName}」 ` : ""}
                     {rule.result}
                     {active && <span className="session-header__active-mark">발동중</span>}
                   </li>

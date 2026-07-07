@@ -1141,7 +1141,15 @@ export function chooseIdentity(
   const next: SessionState = structuredClone(session);
   const variant = IDENTITY_VARIANTS[identityId]?.find((v) => v.id === variantId) ?? IDENTITY_VARIANTS[identityId]?.[0];
   next.playerIdentities[playerId] = identityId;
-  if (variant) next.playerIdentityFaces[playerId] = { identityId, variantId: variant.id, name: variant.name, art: variant.art };
+  if (variant) {
+    next.playerIdentityFaces[playerId] = { identityId, variantId: variant.id, name: variant.name, art: variant.art };
+    next.playerConfigs = next.playerConfigs.map((cfg) =>
+      cfg.id === playerId ? { ...cfg, displayName: variant.name } : cfg
+    );
+    next.round.players = next.round.players.map((player) =>
+      player.id === playerId ? { ...player, displayName: variant.name } : player
+    );
+  }
   next.identityPool = next.identityPool.filter((id) => id !== identityId);
   next.pendingIdentityChoice = null;
 
