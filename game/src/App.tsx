@@ -911,7 +911,7 @@ export default function App() {
         !pendingChoiceResult &&
         !pendingStoryEvent &&
         !roundStartLocked &&
-        !needsLetterChoice &&
+        !humanNeedsLetterChoice &&
         humanNeedsIdentityChoice && (
           <IdentityChoiceModal options={session.pendingIdentityChoice!.options} onChoose={handleChooseIdentity} />
         )}
@@ -924,8 +924,8 @@ export default function App() {
         !pendingChoiceResult &&
         !pendingStoryEvent &&
         !roundStartLocked &&
-        !needsLetterChoice &&
-        !needsIdentityChoice &&
+        !humanNeedsLetterChoice &&
+        !humanNeedsIdentityChoice &&
         humanNeedsArchiveChoice && (
           <ArchiveChoiceModal
             cardName={ARCHIVE_CARD_SEEDS[session.pendingChoice!.cardId].name}
@@ -943,9 +943,9 @@ export default function App() {
         !pendingChoiceResult &&
         !pendingStoryEvent &&
         !roundStartLocked &&
-        !needsLetterChoice &&
-        !needsIdentityChoice &&
-        !needsArchiveChoice &&
+        !humanNeedsLetterChoice &&
+        !humanNeedsIdentityChoice &&
+        !humanNeedsArchiveChoice &&
         humanNeedsArchivePlacement && (
           <ArchiveTokenModal
             archive={session.storyArchive}
