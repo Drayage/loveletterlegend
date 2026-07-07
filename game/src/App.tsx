@@ -553,6 +553,7 @@ export default function App() {
       session.letterTokens[slot]?.[HUMAN_ID] ?? 0,
     ])
   ) as Record<CharacterSlotId, number>;
+  const storyEventBlocking = Boolean(pendingStoryEvent);
   const activeBlockers: FlowStatusItem[] = [
     ...(showFlowStatus ? [{ title: "진행 확인 탭 열림", detail: "이 탭을 닫으면 자동 진행이 다시 움직입니다.", tone: "waiting" as const }] : []),
     ...(pendingHumanReveal ? [{ title: "비공개 공개 팝업", detail: "내가 확인해야 하는 카드 정보가 떠 있습니다.", tone: "blocked" as const }] : []),
@@ -562,8 +563,8 @@ export default function App() {
     ...(pendingElimination ? [{ title: "탈락 팝업", detail: `${displayNameFor(pendingElimination.playerId)} 탈락 결과를 확인해야 합니다.`, tone: "blocked" as const }] : []),
     ...(pendingChoiceResult ? [{ title: "이벤트 선택 결과", detail: "방금 선택된 시나리오 분기 결과를 확인해야 합니다.", tone: "blocked" as const }] : []),
     ...(pendingStoryEvent ? [{ title: "이야기 이벤트", detail: `${pendingStoryEvent.length}개 이벤트 설명을 읽어야 다음 단계로 갑니다.`, tone: "blocked" as const }] : []),
-    ...(roundStartLocked ? [{ title: "라운드 시작 확인", detail: "시작 이벤트를 다 읽은 뒤 주차 진행 버튼을 눌러야 패가 공개됩니다.", tone: "blocked" as const }] : []),
-    ...(pendingRoundStart ? [{ title: "다음 주차 준비", detail: "공주/왕자 카드와 추가 8번 카드를 선택한 뒤 시작해야 합니다.", tone: "blocked" as const }] : []),
+    ...(roundStartLocked && !storyEventBlocking ? [{ title: "라운드 시작 확인", detail: "시작 이벤트를 다 읽은 뒤 주차 진행 버튼을 눌러야 패가 공개됩니다.", tone: "blocked" as const }] : []),
+    ...(pendingRoundStart && !storyEventBlocking ? [{ title: "다음 주차 준비", detail: "공주/왕자 카드와 추가 8번 카드를 선택한 뒤 시작해야 합니다.", tone: "blocked" as const }] : []),
     ...(showCardReference ? [{ title: "카드 확인 창", detail: "카드 목록 창을 닫으면 진행됩니다.", tone: "waiting" as const }] : []),
     ...(showStoryArchive ? [{ title: "이야기 보관소 창", detail: "보관소 창을 닫으면 진행됩니다.", tone: "waiting" as const }] : []),
   ];
@@ -579,7 +580,7 @@ export default function App() {
     if (decision.playerId === AI_ID) aiTasks.push(item);
     if (decision.playerId === HUMAN_ID) playerTasks.push(item);
   }
-  if (session.pendingLetterChoice) {
+  if (session.pendingLetterChoice && !storyEventBlocking) {
     const item = {
       title: "편지 토큰 선택",
       detail: `${displayNameFor(session.pendingLetterChoice.playerId)}이(가) 편지 ${session.pendingLetterChoice.amount}개를 받을 대상을 골라야 합니다.`,
@@ -588,7 +589,7 @@ export default function App() {
     if (session.pendingLetterChoice.playerId === AI_ID) aiTasks.push(item);
     if (session.pendingLetterChoice.playerId === HUMAN_ID) playerTasks.push(item);
   }
-  if (session.pendingArchivePlacement) {
+  if (session.pendingArchivePlacement && !storyEventBlocking) {
     const item = {
       title: "이야기 보관소 토큰 배치",
       detail: `${displayNameFor(session.pendingArchivePlacement.eligiblePlayerId)}이(가) 성공/실패 토큰을 놓아야 합니다.`,
@@ -597,7 +598,7 @@ export default function App() {
     if (session.pendingArchivePlacement.eligiblePlayerId === AI_ID) aiTasks.push(item);
     if (session.pendingArchivePlacement.eligiblePlayerId === HUMAN_ID) playerTasks.push(item);
   }
-  if (session.pendingIdentityChoice) {
+  if (session.pendingIdentityChoice && !storyEventBlocking) {
     const item = {
       title: "정체 선택",
       detail: `${displayNameFor(session.pendingIdentityChoice.eligiblePlayerId)}이(가) 정체와 성별을 골라야 합니다.`,
@@ -606,7 +607,7 @@ export default function App() {
     if (session.pendingIdentityChoice.eligiblePlayerId === AI_ID) aiTasks.push(item);
     if (session.pendingIdentityChoice.eligiblePlayerId === HUMAN_ID) playerTasks.push(item);
   }
-  if (session.pendingChoice) {
+  if (session.pendingChoice && !storyEventBlocking) {
     const item = {
       title: "시나리오 선택",
       detail: `${displayNameFor(session.pendingChoice.eligiblePlayerId)}이(가) 「${ARCHIVE_CARD_SEEDS[session.pendingChoice.cardId].name}」 선택지를 골라야 합니다.`,
@@ -615,17 +616,17 @@ export default function App() {
     if (session.pendingChoice.eligiblePlayerId === AI_ID) aiTasks.push(item);
     if (session.pendingChoice.eligiblePlayerId === HUMAN_ID) playerTasks.push(item);
   }
-  if (roundOver && session.lastRoundSummary && !endSummaryAcknowledged) {
+  if (roundOver && session.lastRoundSummary && !endSummaryAcknowledged && !storyEventBlocking) {
     playerTasks.push({
       title: "라운드 결과 확인",
       detail: "결과 확인 버튼을 눌러 다음 이벤트/주차 준비로 넘어가야 합니다.",
       tone: "blocked",
     });
   }
-  if (roundStartLocked) {
+  if (roundStartLocked && !storyEventBlocking) {
     playerTasks.push({ title: "주차 시작 확인", detail: "주차 진행 버튼을 눌러 이번 라운드를 시작해야 합니다.", tone: "blocked" });
   }
-  if (pendingRoundStart) {
+  if (pendingRoundStart && !storyEventBlocking) {
     playerTasks.push({ title: "다음 주차 시작", detail: "카드 선택을 확인하고 시작 버튼을 눌러야 합니다.", tone: "blocked" });
   }
   if (aiTasks.length === 0) {

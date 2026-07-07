@@ -11,10 +11,20 @@ interface RoundEndSummaryProps {
   onContinue: () => void;
 }
 
+function uniqueArchiveReveals(reveals: RoundSummary["archiveCardsRevealed"]) {
+  const byName = new Map<string, RoundSummary["archiveCardsRevealed"][number]>();
+  for (const reveal of reveals) {
+    if (!byName.has(reveal.cardName)) byName.set(reveal.cardName, reveal);
+  }
+  return Array.from(byName.values());
+}
+
 export function RoundEndSummary({ summary, players, ended, onContinue }: RoundEndSummaryProps) {
   const displayName = (id: string) => players.find((p) => p.id === id)?.displayName ?? id;
   const handLabel = (cardName: RoundSummary["revealedHands"][number]["cardName"]) =>
     cardName ? `${CARD_DEFS[cardName].rank}. ${cardName}` : "없음";
+
+  const archiveReveals = uniqueArchiveReveals(summary.archiveCardsRevealed);
 
   return (
     <Modal title={`${summary.roundNumber}주차 결과`} onClose={() => {}} dismissible={false}>
@@ -59,9 +69,9 @@ export function RoundEndSummary({ summary, players, ended, onContinue }: RoundEn
             ))}
           </ul>
         )}
-        {summary.archiveCardsRevealed.length > 0 && (
+        {archiveReveals.length > 0 && (
           <ul className="round-end-summary__reveals">
-            {summary.archiveCardsRevealed.map((g, i) => (
+            {archiveReveals.map((g, i) => (
               <li key={`${g.cardId}-${i}`}>
                 새 이야기 공개: {g.cardName} ({g.sourceName}: {g.reason})
               </li>

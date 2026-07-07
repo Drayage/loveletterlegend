@@ -11,6 +11,18 @@ interface StoryEventModalProps {
   onNext: (count?: number) => void;
 }
 
+function isLetterRuleFlavor(flavor: string): boolean {
+  const text = flavor.trim();
+  return text.startsWith("《") || text.includes("+[편지]") || /편지\s*\d+개\s*이상/.test(text);
+}
+
+function mergedDisplayFlavor(cards: ArchiveCardState[]): string {
+  const flavors = cards.map((card) => card.flavor).filter(Boolean);
+  const narrativeFlavors = flavors.filter((flavor) => !isLetterRuleFlavor(flavor));
+  const displayFlavors = narrativeFlavors.length > 0 ? narrativeFlavors : flavors;
+  return Array.from(new Set(displayFlavors)).join("\n");
+}
+
 /** Shows exactly one newly-revealed card at a time -- even when several
  * unlock in the same milestone (e.g. clock=1 revealing 024/031/053 at
  * once) -- so each reveal reads as its own story beat instead of a wall
@@ -36,7 +48,7 @@ export function StoryEventModal({ cards, clockTokens, onNext }: StoryEventModalP
             sameNameGroup.find((card) => ARCHIVE_CARD_SEEDS[card.id]?.deckEffect || card.conditions.length > 0) ??
             sameNameGroup.find((card) => card.flavor.includes("《")) ??
             sameNameGroup[sameNameGroup.length - 1];
-          const mergedFlavor = Array.from(new Set(sameNameGroup.map((card) => card.flavor).filter(Boolean))).join("\n");
+          const mergedFlavor = mergedDisplayFlavor(sameNameGroup);
           return [{ ...preferred, flavor: mergedFlavor }];
         })()
       : null;

@@ -23,6 +23,18 @@ interface StoryArchiveModalProps {
   onClose: () => void;
 }
 
+function isLetterRuleFlavor(flavor: string): boolean {
+  const text = flavor.trim();
+  return text.startsWith("《") || text.includes("+[편지]") || /편지\s*\d+개\s*이상/.test(text);
+}
+
+function mergedDisplayFlavor(cards: ArchiveCardState[]): string {
+  const flavors = cards.map((card) => card.flavor).filter(Boolean);
+  const narrativeFlavors = flavors.filter((flavor) => !isLetterRuleFlavor(flavor));
+  const displayFlavors = narrativeFlavors.length > 0 ? narrativeFlavors : flavors;
+  return Array.from(new Set(displayFlavors)).join("\n");
+}
+
 function groupedCards(
   cards: ArchiveCardState[],
   activeIds: Set<string>,
@@ -39,7 +51,7 @@ function groupedCards(
         group.find((card) => ARCHIVE_CARD_SEEDS[card.id]?.deckEffect || card.conditions.length > 0) ??
         group.find((card) => card.flavor.includes("《")) ??
         group[group.length - 1];
-      const mergedFlavor = Array.from(new Set(group.map((card) => card.flavor).filter(Boolean))).join("\n");
+      const mergedFlavor = mergedDisplayFlavor(group);
       return {
         key: group.map((card) => card.id).join("-"),
         inactive: !group.some((card) => activeIds.has(card.id)),
