@@ -83,6 +83,7 @@ import { ROUTE_DEFS } from "./routes";
 import guard from "../assets/cards/guard.jpg";
 import knight from "../assets/cards/knight.jpg";
 import priestess from "../assets/cards/priestess.jpg";
+import wizard from "../assets/cards/wizard.jpg";
 // 정체(identity) 카드 6장 -- 실카드는 남/여 변형 각 2장씩 존재하지만
 // (성별에 따른 효과 차이 없음), UI는 카드 1장당 초상화 1개만 보여주므로
 // 각 쌍 중 하나만 대표로 쓴다.
@@ -692,6 +693,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "089",
     name: "수수께끼의 점술사",
     category: "scenario",
+    art: fortuneTeller,
     flavor:
       "점을 치는 텐트는 어둡고, 알 수 없는 향 냄새에 휩싸여 있습니다. 이국적인 의상을 입은 미녀가 수정구슬을 앞에 두고 신비로운 미소를 짓고 있습니다.「무슨 일이신가요?」",
     deckEffect: { kind: "replace", removeName: "광대", addName: "점술사" },
@@ -1158,6 +1160,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "130",
     name: "참회실에서",
     category: "scenario",
+    art: nun,
     conditionTag: true,
     conditionsTitle: "[조건] 라운드 종료 시 확인",
     flavor:
@@ -1254,6 +1257,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "142",
     name: "몹시 바쁜 마술사",
     category: "scenario",
+    art: wizard,
     flavor:
       "당신은 일찍이 도움을 받았던 마술사에게 다시 의지하려 성 밖의 탑을 방문합니다. 하지만 지금 그는 중요한 연구와 대대적인 의식으로 도무지 손을 뗄 수 없는 듯합니다. 어떻게 할까요...",
     conditions: [],
@@ -1380,6 +1384,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "154",
     name: "수수께끼의 소년",
     category: "scenario",
+    art: archmage15,
     flavor: "「이런 건 어때?」",
     conditions: [],
     choices: [
@@ -1831,6 +1836,7 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     id: "200",
     name: "거만한 귀족 영애",
     category: "scenario",
+    art: nobleLady,
     flavor:
       "「오호홋! 이 몸의 매력을 알아채다니! 안목이 있네요! 그래요! 공주보다 내가 더 말이죠!」요란한 웃음소리를 내며 당신에게 손가락질하는 영애, 이 상황을 보면 당신이 그녀에게 단단히 빠진 것은 분명합니다. 그녀의 종이 되는 것은 어렵지 않을 겁니다. 허나 과연 그녀의 진정한 사랑을 손에 넣을 수 있겠습니까?",
     deckEffect: { kind: "add", cardName: "귀족영애" },
