@@ -296,6 +296,10 @@ function totalLetterTokens(session: SessionState, playerId: string): number {
   return ALL_SLOTS.reduce((sum, slot) => sum + (session.letterTokens[slot][playerId] ?? 0), 0);
 }
 
+function heldLetterTokens(session: SessionState, playerId: string): number {
+  return LETTER_TOKEN_POOL - totalLetterTokens(session, playerId);
+}
+
 /** Adds up to `amount` tokens without exceeding the player's 10-token pool,
  * silently dropping whatever doesn't fit. Used for the automatic (non-
  * choice) grants -- 마술사의도제 progress and the archive's shared tokens
@@ -774,9 +778,9 @@ function applySessionRoundEnd(session: SessionState): SessionState {
         grantCharacterLetter("신병아니스", event.actingPlayerId, 2, "「신병」으로 다른 플레이어를 탈락시킴", "061");
       }
     } else if (event.type === "kingElimination") {
-      // 025 "도중": 《왕》 효과로 탈락한 플레이어의 총 [편지]가 8개 이상이면
+      // 025 "도중": 《왕》 효과로 탈락한 플레이어가 아직 보유한 [편지]가 8개 이상이면
       // 025에 [실패] +1.
-      if (totalLetterTokens(next, event.playerId) >= 8) {
+      if (heldLetterTokens(next, event.playerId) >= 8) {
         grantArchive("025", "실패", 1, "「왕」 효과로 탈락한 플레이어가 편지 8개 이상 보유");
       }
     } else if (event.type === "compareResolved") {

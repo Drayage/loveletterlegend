@@ -395,10 +395,9 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
     expect(session.pendingArchivePlacement?.eligiblePlayerId).toBe("p2");
   });
 
-  it("025 gains a failure token when a king-eliminated player has at least 8 total letter tokens", () => {
+  it("025 gains a failure token when a king-eliminated player still holds at least 8 letters", () => {
     let session = startSession(PLAYERS);
-    session.letterTokens["잉그리드공주"]["p2"] = 5;
-    session.letterTokens["아레스왕자"]["p2"] = 3;
+    session.letterTokens["잉그리드공주"]["p2"] = 2;
     session = forceImmediateWin(
       session,
       "p1",
@@ -456,7 +455,7 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
 
   it("025's [실패] threshold reveals 027 and removes 왕 from future decks", () => {
     let session = startSession(PLAYERS);
-    session.letterTokens["잉그리드공주"]["p2"] = 8;
+    session.letterTokens["잉그리드공주"]["p2"] = 2;
     session.extraDeckCardNames = ["왕"];
     session = forceImmediateWin(
       session,
@@ -484,7 +483,7 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
     expect(session.extraDeckCardNames).not.toContain("왕");
   });
 
-  it("025's [실패] threshold does NOT fire when the eliminated player has under 8 편지", () => {
+  it("025's [실패] threshold does NOT fire when the eliminated player holds under 8 letters", () => {
     let session = startSession(PLAYERS);
     session.letterTokens["잉그리드공주"]["p2"] = 3;
     session = forceImmediateWin(
