@@ -1,13 +1,11 @@
 import type { Route } from "../engine/session";
 import type { CardName } from "../engine/types";
-import { ROUTE_DEFS } from "../data/routes";
 import { Modal } from "./Modal";
 import "./RoundStartGate.css";
 
 interface RoundStartGateProps {
   upcomingRoundNumber: number;
   route: Route;
-  chooserName: string;
   optionalCards?: CardName[];
   selectedOptionalCards?: CardName[];
   onToggleOptionalCard?: (cardName: CardName) => void;
@@ -26,7 +24,6 @@ const rank8DisplayNames: Partial<Record<CardName, string>> = {
 export function RoundStartGate({
   upcomingRoundNumber,
   route,
-  chooserName,
   optionalCards = [],
   selectedOptionalCards = [],
   onToggleOptionalCard,
@@ -45,9 +42,6 @@ export function RoundStartGate({
   return (
     <Modal title={`${upcomingRoundNumber}주차 준비`} onClose={() => {}} dismissible={false}>
       <div className="round-start-gate">
-        <p className="round-start-gate__prompt">
-          {chooserName}이(가) 「{ROUTE_DEFS[route].displayName}」을(를) 추구하기로 했습니다.
-        </p>
         <div className="round-start-gate__optional">
           <p className="round-start-gate__optional-title">공주/왕자 카드 선택 (택1)</p>
           <div className="round-start-gate__optional-list">

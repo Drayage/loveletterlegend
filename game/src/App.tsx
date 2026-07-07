@@ -7,7 +7,6 @@ import {
   chooseTargetAI,
   chooseArchiveTokenAI,
   chooseLetterTargetAI,
-  chooseRouteAI,
   chooseIdentityAI,
   chooseArchiveChoiceAI,
 } from "./engine/ai";
@@ -21,7 +20,6 @@ import {
   resolveLetterChoice,
   chooseIdentity,
   resolveArchiveChoice,
-  nextRoundLeader,
   ROUTE_SLOT,
   availableRank8LetterSlots,
 } from "./engine/session";
@@ -36,7 +34,6 @@ import { EffectToast } from "./ui/EffectToast";
 import { EffectRevealModal } from "./ui/EffectRevealModal";
 import { CardReferenceModal } from "./ui/CardReferenceModal";
 import { SessionHeader } from "./ui/SessionHeader";
-import { RouteSwitchPrompt } from "./ui/RouteSwitchPrompt";
 import { RoundEndSummary } from "./ui/RoundEndSummary";
 import { SessionEndScreen } from "./ui/SessionEndScreen";
 import { StoryArchiveModal } from "./ui/StoryArchiveModal";
@@ -118,11 +115,10 @@ export default function App() {
   const [dismissedGuessEffectId, setDismissedGuessEffectId] = useState<string | null>(null);
   const [dismissedForcedDiscardId, setDismissedForcedDiscardId] = useState<string | null>(null);
   const [dismissedEffectBlockedId, setDismissedEffectBlockedId] = useState<string | null>(null);
-  const [showRouteSwitch, setShowRouteSwitch] = useState(false);
   const [endSummaryAcknowledged, setEndSummaryAcknowledged] = useState(false);
   const [pendingStoryEvent, setPendingStoryEvent] = useState<ArchiveCardState[] | null>(null);
   const [pendingChoiceResult, setPendingChoiceResult] = useState<ResolvedChoiceInfo | null>(null);
-  const [pendingRoundStart, setPendingRoundStart] = useState<{ route: Route; chosenBy: string; optionalCards: CardName[]; selectedOptionalCards: CardName[] } | null>(null);
+  const [pendingRoundStart, setPendingRoundStart] = useState<{ route: Route; optionalCards: CardName[]; selectedOptionalCards: CardName[] } | null>(null);
   const [roundStartLockedNumber, setRoundStartLockedNumber] = useState<number | null>(null);
   const handledDecisionRef = useRef<string | null>(null);
   const handledArchiveRef = useRef<SessionState["pendingArchivePlacement"]>(null);
@@ -181,7 +177,6 @@ export default function App() {
     Boolean(pendingStoryEvent) ||
     Boolean(pendingRoundStart) ||
     roundStartLocked ||
-    Boolean(showRouteSwitch) ||
     Boolean(showCardReference) ||
     Boolean(showStoryArchive) ||
     Boolean(session?.pendingLetterChoice?.playerId === HUMAN_ID) ||
@@ -388,7 +383,6 @@ export default function App() {
     setDismissedGuessEffectId(null);
     setDismissedForcedDiscardId(null);
     setDismissedEffectBlockedId(null);
-    setShowRouteSwitch(false);
     setEndSummaryAcknowledged(false);
     setPendingStoryEvent(null);
     setPendingChoiceResult(null);
@@ -416,20 +410,16 @@ export default function App() {
     setEndSummaryAcknowledged(false);
     setRoundStartLockedNumber(session ? session.roundNumber + 1 : null);
     setSession((prev) => (prev ? safely(() => beginNextRound(prev, route, selectedOptionalCards)) ?? prev : prev));
-    setShowRouteSwitch(false);
     setPendingRoundStart(null);
   }
 
-  // Route is decided (by the human via RouteSwitchPrompt, or automatically
-  // for the AI leader) but `beginNextRound` doesn't run yet -- RoundStartGate
+  // The next round is queued here, but `beginNextRound` doesn't run yet -- RoundStartGate
   // shows first, so round-end and round-start never blur into one instant
   // cascade. Only its own "N주차 시작" click actually calls proceedToNextRound.
-  function requestRoundStart(route: Route, chosenBy: string) {
-    setShowRouteSwitch(false);
+  function requestRoundStart(route: Route) {
     const optionalCards = session?.optionalRoundDeckCardNames ?? [];
     setPendingRoundStart({
       route,
-      chosenBy,
       optionalCards,
       selectedOptionalCards: session?.activeOptionalRoundDeckCardNames.filter((name) => optionalCards.includes(name)) ?? [],
     });
@@ -815,7 +805,6 @@ export default function App() {
         !needsArchivePlacement &&
         session.lastRoundSummary &&
         !endSummaryAcknowledged &&
-        !showRouteSwitch &&
         !pendingRoundStart && (
           <RoundEndSummary
             summary={session.lastRoundSummary}
@@ -826,37 +815,8 @@ export default function App() {
               if (session.ended) {
                 return;
               }
-              // 다음 라운드의 선플레이어(직전 라운드 승자)만 라우트 전환을
-              // 결정한다 -- AI가 이겼다면 사람에게 묻지 않고 바로 진행,
-              // 다만 실제 라운드 시작은 RoundStartGate에서 한 번 더
-              // 확인받는다 (라운드 종료/시작 사이에 쉬는 타임을 둠).
-              if (nextRoundLeader(session) === HUMAN_ID) {
-                setShowRouteSwitch(true);
-              } else {
-                requestRoundStart(chooseRouteAI(session.currentRoute), AI_ID);
-              }
+              requestRoundStart(session.currentRoute);
             }}
-          />
-        )}
-
-      {!pendingHumanReveal &&
-        !pendingGuessEffect &&
-        !pendingForcedDiscard &&
-        !pendingEffectBlocked &&
-        !pendingElimination &&
-        !pendingChoiceResult &&
-        (!pendingStoryEvent || endSummaryAcknowledged) &&
-        !roundStartLocked &&
-        !needsLetterChoice &&
-        !needsIdentityChoice &&
-        !needsArchiveChoice &&
-        roundOver &&
-        !needsArchivePlacement &&
-        !session.ended &&
-        showRouteSwitch && (
-          <RouteSwitchPrompt
-            currentRoute={session.currentRoute}
-            onChoose={(route) => requestRoundStart(route, HUMAN_ID)}
           />
         )}
 
@@ -874,7 +834,6 @@ export default function App() {
           <RoundStartGate
             upcomingRoundNumber={session.roundNumber + 1}
             route={pendingRoundStart.route}
-            chooserName={displayNameFor(pendingRoundStart.chosenBy)}
             optionalCards={pendingRoundStart.optionalCards}
             selectedOptionalCards={pendingRoundStart.selectedOptionalCards}
             onToggleOptionalCard={(cardName) =>
