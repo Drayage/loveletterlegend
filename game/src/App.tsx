@@ -283,7 +283,11 @@ export default function App() {
         if (!prev || !currentDecision || decisionKey(currentDecision) !== key) return prev;
         const currentActor = prev.round.players.find((p) => p.id === currentDecision.playerId);
         if (!currentActor?.isAI) return prev;
-        return safely(() => applyToRound(prev, (s) => applyAiDecision(s, currentDecision))) ?? prev;
+        return (
+          safely(() =>
+            applyToRound(prev, (s) => applyAiDecision(s, currentDecision, { letterTokens: prev.letterTokens }))
+          ) ?? prev
+        );
       });
     }, 700);
     return () => clearTimeout(timer);
