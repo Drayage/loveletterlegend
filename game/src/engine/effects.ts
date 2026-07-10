@@ -92,9 +92,10 @@ function eligibleTargets(draft: GameState, actingPlayerId: string, allowSelf: bo
     .map((p) => p.id);
 }
 
-/** Shared "no legal target" fizzle path for every target-needing card. In
- * this 2P implementation the only way a card ends up with zero eligible
- * targets is the sole opponent being 승려-protected, so this doubles as the
+/** Shared "no legal target" fizzle path for every target-needing card. This
+ * only happens when every eligible other player is 승려-protected at once
+ * (in 2P that's simply "the sole opponent"; with 3-4 players it requires
+ * everyone else to be protected simultaneously), so this doubles as the
  * public "blocked by protection" notice (see GameState.lastEffectBlocked). */
 function blockNoTarget(draft: GameState, actor: PlayerState, card: CardInstance): void {
   log(draft, `${actor.displayName}: 지목할 상대가 없어 「${card.name}」 효과가 발동하지 않았습니다.`);

@@ -235,13 +235,13 @@ export interface GameState {
   /** The most recent card played by anyone, shown as "the card currently in
    * play" until the next card is played (by either player). */
   lastPlayedCard: { playerId: string; card: CardInstance } | null;
-  /** Rolling window of the last two plays (one per player in 2P) with a
-   * one-line outcome summary attached once the effect resolves -- drives
-   * the center table's "who played what and what happened" exchange view.
-   * `outcome` is null while a freshly-played card still awaits its
-   * target/guess decision. Optional for the same reason as sessionEvents:
-   * bare GameState fixtures (rules.test.ts) may omit it, in which case
-   * the tracking is skipped. */
+  /** Rolling window of the last N plays (one per player, N = current
+   * player count) with a one-line outcome summary attached once the effect
+   * resolves -- drives the center table's "who played what and what
+   * happened" exchange view. `outcome` is null while a freshly-played card
+   * still awaits its target/guess decision. Optional for the same reason
+   * as sessionEvents: bare GameState fixtures (rules.test.ts) may omit it,
+   * in which case the tracking is skipped. */
   recentPlays?: Array<{ playerId: string; card: CardInstance; outcome: string | null }>;
   /** Private info revealed by the last-resolved effect, if any -- only
    * meaningful to whoever is named in viewerPlayerId. */
@@ -283,9 +283,9 @@ export interface GameState {
     cardName: CardName;
     discardedCardName: CardName;
   } | null;
-  /** Public: an effect fizzled because it had no legal target -- in this 2P
-   * implementation that only happens when the sole opponent is 승려-protected
-   * (see effects.ts's eligibleTargets), so this doubles as a "blocked by
+  /** Public: an effect fizzled because it had no legal target -- only
+   * happens when every other eligible player is 승려-protected at once (see
+   * effects.ts's eligibleTargets), so this doubles as a "blocked by
    * protection" notice. Surfaced as its own popup instead of a log-only line
    * so a turn that visibly "did nothing" still reads as an intentional
    * block, not a silent no-op/bug. */

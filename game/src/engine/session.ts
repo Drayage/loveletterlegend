@@ -26,7 +26,10 @@ export type { CharacterSlotId } from "./types";
  * change. */
 export const ROUTE_SLOT: Record<Route, CharacterSlotId> = { 공주: "잉그리드공주", 왕자: "아레스왕자" };
 export const RANK8_SLOTS: readonly CharacterSlotId[] = ["잉그리드공주", "아레스왕자", "루나공주", "마가렛공주"];
-const ALL_SLOTS: readonly CharacterSlotId[] = [
+/** Exported (not just module-local) so UI code -- the 기록보관실(records)
+ * gallery in particular -- can enumerate every possible ending slot without
+ * duplicating this list. */
+export const ALL_SLOTS: readonly CharacterSlotId[] = [
   "잉그리드공주",
   "아레스왕자",
   "루나공주",

@@ -159,12 +159,13 @@ export function chooseCardToPlay(state: GameState, cardInstanceId: string): Game
   draft.resolvingCard = card;
   draft.resolvingPlayerId = playerId;
   draft.lastPlayedCard = { playerId, card };
-  // 중앙 테이블의 "누가 뭘 냈고 어떻게 됐는지" 교환 뷰용 -- 최근 2건만
-  // 유지 (2인전에서 양쪽의 직전 플레이). outcome은 효과가 실제로 해소될
+  // 중앙 테이블의 "누가 뭘 냈고 어떻게 됐는지" 교환 뷰용 -- 플레이어 수만큼만
+  // 유지한다(한 바퀴 동안의 직전 플레이들). outcome은 효과가 실제로 해소될
   // 때 effects.ts의 setPlayOutcome이 채운다.
   if (draft.recentPlays) {
     draft.recentPlays.push({ playerId, card, outcome: null });
-    while (draft.recentPlays.length > 2) draft.recentPlays.shift();
+    const window = Math.max(2, draft.players.length);
+    while (draft.recentPlays.length > window) draft.recentPlays.shift();
   }
   log(draft, `${player.displayName}: 「${card.name}」 카드를 냅니다.`);
 
@@ -434,7 +435,8 @@ export function chooseRegentChoice(state: GameState, choice: "immune" | "elimina
 }
 
 /** 강화된 「마녀」([편지] 3개 이상): 모아 확인한 카드 중 자신이 가질 카드를
- * 직접 고른다 -- 나머지는 (2인전 고정) 유일한 상대에게 돌아간다. */
+ * 직접 고른다 -- 나머지는 살아있는 다른 플레이어 전원에게 한 장씩 순서대로
+ * 돌아간다(2인이든 3~4인이든 동일 로직). */
 export function chooseWitchAssign(state: GameState, keepInstanceId: string): GameState {
   const draft = cloneState(state);
   if (!draft.pendingDecision || draft.pendingDecision.kind !== "witchAssign") {

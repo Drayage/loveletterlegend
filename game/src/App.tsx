@@ -65,15 +65,17 @@ import { Modal } from "./ui/Modal";
 import { FlowStatusModal, type FlowStatusItem } from "./ui/FlowStatusModal";
 import { ARCHIVE_CARD_SEEDS } from "./data/scenario";
 import type { IdentityVariantId } from "./data/identityVariants";
+import { SetupScreen } from "./ui/SetupScreen";
+import { RecordsScreen } from "./ui/RecordsScreen";
+import { SoundControls } from "./ui/SoundControls";
+import { recordSessionEnding } from "./persistence/records";
+import { getSoundEngine } from "./audio/soundEngine";
 import "./App.css";
 
+/** 사람 자리는 항상 이 id 하나로 고정 -- 몇 인용이든(2~4인) 사람은 항상
+ * 정확히 1자리이므로 이 상수만으로 "사람 vs 나머지 전부 AI" 구분이
+ * 충분하다. AI 자리는 SetupScreen이 "ai-1".."ai-3"로 동적으로 만든다. */
 const HUMAN_ID = "human";
-const AI_ID = "ai";
-
-const PLAYERS: PlayerConfig[] = [
-  { id: HUMAN_ID, displayName: "나", isAI: false },
-  { id: AI_ID, displayName: "AI", isAI: true },
-];
 
 const IDENTITY_USAGE_TEXT: Record<string, string> = {
   "033": "수동 능력: 차례 시작 시 비공개 카드와 손패 교환 선택 필요",
@@ -173,6 +175,7 @@ function routeForSelection(currentRoute: Route, selected: CardName[]): Route {
 
 export default function App() {
   const [session, setSession] = useState<SessionState | null>(null);
+  const [uiScreen, setUiScreen] = useState<"title" | "setup" | "records">("title");
   const [showCardReference, setShowCardReference] = useState(false);
   const [showStoryArchive, setShowStoryArchive] = useState(false);
   const [showFlowStatus, setShowFlowStatus] = useState(false);
@@ -197,6 +200,10 @@ export default function App() {
   // lastResolvedChoice object with the SAME data, so reference equality
   // would make this popup reappear on every subsequent round end).
   const shownChoiceResultCardIdRef = useRef<string | null>(null);
+  // 세션 하나당 기록보관실 저장은 정확히 한 번만 -- session.ended이 계속
+  // true인 상태에서 리렌더가 여러 번 일어나도 localStorage에 중복 누적되지
+  // 않도록 막는다.
+  const recordedEndingRef = useRef(false);
 
   const round = session?.round ?? null;
   const roundStartLocked = Boolean(session && roundStartLockedNumber === session.roundNumber);
@@ -503,7 +510,58 @@ export default function App() {
     session,
   ]);
 
-  function startGame() {
+  // 세션이 완전히 끝나(결과 요약까지 확인된) 시점에 기록보관실에 딱 한 번
+  // 저장한다 -- 향후 엔딩 씬 수집 요소의 기반 데이터.
+  useEffect(() => {
+    if (!session?.ended || !endSummaryAcknowledged || recordedEndingRef.current) return;
+    recordedEndingRef.current = true;
+    recordSessionEnding(session.playerEndings?.[HUMAN_ID] ?? null);
+  }, [session, endSummaryAcknowledged]);
+
+  // 효과음: 상태가 실제로 "새로" 바뀐 시점에만 울리도록 각 이벤트의 id에
+  // 걸어 둔다 -- 사람/AI 누가 일으켰든 동일하게 반응하므로 여기 한 곳에서
+  // 전부 처리하면 각 모달 컴포넌트를 건드릴 필요가 없다.
+  useEffect(() => {
+    if (!round?.lastPlayedCard) return;
+    getSoundEngine().playCardPlay();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [round?.lastPlayedCard?.card.instanceId]);
+
+  useEffect(() => {
+    if (!round?.lastGuessEffect) return;
+    if (round.lastGuessEffect.hit) getSoundEngine().playGuessHit();
+    else getSoundEngine().playGuessMiss();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [round?.lastGuessEffect?.id]);
+
+  useEffect(() => {
+    if (!round?.lastElimination) return;
+    getSoundEngine().playElimination();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [round?.lastElimination?.id]);
+
+  useEffect(() => {
+    if (!round?.lastEffectBlocked) return;
+    getSoundEngine().playBlocked();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [round?.lastEffectBlocked?.id]);
+
+  useEffect(() => {
+    if (!session?.lastRoundSummary) return;
+    getSoundEngine().playRoundWin();
+  }, [session?.lastRoundSummary]);
+
+  useEffect(() => {
+    if (!pendingStoryEvent || pendingStoryEvent.length === 0) return;
+    getSoundEngine().playStoryReveal();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingStoryEvent?.[0]?.id]);
+
+  useEffect(() => {
+    if (session?.ended && endSummaryAcknowledged) getSoundEngine().playSessionEnd();
+  }, [session?.ended, endSummaryAcknowledged]);
+
+  function startGame(players: PlayerConfig[]) {
     handledDecisionRef.current = null;
     handledArchiveRef.current = null;
     handledLetterChoiceRef.current = null;
@@ -511,6 +569,7 @@ export default function App() {
     handledChoiceRef.current = null;
     seenArchiveIdsRef.current = new Set();
     shownChoiceResultCardIdRef.current = null;
+    recordedEndingRef.current = false;
     setDismissedRevealId(null);
     setDismissedEliminationId(null);
     setDismissedGuessEffectId(null);
@@ -521,16 +580,18 @@ export default function App() {
     setPendingChoiceResult(null);
     setPendingRoundStart(null);
     setRoundStartLockedNumber(1);
-    setSession(startSession(PLAYERS));
+    setSession(startSession(players));
   }
 
   function handleSelectCard(instanceId: string) {
     setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseCardToPlay(s, instanceId))) ?? prev : prev));
   }
   function handleChooseTarget(targetId: string) {
+    getSoundEngine().playTargetLock();
     setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseTarget(s, targetId))) ?? prev : prev));
   }
   function handleChooseGuess(name: Parameters<typeof chooseGuess>[1]) {
+    getSoundEngine().playClick();
     setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseGuess(s, name))) ?? prev : prev));
   }
   function handleIdentitySwap(use: boolean) {
@@ -587,6 +648,7 @@ export default function App() {
   }
 
   function handleLetterChoice(choice: LetterChoice) {
+    if (choice.type === "place") getSoundEngine().playLetterGain();
     setSession((prev) => (prev ? safely(() => resolveLetterChoice(prev, HUMAN_ID, choice)) ?? prev : prev));
   }
 
@@ -613,21 +675,53 @@ export default function App() {
   }
 
   if (!session || !round) {
+    if (uiScreen === "setup") {
+      return (
+        <>
+          <SetupScreen onStart={startGame} onBack={() => setUiScreen("title")} />
+          <SoundControls />
+        </>
+      );
+    }
+    if (uiScreen === "records") {
+      return (
+        <>
+          <RecordsScreen onBack={() => setUiScreen("title")} />
+          <SoundControls />
+        </>
+      );
+    }
     return (
       <div className="start-screen">
         <h1>Love Letter Legend</h1>
-        <p>8라운드에 걸쳐 캐릭터와 편지를 주고받는 AI 대전 러브레터입니다.</p>
-        <button type="button" className="primary-btn" onClick={startGame}>
+        <p>8라운드에 걸쳐 캐릭터와 편지를 주고받는 AI 대전 러브레터입니다. 2~4인이 함께할 수 있습니다.</p>
+        <button
+          type="button"
+          className="primary-btn"
+          onClick={() => {
+            // 브라우저 자동재생 정책상 AudioContext는 실제 클릭 안에서만
+            // 만들 수 있다 -- 여기가 세션에서 가장 먼저 일어나는 클릭.
+            getSoundEngine().unlock();
+            getSoundEngine().startBgm();
+            setUiScreen("setup");
+          }}
+        >
           게임 시작
         </button>
+        <button type="button" className="start-screen__secondary-btn" onClick={() => setUiScreen("records")}>
+          기록보관실
+        </button>
+        <SoundControls />
       </div>
     );
   }
 
   const human = round.players.find((p) => p.id === HUMAN_ID)!;
-  const ai = round.players.find((p) => p.id === AI_ID)!;
+  const otherPlayers = round.players.filter((p) => p.id !== HUMAN_ID);
   const displayNameFor = (playerId: string) =>
-    session.playerIdentityFaces[playerId]?.name ?? (playerId === HUMAN_ID ? human.displayName : ai.displayName);
+    session.playerIdentityFaces[playerId]?.name ??
+    round.players.find((p) => p.id === playerId)?.displayName ??
+    playerId;
   const identityAbilityFor = (playerId: string) => {
     const identityId = session.playerIdentities[playerId];
     if (!identityId) return null;
@@ -678,15 +772,20 @@ export default function App() {
   }
   const humanCardUpgradeBadges = upgradeBadgesFor(HUMAN_ID);
   const humanCardUpgradeAbilityTexts = upgradeAbilityTextsFor(HUMAN_ID);
-  const aiCardUpgradeBadges = upgradeBadgesFor(AI_ID);
-  const aiCardUpgradeAbilityTexts = upgradeAbilityTextsFor(AI_ID);
+  // 상대는 몇 명이든(1~3명) 각자 자기 진행도 기준으로 따로 계산한다.
+  const otherCardUpgradeBadges = Object.fromEntries(
+    otherPlayers.map((p) => [p.id, upgradeBadgesFor(p.id)])
+  ) as Record<string, Partial<Record<CardName, string>>>;
+  const otherCardUpgradeAbilityTexts = Object.fromEntries(
+    otherPlayers.map((p) => [p.id, upgradeAbilityTextsFor(p.id)])
+  ) as Record<string, Partial<Record<CardName, string>>>;
   const tableUpgradeBadgesByPlayer: Record<string, Partial<Record<CardName, string>>> = {
     [HUMAN_ID]: humanCardUpgradeBadges,
-    [AI_ID]: aiCardUpgradeBadges,
+    ...otherCardUpgradeBadges,
   };
   const tableUpgradeAbilityTextsByPlayer: Record<string, Partial<Record<CardName, string>>> = {
     [HUMAN_ID]: humanCardUpgradeAbilityTexts,
-    [AI_ID]: aiCardUpgradeAbilityTexts,
+    ...otherCardUpgradeAbilityTexts,
   };
   const humanLetterTokens = Object.fromEntries(
     CHARACTER_SLOTS.map((slot) => [
@@ -719,8 +818,8 @@ export default function App() {
       detail: `${decisionLabel(decision)}${flowBlocked ? " - 먼저 막는 팝업/선택을 처리해야 합니다." : ""}`,
       tone: flowBlocked ? "blocked" as const : "ready" as const,
     };
-    if (decision.playerId === AI_ID) aiTasks.push(item);
     if (decision.playerId === HUMAN_ID) playerTasks.push(item);
+    else aiTasks.push(item);
   }
   if (session.pendingLetterChoice && !storyEventBlocking) {
     const item = {
@@ -728,8 +827,8 @@ export default function App() {
       detail: `${displayNameFor(session.pendingLetterChoice.playerId)}이(가) 편지 ${session.pendingLetterChoice.amount}개를 받을 대상을 골라야 합니다.`,
       tone: flowBlocked ? "blocked" as const : "ready" as const,
     };
-    if (session.pendingLetterChoice.playerId === AI_ID) aiTasks.push(item);
     if (session.pendingLetterChoice.playerId === HUMAN_ID) playerTasks.push(item);
+    else aiTasks.push(item);
   }
   if (session.pendingArchivePlacement && !storyEventBlocking) {
     const item = {
@@ -737,8 +836,8 @@ export default function App() {
       detail: `${displayNameFor(session.pendingArchivePlacement.eligiblePlayerId)}이(가) 성공/실패 토큰을 놓아야 합니다.`,
       tone: flowBlocked ? "blocked" as const : "ready" as const,
     };
-    if (session.pendingArchivePlacement.eligiblePlayerId === AI_ID) aiTasks.push(item);
     if (session.pendingArchivePlacement.eligiblePlayerId === HUMAN_ID) playerTasks.push(item);
+    else aiTasks.push(item);
   }
   if (session.pendingIdentityChoice && !storyEventBlocking) {
     const item = {
@@ -746,8 +845,8 @@ export default function App() {
       detail: `${displayNameFor(session.pendingIdentityChoice.eligiblePlayerId)}이(가) 정체와 성별을 골라야 합니다.`,
       tone: flowBlocked ? "blocked" as const : "ready" as const,
     };
-    if (session.pendingIdentityChoice.eligiblePlayerId === AI_ID) aiTasks.push(item);
     if (session.pendingIdentityChoice.eligiblePlayerId === HUMAN_ID) playerTasks.push(item);
+    else aiTasks.push(item);
   }
   if (session.pendingChoice && !storyEventBlocking) {
     const item = {
@@ -755,8 +854,8 @@ export default function App() {
       detail: `${displayNameFor(session.pendingChoice.eligiblePlayerId)}이(가) 「${ARCHIVE_CARD_SEEDS[session.pendingChoice.cardId].name}」 선택지를 골라야 합니다.`,
       tone: flowBlocked ? "blocked" as const : "ready" as const,
     };
-    if (session.pendingChoice.eligiblePlayerId === AI_ID) aiTasks.push(item);
     if (session.pendingChoice.eligiblePlayerId === HUMAN_ID) playerTasks.push(item);
+    else aiTasks.push(item);
   }
   if (roundOver && session.lastRoundSummary && !endSummaryAcknowledged && !storyEventBlocking) {
     playerTasks.push({
@@ -861,20 +960,25 @@ export default function App() {
         onDismiss={() => setDismissedRevealId(pendingHumanReveal?.id ?? null)}
       />
 
-      <PlayerArea
-        player={ai}
-        displayName={displayNameFor(AI_ID)}
-        identityFace={session.playerIdentityFaces[AI_ID]}
-        identityAbility={identityAbilityFor(AI_ID)}
-        isCurrentTurn={round.pendingDecision?.playerId === AI_ID}
-        revealHand={Boolean(round.roundResult) && !concealRoundStart}
-        remaining={remaining}
-        handSize="sm"
-        compact
-        upgradeBadges={aiCardUpgradeBadges}
-        upgradeAbilityTexts={aiCardUpgradeAbilityTexts}
-        concealStatus={concealRoundStart}
-      />
+      <div className={`opponents-row opponents-row--count-${otherPlayers.length}`}>
+        {otherPlayers.map((opponent) => (
+          <PlayerArea
+            key={opponent.id}
+            player={opponent}
+            displayName={displayNameFor(opponent.id)}
+            identityFace={session.playerIdentityFaces[opponent.id]}
+            identityAbility={identityAbilityFor(opponent.id)}
+            isCurrentTurn={round.pendingDecision?.playerId === opponent.id}
+            revealHand={Boolean(round.roundResult) && !concealRoundStart}
+            remaining={remaining}
+            handSize="sm"
+            compact
+            upgradeBadges={otherCardUpgradeBadges[opponent.id]}
+            upgradeAbilityTexts={otherCardUpgradeAbilityTexts[opponent.id]}
+            concealStatus={concealRoundStart}
+          />
+        ))}
+      </div>
 
       <TablePlay
         state={round}
@@ -1040,7 +1144,10 @@ export default function App() {
               <button
                 type="button"
                 className="round-start-gate__start-btn"
-                onClick={() => setRoundStartLockedNumber(null)}
+                onClick={() => {
+                  getSoundEngine().playClick();
+                  setRoundStartLockedNumber(null);
+                }}
               >
                 {session.roundNumber}주차 진행
               </button>
@@ -1134,6 +1241,7 @@ export default function App() {
             players={session.playerConfigs}
             ended={session.ended}
             onContinue={() => {
+              getSoundEngine().playClick();
               setEndSummaryAcknowledged(true);
               if (session.ended) {
                 return;
@@ -1199,12 +1307,20 @@ export default function App() {
         roundOver &&
         session.ended &&
         endSummaryAcknowledged && (
-          <SessionEndScreen session={session} players={session.playerConfigs} onNewGame={startGame} />
+          <SessionEndScreen
+            session={session}
+            players={session.playerConfigs}
+            onNewGame={() => {
+              setSession(null);
+              setUiScreen("setup");
+            }}
+          />
         )}
 
       <button type="button" className="flow-status-fab" onClick={() => setShowFlowStatus(true)}>
         진행 확인
       </button>
+      <SoundControls />
 
       {showFlowStatus && (
         <FlowStatusModal

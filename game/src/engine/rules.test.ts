@@ -918,3 +918,80 @@ describe("AI 자살 방지", () => {
     }
   });
 });
+
+describe("3~4인 플레이 정합성", () => {
+  const PLAYERS_3: PlayerConfig[] = [
+    { id: "p1", displayName: "플레이어1", isAI: false },
+    { id: "p2", displayName: "AI-1", isAI: true },
+    { id: "p3", displayName: "AI-2", isAI: true },
+  ];
+  const PLAYERS_4: PlayerConfig[] = [
+    { id: "p1", displayName: "플레이어1", isAI: false },
+    { id: "p2", displayName: "AI-1", isAI: true },
+    { id: "p3", displayName: "AI-2", isAI: true },
+    { id: "p4", displayName: "AI-3", isAI: true },
+  ];
+
+  it("3인/4인 라운드는 비공개 카드만 빼고(공개 제거 카드 없음) 시작한다 -- 2인 전용 규칙", () => {
+    const state3 = setupRound(PLAYERS_3);
+    expect(state3.hiddenRemovedCard).not.toBeNull();
+    expect(state3.faceUpRemovedCards).toHaveLength(0);
+    const state4 = setupRound(PLAYERS_4);
+    expect(state4.hiddenRemovedCard).not.toBeNull();
+    expect(state4.faceUpRemovedCards).toHaveLength(0);
+  });
+
+  function driveFullRound(players: PlayerConfig[]): GameState {
+    let state = setupRound(players);
+    let steps = 0;
+    while (!state.roundResult) {
+      steps += 1;
+      if (steps > 800) throw new Error("게임이 끝나지 않습니다 (무한 루프 의심)");
+      const decision = state.pendingDecision;
+      if (!decision) throw new Error("진행할 결정이 없는데 라운드가 끝나지 않았습니다.");
+      state = applyAiDecision(state, decision);
+    }
+    return state;
+  }
+
+  it("3인/4인 라운드를 AI들만으로 여러 번 완주해도 무너지지 않는다", () => {
+    for (let i = 0; i < 30; i++) {
+      const state3 = driveFullRound(PLAYERS_3);
+      expect(["lastPlayerStanding", "deckExhausted"]).toContain(state3.roundResult!.reason);
+    }
+    for (let i = 0; i < 30; i++) {
+      const state4 = driveFullRound(PLAYERS_4);
+      expect(["lastPlayerStanding", "deckExhausted"]).toContain(state4.roundResult!.reason);
+    }
+  });
+
+  it("강화된 마녀는 3인전에서 자신 1장 + 나머지 두 플레이어에게 1장씩 나눈다", () => {
+    const state = setupRound(PLAYERS_3);
+    state.players[0].hand = [{ instanceId: "witch", name: "마녀" }, { instanceId: "keep", name: "경비병" }];
+    state.players[0].eliminated = false;
+    state.players[1].hand = [{ instanceId: "opp1", name: "공주" }];
+    state.players[1].eliminated = false;
+    state.players[2].hand = [{ instanceId: "opp2", name: "대신" }];
+    state.players[2].eliminated = false;
+    state.activeCardUpgradesByPlayer = { p1: { 마녀: "tier1" } };
+    // p3가 이미 「대신」을 들고 있으므로, p2가 자기 턴에 덱 맨 위에서 「대신」을
+    // 뽑아 손패 합 12 이상(공주8+대신7)으로 자동 탈락 -> p3까지 연쇄 드로우로
+    // 넘어가는 경우가 드물게 있었다(무작위 덱). 덱을 안전한 카드로 고정해
+    // 어떤 순서로 뽑히든 이 테스트 범위에서 패시브가 발동하지 않게 한다.
+    state.deck = Array.from({ length: 6 }, (_, i) => ({ instanceId: `safe-${i}`, name: "경비병" as const }));
+    state.currentPlayerIndex = 0;
+    state.pendingDecision = { kind: "playCard", playerId: "p1", options: state.players[0].hand };
+    let s = chooseCardToPlay(state, "witch");
+    expect(s.pendingDecision?.kind).toBe("witchAssign");
+    if (s.pendingDecision?.kind === "witchAssign") {
+      expect(s.pendingDecision.pool.map((c) => c.name).sort()).toEqual(["경비병", "공주", "대신"]);
+    }
+    s = chooseWitchAssign(s, "keep");
+    expect(s.players[0].hand.map((c) => c.name)).toEqual(["경비병"]);
+    // p2/p3는 각각 나머지 카드(공주/대신) 1장씩 받는다. p1 다음 차례인 p2는
+    // 곧바로 자동 진행되는 자기 턴에서 덱 카드를 1장 더 뽑으므로 2장이 된다.
+    expect(s.players[1].hand.map((c) => c.name)).toContain("공주");
+    expect(s.players[1].hand).toHaveLength(2);
+    expect(s.players[2].hand.map((c) => c.name)).toEqual(["대신"]);
+  });
+});

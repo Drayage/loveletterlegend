@@ -1483,3 +1483,41 @@ describe("127 「수사 알베르트」 편지 임계값 -- 승려 1장이 영�
     expect(s.extraDeckCardNames.filter((n) => n === "수사")).toHaveLength(1);
   });
 });
+
+describe("3~4인 세션 정합성", () => {
+  const PLAYERS_3: PlayerConfig[] = [
+    { id: "p1", displayName: "플레이어", isAI: false },
+    { id: "p2", displayName: "AI-1", isAI: true },
+    { id: "p3", displayName: "AI-2", isAI: true },
+  ];
+  const PLAYERS_4: PlayerConfig[] = [
+    { id: "p1", displayName: "플레이어", isAI: false },
+    { id: "p2", displayName: "AI-1", isAI: true },
+    { id: "p3", displayName: "AI-2", isAI: true },
+    { id: "p4", displayName: "AI-3", isAI: true },
+  ];
+
+  it("3인 세션이 8라운드 상한 내에서 끝까지 완주된다", () => {
+    for (let i = 0; i < 4; i++) {
+      const session = driveSessionToEnd(startSession(PLAYERS_3));
+      expect(session.ended).toBe(true);
+      expect(session.roundNumber).toBeLessThanOrEqual(8);
+      expect(session.playerEndings).not.toBeNull();
+      expect(Object.keys(session.playerEndings!)).toEqual(
+        expect.arrayContaining(["p1", "p2", "p3"])
+      );
+    }
+  });
+
+  it("4인 세션이 8라운드 상한 내에서 끝까지 완주된다", () => {
+    for (let i = 0; i < 4; i++) {
+      const session = driveSessionToEnd(startSession(PLAYERS_4));
+      expect(session.ended).toBe(true);
+      expect(session.roundNumber).toBeLessThanOrEqual(8);
+      expect(session.playerEndings).not.toBeNull();
+      expect(Object.keys(session.playerEndings!)).toEqual(
+        expect.arrayContaining(["p1", "p2", "p3", "p4"])
+      );
+    }
+  });
+});
