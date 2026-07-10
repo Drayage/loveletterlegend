@@ -11,6 +11,7 @@ import {
   effectiveCardRank,
   eliminatePlayer,
   getPlayer,
+  hasReusablePlayEffect,
   log,
   guessOptionsFor,
   needsGuess,
@@ -171,7 +172,7 @@ export function chooseCardToPlay(state: GameState, cardInstanceId: string): Game
   if (draft.activeIdentities?.[playerId] === "036" && !draft.identityRoundUsed?.[`${playerId}:036`]) {
     const options = draft.players
       .flatMap((p) => p.discardPile)
-      .filter((c) => c.name !== card.name && c.name !== "공주" && c.name !== "왕자" && c.name !== "공주둘째" && c.name !== "공주셋째" && c.name !== "귀족영애");
+      .filter((c) => c.name !== card.name && hasReusablePlayEffect(c.name));
     if (options.length > 0) {
       draft.pendingDecision = {
         kind: "identityReplaceEffect",
@@ -182,6 +183,31 @@ export function chooseCardToPlay(state: GameState, cardInstanceId: string): Game
       };
       return draft;
     }
+  }
+
+  // 점술사: 실카드의 두 선택지(덱 확인 / 공동 승리 지목)를 먼저 고른다.
+  if (card.name === "점술사") {
+    draft.pendingDecision = { kind: "fortunePath", playerId, cardInstanceId: card.instanceId, cardName: card.name };
+    return draft;
+  }
+
+  // 수사/수녀: 버림 더미에서 재사용할 「플레이:」 효과 카드를 직접 고른다.
+  if (card.name === "수사" || card.name === "수녀") {
+    const options = draft.players
+      .flatMap((p) => p.discardPile)
+      .filter((c) => c.name !== card.name && hasReusablePlayEffect(c.name));
+    if (options.length > 0) {
+      draft.pendingDecision = {
+        kind: "reuseDiscard",
+        playerId,
+        cardInstanceId: card.instanceId,
+        cardName: card.name,
+        options,
+      };
+      return draft;
+    }
+    // 재사용할 카드가 없으면 그대로 불발 처리 (applyEffect의 수사/수녀 케이스).
+    return finishResolution(draft, {});
   }
 
   if (needsTarget(card.name, upgrade)) {
@@ -231,12 +257,30 @@ export function chooseTarget(state: GameState, targetId: string): GameState {
     return draft;
   }
 
+  return continueAfterTarget(draft, {
+    playerId,
+    cardInstanceId: draft.pendingDecision.cardInstanceId,
+    cardName,
+    effectCardName,
+    targetId,
+  });
+}
+
+/** Shared tail of the target-selection flow (chooseTarget and the 034
+ * identity-cancel decline path): installs the follow-up decision the chosen
+ * card still needs -- 경비병/신병's guess, 군사's "확인 후 교환 여부" -- or
+ * resolves immediately when there is none. */
+function continueAfterTarget(
+  draft: GameState,
+  args: { playerId: string; cardInstanceId: string; cardName: CardName; effectCardName?: CardName; targetId: string }
+): GameState {
+  const { playerId, cardInstanceId, cardName, effectCardName, targetId } = args;
   if (needsGuess(cardName)) {
     const upgrade = resolveUpgradeTier(draft, cardName, playerId);
     draft.pendingDecision = {
       kind: "guessCard",
       playerId,
-      cardInstanceId: draft.pendingDecision.cardInstanceId,
+      cardInstanceId,
       cardName,
       effectCardName,
       targetId,
@@ -245,6 +289,26 @@ export function chooseTarget(state: GameState, targetId: string): GameState {
       maxGuesses: cardName === "경비병" && upgrade ? 2 : 1,
     };
     return draft;
+  }
+
+  // 군사: 실카드 문구대로 상대 손패를 먼저 확인(선택자에게만 공개)한 뒤
+  // 교환 여부를 선택한다. 확인한 카드는 tacticianSwap 결정 패널이 보여준다.
+  if (cardName === "군사") {
+    const target = getPlayer(draft, targetId);
+    const seen = target.hand[0];
+    if (seen) {
+      log(draft, `${getPlayer(draft, playerId).displayName}: 「군사」 효과로 ${target.displayName}의 손패를 확인합니다.`);
+      draft.pendingDecision = {
+        kind: "tacticianSwap",
+        playerId,
+        cardInstanceId,
+        cardName,
+        effectCardName,
+        targetId,
+        seenCardName: seen.name,
+      };
+      return draft;
+    }
   }
 
   return finishResolution(draft, { targetId, effectCardName });
@@ -266,6 +330,122 @@ export function chooseGuess(state: GameState, guess: GuessOption): GameState {
     return draft;
   }
   return finishResolution(draft, { targetId: decision.targetId, guess: guesses.join("|") as GuessOption, effectCardName: decision.effectCardName });
+}
+
+/** 「점술사」의 두 선택지: "peek"(덱 맨 위 확인, 이어서 교환 여부 선택) 또는
+ * "coWin"(다른 플레이어 지목 -- 그가 승리하면 공동 승리). */
+export function chooseFortunePath(state: GameState, path: "peek" | "coWin"): GameState {
+  const draft = cloneState(state);
+  if (!draft.pendingDecision || draft.pendingDecision.kind !== "fortunePath") {
+    throw new Error("현재 점술사 선택지를 고를 차례가 아닙니다.");
+  }
+  const decision = draft.pendingDecision;
+  if (path === "coWin") {
+    return finishResolution(draft, { effectCardName: decision.effectCardName, option: "coWin" });
+  }
+  const seen = draft.deck[0];
+  if (!seen) {
+    return finishResolution(draft, { effectCardName: decision.effectCardName, option: "keep" });
+  }
+  // 확인한 카드는 deckSwap 결정 패널 자체가 보여준다 (별도 reveal 모달을
+  // 띄우면 선택 패널과 겹쳐 흐름이 어색해진다).
+  log(draft, `${getPlayer(draft, decision.playerId).displayName}: 「점술사」 효과로 덱 맨 위 카드를 확인합니다.`);
+  draft.pendingDecision = {
+    kind: "deckSwap",
+    playerId: decision.playerId,
+    cardInstanceId: decision.cardInstanceId,
+    cardName: decision.cardName,
+    effectCardName: decision.effectCardName,
+    seenCardName: seen.name,
+  };
+  return draft;
+}
+
+/** 「점술사」 peek의 후속: 확인한 덱 맨 위 카드와 손패를 교환할지. */
+export function chooseDeckSwap(state: GameState, swap: boolean): GameState {
+  const draft = cloneState(state);
+  if (!draft.pendingDecision || draft.pendingDecision.kind !== "deckSwap") {
+    throw new Error("현재 덱 카드 교환을 선택할 차례가 아닙니다.");
+  }
+  return finishResolution(draft, {
+    effectCardName: draft.pendingDecision.effectCardName,
+    option: swap ? "swap" : "keep",
+  });
+}
+
+/** 「군사」의 후속: 확인한 상대 손패와 교환할지. */
+export function chooseTacticianSwap(state: GameState, swap: boolean): GameState {
+  const draft = cloneState(state);
+  if (!draft.pendingDecision || draft.pendingDecision.kind !== "tacticianSwap") {
+    throw new Error("현재 군사 교환 여부를 선택할 차례가 아닙니다.");
+  }
+  const decision = draft.pendingDecision;
+  return finishResolution(draft, {
+    targetId: decision.targetId,
+    effectCardName: decision.effectCardName,
+    option: swap ? "swap" : "keep",
+  });
+}
+
+/** 「수사/수녀」: 선택한 버림 더미 카드의 「플레이:」 효과를 재사용한다 --
+ * effectCardName 메커니즘(036 「학생/여학생」과 동일)으로 대상/추측 등
+ * 후속 플로우까지 그대로 이어진다. */
+export function chooseReuseCard(state: GameState, reuseInstanceId: string): GameState {
+  const draft = cloneState(state);
+  if (!draft.pendingDecision || draft.pendingDecision.kind !== "reuseDiscard") {
+    throw new Error("현재 재사용할 카드를 고를 차례가 아닙니다.");
+  }
+  const decision = draft.pendingDecision;
+  const reused = decision.options.find((c) => c.instanceId === reuseInstanceId);
+  if (!reused) throw new Error("선택할 수 없는 버림 더미 카드입니다.");
+  log(
+    draft,
+    `${getPlayer(draft, decision.playerId).displayName}: 「${decision.cardName}」 효과로 버림 더미의 「${reused.name}」 효과를 재사용합니다.`
+  );
+  draft.pendingDecision = null;
+  const upgrade = resolveUpgradeTier(draft, reused.name, decision.playerId);
+  if (reused.name === "점술사") {
+    draft.pendingDecision = {
+      kind: "fortunePath",
+      playerId: decision.playerId,
+      cardInstanceId: decision.cardInstanceId,
+      cardName: reused.name,
+      effectCardName: reused.name,
+    };
+    return draft;
+  }
+  if (needsTarget(reused.name, upgrade)) {
+    const eligible = targetsFor(draft, decision.playerId, reused.name, upgrade);
+    draft.pendingDecision = {
+      kind: "chooseTarget",
+      playerId: decision.playerId,
+      cardInstanceId: decision.cardInstanceId,
+      cardName: reused.name,
+      effectCardName: reused.name,
+      eligiblePlayerIds: eligible,
+    };
+    if (eligible.length === 0) return finishResolution(draft, { effectCardName: reused.name });
+    return draft;
+  }
+  return finishResolution(draft, { effectCardName: reused.name });
+}
+
+/** 「대마도사(20세)」의 후속: 손에 든 카드 중 버릴 1장을 고른다 (공주류를
+ * 고르면 그대로 탈락 규칙이 적용된다). */
+export function chooseHandDiscard(state: GameState, cardInstanceId: string): GameState {
+  const draft = cloneState(state);
+  if (!draft.pendingDecision || draft.pendingDecision.kind !== "discardFromHand") {
+    throw new Error("현재 버릴 카드를 고를 차례가 아닙니다.");
+  }
+  const decision = draft.pendingDecision;
+  const actor = getPlayer(draft, decision.playerId);
+  const idx = actor.hand.findIndex((c) => c.instanceId === cardInstanceId);
+  if (idx === -1) throw new Error("손에 없는 카드입니다.");
+  const [discarded] = actor.hand.splice(idx, 1);
+  log(draft, `${actor.displayName}: 「${decision.cardName}」 효과로 「${discarded.name}」를 버립니다.`);
+  discardCard(draft, decision.playerId, discarded);
+  draft.pendingDecision = null;
+  return afterTurnResolved(draft, decision.playerId);
 }
 
 export function chooseIdentitySwap(state: GameState, use: boolean): GameState {
@@ -306,21 +486,13 @@ export function chooseIdentityCancel(state: GameState, use: boolean): GameState 
     return afterTurnResolved(draft, decision.actingPlayerId);
   }
   draft.pendingDecision = null;
-  if (needsGuess(decision.cardName)) {
-    draft.pendingDecision = {
-      kind: "guessCard",
-      playerId: decision.actingPlayerId,
-      cardInstanceId: decision.cardInstanceId,
-      cardName: decision.cardName,
-      effectCardName: decision.effectCardName,
-      targetId: decision.targetId,
-      options: guessOptionsFor(decision.cardName, draft),
-      guesses: [],
-      maxGuesses: decision.cardName === "경비병" && resolveUpgradeTier(draft, decision.cardName, decision.actingPlayerId) ? 2 : 1,
-    };
-    return draft;
-  }
-  return finishResolution(draft, { targetId: decision.targetId, effectCardName: decision.effectCardName });
+  return continueAfterTarget(draft, {
+    playerId: decision.actingPlayerId,
+    cardInstanceId: decision.cardInstanceId,
+    cardName: decision.cardName,
+    effectCardName: decision.effectCardName,
+    targetId: decision.targetId,
+  });
 }
 
 export function chooseIdentityReplacement(state: GameState, replacementInstanceId: string | null): GameState {
@@ -370,7 +542,7 @@ export function chooseIdentityReplacement(state: GameState, replacementInstanceI
 
 function finishResolution(
   draft: GameState,
-  extra: { targetId?: string; guess?: GuessOption; effectCardName?: CardName }
+  extra: { targetId?: string; guess?: GuessOption; effectCardName?: CardName; option?: string }
 ): GameState {
   const card = draft.resolvingCard;
   const playerId = draft.resolvingPlayerId;
@@ -378,7 +550,12 @@ function finishResolution(
 
   const effectCard = extra.effectCardName ? { ...card, name: extra.effectCardName } : card;
   const upgrade = resolveUpgradeTier(draft, effectCard.name, playerId);
+  draft.pendingDecision = null;
   applyEffect(draft, { actingPlayerId: playerId, card: effectCard, upgrade, ...extra });
+  // 효과가 후속 선택(대마도사20의 discardFromHand 등)을 설치했다면 붙잡아
+  // 두고, 카드 버림 처리 후 그 선택으로 턴을 일시정지한다.
+  const followUp = draft.pendingDecision;
+  draft.pendingDecision = null;
 
   const actor = getPlayer(draft, playerId);
   if (!actor.eliminated) {
@@ -387,9 +564,19 @@ function finishResolution(
     actor.discardPile.push(card);
   }
 
+  // 수녀의 [편지] 강화: 재사용 여부와 무관하게 사용 후 다음 차례까지 보호.
+  if (card.name === "수녀" && !actor.eliminated && resolveUpgradeTier(draft, "수녀", playerId)) {
+    actor.protected = true;
+    log(draft, `${actor.displayName}: 강화된 「수녀」 효과로 다음 차례까지 보호받습니다.`);
+  }
+
   draft.resolvingCard = null;
   draft.resolvingPlayerId = null;
-  draft.pendingDecision = null;
+
+  if (followUp && !actor.eliminated) {
+    draft.pendingDecision = followUp;
+    return draft;
+  }
 
   return afterTurnResolved(draft, playerId);
 }
@@ -477,11 +664,13 @@ function determineDeckExhaustedWinner(draft: GameState, alive: PlayerState[]): s
   // 생존으로만 승리 가능).
   if (festivalId === "046") return null;
 
-  // 045 「건국제」: 버린 카드 숫자의 합이 가장 큰 플레이어 승리.
+  // 045 「건국제」: 버린 카드 숫자의 합이 가장 큰 플레이어 승리. 집사/035의
+  // +2는 "손에 든 카드"에만 적용되는 보정이므로 버림 더미 합에는 카드의
+  // 인쇄 숫자를 그대로 쓴다.
   if (festivalId === "045") {
     const values = alive.map((p) => ({
       id: p.id,
-      value: p.discardPile.reduce((sum, c) => sum + effectiveCardRank(draft, p.id, c.name), 0),
+      value: p.discardPile.reduce((sum, c) => sum + cardRank(c.name), 0),
     }));
     const tiers = valueTiers(values);
     return tiers[0]?.length === 1 ? tiers[0][0] : null;
@@ -560,7 +749,25 @@ function endRound(
   const revealedHands: Record<string, CardInstance | undefined> = {};
   for (const p of draft.players) revealedHands[p.id] = p.hand[0];
 
-  draft.roundResult = { reason, winnerId, revealedHands };
+  // 「점술사」 공동 승리: 지목했던 대상이 이 라운드의 승자라면 지목자도
+  // 함께 승리한 것으로 기록한다 (편지 보상은 세션 레이어가 처리).
+  const coWinnerIds = winnerId
+    ? [
+        ...new Set(
+          (draft.fortuneCoWins ?? [])
+            .filter((c) => c.targetId === winnerId && c.playerId !== winnerId)
+            .map((c) => c.playerId)
+        ),
+      ]
+    : [];
+  if (coWinnerIds.length > 0) {
+    log(
+      draft,
+      `「점술사」의 예언이 적중했습니다! ${coWinnerIds.map((id) => getPlayer(draft, id).displayName).join(", ")}도 함께 승리합니다.`
+    );
+  }
+
+  draft.roundResult = { reason, winnerId, revealedHands, coWinnerIds };
   draft.pendingDecision = null;
   return draft;
 }

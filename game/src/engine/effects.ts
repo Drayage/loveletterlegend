@@ -167,6 +167,41 @@ export function needsGuess(cardName: CardName): boolean {
   return cardName === "경비병" || cardName === "신병";
 }
 
+/** 「플레이:」 시점에 실제로 무언가를 하는 카드들 -- 수사/수녀의 "버림 더미
+ * 카드 효과 재사용"과 036 「학생/여학생」의 "효과 대체"가 고를 수 있는
+ * 유효 선택지. 패시브/라운드 종료 전용 카드(공주류, 대신, 집사, 여장군,
+ * 여후작, 마을소녀/배우/무희 등)는 재사용해도 아무 일도 일어나지 않으므로
+ * 제외한다. 수사/수녀 자신(무한 연쇄 방지)과 「쥐」(재사용 = 자기 탈락)도
+ * 선택지에서 뺀다. */
+const REUSABLE_PLAY_EFFECT_NAMES: ReadonlySet<CardName> = new Set<CardName>([
+  "경비병",
+  "신병",
+  "광대",
+  "광대의제자",
+  "광대의제자여",
+  "점술사",
+  "기사",
+  "복면기사",
+  "여기사",
+  "상인",
+  "마술사",
+  "마술사의도제",
+  "마녀",
+  "대마도사15",
+  "대마도사20",
+  "장군",
+  "군사",
+  "시종",
+  "시녀",
+  "승려",
+  "정무관남",
+  "정무관여",
+]);
+
+export function hasReusablePlayEffect(name: CardName): boolean {
+  return REUSABLE_PLAY_EFFECT_NAMES.has(name);
+}
+
 export function currentRoundCardNames(state: GameState): CardName[] {
   const names = new Set<CardName>();
   for (const c of state.deck) names.add(c.name);
@@ -197,6 +232,10 @@ export interface ResolveArgs {
   targetId?: string;
   guess?: GuessOption;
   upgrade?: CharacterUpgradeTier;
+  /** 카드별 후속 선택의 결과 -- 점술사("swap"/"keep"/"coWin"), 군사
+   * ("swap"/"keep"). undefined면 선택 플로우를 거치지 않은 경로(수사/수녀
+   * 재사용, 단독 엔진 호출)로, 기존 v1 자동 동작을 유지한다. */
+  option?: string;
 }
 
 function guessHits(cardName: CardName, targetCardName: CardName, guess: GuessOption): boolean {
@@ -213,7 +252,7 @@ function guessHits(cardName: CardName, targetCardName: CardName, guess: GuessOpt
 }
 
 export function applyEffect(draft: GameState, args: ResolveArgs): void {
-  const { actingPlayerId, card, targetId, guess, upgrade } = args;
+  const { actingPlayerId, card, targetId, guess, upgrade, option } = args;
   const actor = getPlayer(draft, actingPlayerId);
   draft.sessionEvents?.push({ type: "cardPlayed", actingPlayerId, cardName: card.name });
 
@@ -287,10 +326,39 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       }
       return;
     }
-    // 점술사: 실카드는 "덱 위 카드 확인 후 교환" 또는 "공동 승리" 중 선택이지만,
-    // v1은 앞쪽 선택지만 확인(peek)으로 단순화한다 (see cards.ts's comment).
-    // 자기 자신에게만 영향을 주므로 대상 지목이 필요 없다.
+    // 점술사: 실카드의 두 선택지(덱 확인 후 교환 / 공동 승리 지목)는
+    // rules.ts의 fortunePath -> deckSwap 결정 플로우가 option으로 전달한다.
+    // option 없이 직접 호출되는 경로(수사/수녀 재사용, 단독 엔진 테스트)는
+    // 기존 자동 동작(확인 후 더 높으면 교환)을 유지한다.
     case "점술사": {
+      if (option === "coWin") {
+        const coTarget = alivePlayers(draft).find((p) => p.id !== actingPlayerId && !p.protected);
+        if (!coTarget) {
+          blockNoTarget(draft, actor, card);
+          return;
+        }
+        draft.fortuneCoWins = [...(draft.fortuneCoWins ?? []), { playerId: actingPlayerId, targetId: coTarget.id }];
+        log(
+          draft,
+          `${actor.displayName}: 「점술사」 효과로 ${coTarget.displayName}을(를) 지목합니다. 그 플레이어가 라운드에서 승리하면 함께 승리합니다.`
+        );
+        setPlayOutcome(draft, card.instanceId, `${coTarget.displayName}의 승리에 편승 (공동 승리 예언)`);
+        return;
+      }
+      if (option === "swap" || option === "keep") {
+        const seen = draft.deck[0];
+        const current = actor.hand[0];
+        if (option === "swap" && seen && current) {
+          actor.hand[0] = seen;
+          draft.deck[0] = current;
+          log(draft, `${actor.displayName}: 「점술사」 효과로 덱 맨 위 카드와 손패를 교환합니다.`);
+          setPlayOutcome(draft, card.instanceId, "덱 맨 위 카드 확인 후 교환");
+        } else {
+          log(draft, `${actor.displayName}: 「점술사」 효과로 확인한 카드를 덱에 그대로 둡니다.`);
+          setPlayOutcome(draft, card.instanceId, "덱 맨 위 카드를 확인");
+        }
+        return;
+      }
       const seen = draft.deck[0];
       log(draft, `${actor.displayName}: 「점술사」 효과로 덱 맨 위 카드를 확인합니다.`);
       const current = actor.hand[0];
@@ -323,8 +391,8 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       const targetCard = target.hand[0];
       if (!actorCard || !targetCard) return;
       log(draft, `${actor.displayName}과(와) ${target.displayName}이(가) 「${card.name}」로 카드를 비교합니다.`);
-      const actorRank = effectiveCardRank(draft, actingPlayerId, actorCard.name);
-      const targetRank = effectiveCardRank(draft, targetId, targetCard.name);
+      const actorRank = effectiveCardRank(draft, actingPlayerId, actorCard.name, "compare");
+      const targetRank = effectiveCardRank(draft, targetId, targetCard.name, "compare");
       // 복면기사는 실카드 규칙이 반대: 숫자가 더 "큰" 쪽이 탈락한다.
       const actorLoses =
         card.name === "복면기사" ? actorRank > targetRank : actorRank < targetRank;
@@ -393,37 +461,13 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
     }
     case "수사":
     case "수녀": {
-      // 실카드는 어느 버림 더미 카드를 쓸지 직접 고르지만, v1은 새 선택
-      // 흐름을 추가하는 대신 유효한 버린 카드 중 무작위로 하나를 골라
-      // 그 효과를 재사용한다 (재사용 카드가 대상이 필요하면 대상도
-      // 무작위로 고른다).
-      const eligible = draft.players.flatMap((p) => p.discardPile.filter((c) => c.name !== card.name));
-      if (eligible.length === 0) {
-        log(draft, `${actor.displayName}: 재사용할 버린 카드가 없어 「${card.name}」 효과가 발동하지 않았습니다.`);
-        setPlayOutcome(draft, card.instanceId, "재사용할 카드 없음 → 효과 불발");
-        return;
-      }
-      const reused = eligible[Math.floor(Math.random() * eligible.length)];
-      log(draft, `${actor.displayName}: 「${card.name}」 효과로 버린 더미의 「${reused.name}」 효과를 재사용합니다.`);
-      setPlayOutcome(draft, card.instanceId, `「${reused.name}」 효과 재사용`);
-      const reusedTargets = targetsFor(draft, actingPlayerId, reused.name, upgrade);
-      const reusedTargetId =
-        reusedTargets.length > 0 ? reusedTargets[Math.floor(Math.random() * reusedTargets.length)] : undefined;
-      const guessableOptions = guessOptionsFor(reused.name, draft);
-      const reusedGuess = needsGuess(reused.name)
-        ? guessableOptions[Math.floor(Math.random() * guessableOptions.length)]
-        : undefined;
-      applyEffect(draft, {
-        actingPlayerId,
-        card: reused,
-        targetId: reusedTargetId,
-        guess: reusedGuess,
-        upgrade,
-      });
-      if (card.name === "수녀" && upgrade) {
-        actor.protected = true;
-        log(draft, `${actor.displayName}: 강화된 「수녀」 효과로 다음 차례까지 보호받습니다.`);
-      }
+      // 재사용할 버림 더미 카드 선택은 rules.ts의 chooseCardToPlay가
+      // reuseDiscard 결정으로 처리한다 (선택되면 effectCardName으로 대체되어
+      // 이 케이스에 오지 않는다). 여기 도달하는 건 재사용할 카드가 없어
+      // 불발되는 경우뿐이다. 수녀의 [편지] 강화 보호는 finishResolution이
+      // 재사용 여부와 무관하게 부여한다.
+      log(draft, `${actor.displayName}: 재사용할 버린 카드가 없어 「${card.name}」 효과가 발동하지 않았습니다.`);
+      setPlayOutcome(draft, card.instanceId, "재사용할 카드 없음 → 효과 불발");
       return;
     }
     case "마녀": {
@@ -478,13 +522,21 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
         target.hand.push({ instanceId: nextLogId(), name: "쥐" });
         if (upgrade) eliminatePlayer(draft, targetId, "강화된 「쥐」를 손에 들어");
       }
-      const discard = [...actor.hand].sort((a, b) => cardRank(a.name) - cardRank(b.name))[0];
-      if (discard) {
-        actor.hand = actor.hand.filter((c) => c.instanceId !== discard.instanceId);
-        discardCard(draft, actingPlayerId, discard);
-      }
       log(draft, `${actor.displayName}: 「대마도사(20세)」 효과로 ${target.displayName}의 손패를 받고 「쥐」를 줍니다.`);
       setPlayOutcome(draft, card.instanceId, `${target.displayName}에게 쥐를 주고 1장 버림`);
+      // "그 후, 당신은 손에 든 카드 중 1장을 버립니다" -- 어느 카드를
+      // 버릴지는 사용자의 선택 (discardFromHand 후속 결정, rules.ts의
+      // finishResolution이 pause 후 chooseHandDiscard로 이어준다).
+      const handNow = getPlayer(draft, actingPlayerId).hand;
+      if (!getPlayer(draft, actingPlayerId).eliminated && handNow.length > 1) {
+        draft.pendingDecision = {
+          kind: "discardFromHand",
+          playerId: actingPlayerId,
+          cardInstanceId: card.instanceId,
+          cardName: card.name,
+          options: [...handNow],
+        };
+      }
       return;
     }
     case "쥐": {
@@ -506,16 +558,26 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       }
       const target = getPlayer(draft, targetId);
       const seen = target.hand[0];
-      log(draft, `${actor.displayName}: 「군사」 효과로 ${target.displayName}의 손패를 확인합니다.`);
-      // 실카드는 확인 후 교환 여부를 선택할 수 있지만, v1은 장군처럼 항상
-      // 교환하는 것으로 단순화한다.
+      // 실카드: 확인 후 교환 여부를 "선택" -- 정상 플레이 경로에서는
+      // rules.ts의 chooseTarget이 확인(reveal)과 tacticianSwap 결정을 먼저
+      // 처리하고 option("swap"/"keep")으로 결과만 전달한다. option이 없는
+      // 경로(수사/수녀 재사용, 단독 엔진 호출)는 확인 후 항상 교환하는
+      // 기존 동작을 유지한다.
+      if (option === "keep") {
+        log(draft, `${actor.displayName}: 확인한 카드를 교환하지 않습니다.`);
+        setPlayOutcome(draft, card.instanceId, `${target.displayName}의 손패 확인 (교환 안 함)`);
+        return;
+      }
+      if (option === undefined) {
+        log(draft, `${actor.displayName}: 「군사」 효과로 ${target.displayName}의 손패를 확인합니다.`);
+      }
       const actorCard = actor.hand.pop();
       const targetCard = target.hand.pop();
       if (actorCard) target.hand.push(actorCard);
       if (targetCard) actor.hand.push(targetCard);
       log(draft, `${actor.displayName}과(와) ${target.displayName}이(가) 손패를 교환합니다.`);
       setPlayOutcome(draft, card.instanceId, `${target.displayName}의 손패 확인 후 교환`);
-      if (seen) {
+      if (seen && option === undefined) {
         draft.lastReveal = {
           id: nextLogId(),
           viewerPlayerId: actingPlayerId,
@@ -579,6 +641,15 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       if (upgrade === "tier1") {
         const peek = draft.deck.slice(0, 2);
         log(draft, `${actor.displayName}: 「마술사의 도제」 효과로 덱 위 카드 ${peek.length}장을 확인합니다.`);
+        if (peek.length > 0) {
+          draft.lastReveal = {
+            id: nextLogId(),
+            viewerPlayerId: actingPlayerId,
+            cardName: card.name,
+            targetDisplayName: "덱 위 카드",
+            targetCards: peek.map((c) => c.name),
+          };
+        }
       }
       const target = getPlayer(draft, targetId);
       const discarded = target.hand.pop();
@@ -710,8 +781,8 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       const actorCard = actor.hand[0];
       const targetCard = target.hand[0];
       if (!actorCard || !targetCard) return;
-      const actorRank = effectiveCardRank(draft, actingPlayerId, actorCard.name);
-      const targetRank = effectiveCardRank(draft, targetId, targetCard.name);
+      const actorRank = effectiveCardRank(draft, actingPlayerId, actorCard.name, "compare");
+      const targetRank = effectiveCardRank(draft, targetId, targetCard.name, "compare");
       const actorLoses = actorRank > targetRank;
       draft.lastReveal = {
         id: nextLogId(),
@@ -762,19 +833,45 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
       setPlayOutcome(draft, card.instanceId, "효과 없음");
       return;
     }
+    case "왕자":
+    case "공주셋째": {
+      // Discard-triggered elimination is handled by discardCard() right
+      // after applyEffect (공주와 동일 규칙) -- 요약만 남긴다.
+      setPlayOutcome(draft, card.instanceId, `「${card.name}」를 버려 ${actor.displayName} 탈락`);
+      return;
+    }
+    case "공주둘째":
+    case "마을소녀":
+    case "배우":
+    case "무희":
+    case "왕": {
+      // 전부 패시브/라운드 종료 시점 카드 -- 직접 플레이하면 아무 일도
+      // 일어나지 않지만, 결과 요약은 비워두지 않는다.
+      setPlayOutcome(draft, card.instanceId, "효과 없음");
+      return;
+    }
   }
 }
 
-/** 035 「견습기사/호위」의 [지속] +2 순위 보정 -- "카드의 숫자를 비교할
- * 때와 라운드 종료시" (기사 비교, 덱 소진 시 승자 결정) 두 지점에서만
- * 적용된다. 손패 합계를 쓰는 대신 「12 이상」 판정(대신)에는 적용되지
- * 않는다 (실카드 문구가 "비교"만 명시). */
-export function effectiveCardRank(draft: GameState, playerId: string, name: CardName): number {
+/** 035 「견습기사/호위」의 [지속] +2 순위 보정과 집사의 +2는 "카드의
+ * 숫자를 비교할 때와 라운드 종료시" (기사 비교, 덱 소진 시 승자 결정) 두
+ * 지점 모두에 적용된다. 반면 마을소녀/배우/무희의 숫자 변경은 실카드
+ * 문구가 "라운드 종료시"만 명시하므로, 기사류 비교(timing "compare")
+ * 에서는 인쇄된 숫자를 그대로 쓴다. 손패 합계를 쓰는 「12 이상」 판정
+ * (대신/여후작)에는 어느 보정도 적용되지 않는다. */
+export function effectiveCardRank(
+  draft: GameState,
+  playerId: string,
+  name: CardName,
+  timing: "compare" | "roundEnd" = "roundEnd"
+): number {
   let base = cardRank(name);
   const upgrade = resolveUpgradeTier(draft, name, playerId);
-  if (name === "마을소녀") base = upgrade ? 9 : 7;
-  if (name === "배우") base = upgrade ? 2 : 0;
-  if (name === "무희") base = upgrade ? 7 : 9;
+  if (timing === "roundEnd") {
+    if (name === "마을소녀") base = upgrade ? 9 : 7;
+    if (name === "배우") base = upgrade ? 2 : 0;
+    if (name === "무희") base = upgrade ? 7 : 9;
+  }
   const player = draft.players.find((p) => p.id === playerId);
   if (player?.discardPile.some((c) => c.name === "집사")) base += 2;
   return draft.activeIdentities?.[playerId] === "035" ? base + 2 : base;

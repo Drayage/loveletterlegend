@@ -1,5 +1,28 @@
 import { cardRank } from "./effects";
-import type { ArchiveCardState, CardInstance, CardName, CharacterSlotId, GameState, GuessOption, RankGuess } from "./types";
+import {
+  chooseCardToPlay,
+  chooseTarget,
+  chooseGuess,
+  chooseFortunePath,
+  chooseDeckSwap,
+  chooseTacticianSwap,
+  chooseReuseCard,
+  chooseHandDiscard,
+  chooseIdentitySwap,
+  chooseIdentityCancel,
+  chooseIdentityReplacement,
+  chooseIdentityExtraTurn,
+} from "./rules";
+import type {
+  ArchiveCardState,
+  CardInstance,
+  CardName,
+  CharacterSlotId,
+  GameState,
+  GuessOption,
+  PendingDecision,
+  RankGuess,
+} from "./types";
 import type { Route } from "../data/routes";
 
 /**
@@ -109,12 +132,20 @@ export function chooseTargetAI(
   return opponentIds[0] ?? eligiblePlayerIds[0];
 }
 
+/** 내는 즉시(또는 버려지는 즉시) 자기 자신이 탈락하는 카드들 -- AI가 다른
+ * 선택지가 있는 한 절대 내지 않는다. 공주만 걸러내던 초기 구현은 왕자
+ * 라우트에서 AI가 「왕자」를 스스로 내고 탈락하는 버그가 있었다. */
+const SELF_LETHAL_PLAYS: ReadonlySet<CardName> = new Set<CardName>(["공주", "왕자", "공주셋째", "귀족영애", "쥐"]);
+
 function scoreCardToPlay(
   play: CardInstance,
   keep: CardInstance,
   dist: Record<CardName, number>
 ): number {
-  if (play.name === "공주") return -1000;
+  if (SELF_LETHAL_PLAYS.has(play.name)) return -1000;
+  // 공주(둘째)는 버려도 즉시 탈락하지는 않지만 라운드 종료 비교에서 가장
+  // 강한 카드(8)라 내는 건 거의 항상 손해다.
+  if (play.name === "공주둘째") return -500;
 
   const base = 10 - cardRank(play.name); // mild bias toward playing low cards early
   switch (play.name) {
@@ -178,9 +209,13 @@ export function chooseLetterTargetAI(
 // coin-flip for success vs failure. A more strategic AI (e.g. deliberately
 // sabotaging outcomes it doesn't want) is future work.
 export function chooseArchiveTokenAI(
-  archive: ArchiveCardState[]
+  archive: ArchiveCardState[],
+  eligibleArchiveIds?: string[] | null
 ): { cardId: string; token: "성공" | "실패" } | null {
-  const candidates = archive.filter((c) => c.conditionTag && c.conditions.some((cond) => !cond.fired));
+  const eligible = eligibleArchiveIds ? new Set(eligibleArchiveIds) : null;
+  const candidates = archive.filter(
+    (c) => (!eligible || eligible.has(c.id)) && c.conditionTag && c.conditions.some((cond) => !cond.fired)
+  );
   if (candidates.length === 0) return null;
   const card = candidates[Math.floor(Math.random() * candidates.length)];
   const token: "성공" | "실패" = Math.random() < 0.5 ? "성공" : "실패";
@@ -197,6 +232,116 @@ export function chooseArchiveChoiceAI(options: Array<{ id: string }>): string {
 // 038's immediate [편지] bonus) is future work.
 export function chooseIdentityAI(options: string[]): string {
   return options[Math.floor(Math.random() * options.length)];
+}
+
+/** 「점술사」 선택지: 기본은 덱 확인(peek). 손패가 아주 약하고 덱도 거의
+ * 소진돼 스스로 이기기 어려운 형세면 상대 승리에 편승(coWin)을 노린다. */
+export function chooseFortunePathAI(state: GameState, playerId: string): "peek" | "coWin" {
+  const me = state.players.find((p) => p.id === playerId);
+  const myCard = me?.hand[0];
+  if (myCard && cardRank(myCard.name) <= 2 && state.deck.length <= 2) return "coWin";
+  return "peek";
+}
+
+/** 확인한 카드가 지금 든 카드보다 높으면 교환 (점술사 peek / 군사 공용
+ * 휴리스틱). */
+export function shouldSwapForSeenAI(state: GameState, playerId: string, seenCardName: CardName): boolean {
+  const me = state.players.find((p) => p.id === playerId);
+  const myCard = me?.hand[0];
+  if (!myCard) return false;
+  return cardRank(seenCardName) > cardRank(myCard.name);
+}
+
+/** 수사/수녀의 재사용 대상 선택: 효과 가치가 높은 순서의 고정 선호도. */
+const REUSE_PREFERENCE: CardName[] = [
+  "마술사",
+  "대마도사15",
+  "대마도사20",
+  "경비병",
+  "신병",
+  "마술사의도제",
+  "기사",
+  "여기사",
+  "복면기사",
+  "상인",
+  "광대",
+  "광대의제자",
+  "군사",
+  "장군",
+  "시종",
+  "시녀",
+  "점술사",
+  "광대의제자여",
+  "승려",
+  "정무관남",
+  "정무관여",
+  "마녀",
+];
+
+export function chooseReuseCardAI(options: CardInstance[]): CardInstance {
+  for (const name of REUSE_PREFERENCE) {
+    const found = options.find((c) => c.name === name);
+    if (found) return found;
+  }
+  return options[0];
+}
+
+/** 대마도사(20세)의 "1장 버리기": 버리면 즉시 탈락하는 카드는 피하고,
+ * 남기는 손패가 가장 강해지도록 낮은 카드부터 버린다. */
+export function chooseHandDiscardAI(options: CardInstance[]): CardInstance {
+  const lethalDiscards = new Set<CardName>(["공주", "왕자", "공주셋째", "귀족영애"]);
+  const sorted = [...options].sort((a, b) => {
+    const aLethal = lethalDiscards.has(a.name) ? 1 : 0;
+    const bLethal = lethalDiscards.has(b.name) ? 1 : 0;
+    if (aLethal !== bLethal) return aLethal - bLethal;
+    return cardRank(a.name) - cardRank(b.name);
+  });
+  return sorted[0];
+}
+
+/** Single entry point for resolving ANY in-round pending decision as the
+ * AI -- shared by App.tsx and the engine test drivers so a newly added
+ * decision kind only needs wiring here. */
+export function applyAiDecision(state: GameState, decision: PendingDecision): GameState {
+  switch (decision.kind) {
+    case "playCard": {
+      const card = chooseCardToPlayAI(state, decision.playerId);
+      return chooseCardToPlay(state, card.instanceId);
+    }
+    case "chooseTarget": {
+      const targetId = chooseTargetAI(decision.playerId, decision.cardName, decision.eligiblePlayerIds);
+      return chooseTarget(state, targetId);
+    }
+    case "guessCard":
+      return chooseGuess(state, chooseGuessAI(state, decision.playerId));
+    case "fortunePath":
+      return chooseFortunePath(state, chooseFortunePathAI(state, decision.playerId));
+    case "deckSwap":
+      return chooseDeckSwap(state, shouldSwapForSeenAI(state, decision.playerId, decision.seenCardName));
+    case "tacticianSwap":
+      return chooseTacticianSwap(state, shouldSwapForSeenAI(state, decision.playerId, decision.seenCardName));
+    case "reuseDiscard":
+      return chooseReuseCard(state, chooseReuseCardAI(decision.options).instanceId);
+    case "discardFromHand":
+      return chooseHandDiscard(state, chooseHandDiscardAI(decision.options).instanceId);
+    case "identitySwap": {
+      const p = state.players.find((player) => player.id === decision.playerId);
+      return chooseIdentitySwap(
+        state,
+        Boolean(
+          state.hiddenRemovedCard &&
+            p?.hand[0] &&
+            cardRank(state.hiddenRemovedCard.name) > cardRank(p.hand[0].name)
+        )
+      );
+    }
+    case "identityCancel":
+      return chooseIdentityCancel(state, true);
+    case "identityReplaceEffect":
+      return chooseIdentityReplacement(state, decision.options[0]?.instanceId ?? null);
+    case "identityExtraTurn":
+      return chooseIdentityExtraTurn(state, state.deck.length > 0);
+  }
 }
 
 export function chooseCardToPlayAI(state: GameState, playerId: string): CardInstance {

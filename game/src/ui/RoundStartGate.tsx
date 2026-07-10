@@ -51,6 +51,9 @@ export function RoundStartGate({
         </p>
         <div className="round-start-gate__optional">
           <p className="round-start-gate__optional-title">공주/왕자 카드 선택 (택1)</p>
+          <p className="round-start-gate__optional-hint">
+            고른 8번 카드가 이번 라운드 덱에 들어갑니다. 공주 ↔ 왕자를 바꾸면 추구하는 상대도 함께 전환됩니다.
+          </p>
           <div className="round-start-gate__optional-list">
             {routeSwapCards.map((cardName) => (
               <label key={cardName} className="round-start-gate__optional-item">

@@ -33,6 +33,35 @@
   color: white;
 }
 
+.decision-panel__options--column {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.decision-panel__options--column .decision-panel__btn {
+  text-align: left;
+}
+
+.decision-panel__card-compare {
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+}
+
+.decision-panel__card-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.decision-panel__caption {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted, #888);
+}
+
 .decision-panel__guess-grid {
   display: flex;
   gap: 8px;

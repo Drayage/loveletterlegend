@@ -138,7 +138,36 @@ export type PendingDecision =
       options: GuessOption[];
       guesses?: GuessOption[];
       maxGuesses?: number;
-    };
+    }
+  /** 「점술사」: 실카드의 두 선택지 -- 1) 덱 맨 위 확인(교환 가능),
+   * 2) 다른 플레이어 지목(그가 승리하면 공동 승리). effectCardName은
+   * 수사/수녀가 점술사 효과를 재사용해 이 결정에 도달했을 때 채워진다. */
+  | { kind: "fortunePath"; playerId: string; cardInstanceId: string; cardName: CardName; effectCardName?: CardName }
+  /** 「점술사」 1번 선택지의 후속: 확인한 덱 맨 위 카드와 손패를 교환할지. */
+  | {
+      kind: "deckSwap";
+      playerId: string;
+      cardInstanceId: string;
+      cardName: CardName;
+      effectCardName?: CardName;
+      seenCardName: CardName;
+    }
+  /** 「군사」: 상대 손패를 확인한 뒤 교환 여부를 선택. seenCardName은
+   * 지목한 플레이어의 손패(선택자 본인에게만 보이는 정보). */
+  | {
+      kind: "tacticianSwap";
+      playerId: string;
+      cardInstanceId: string;
+      cardName: CardName;
+      effectCardName?: CardName;
+      targetId: string;
+      seenCardName: CardName;
+    }
+  /** 「수사/수녀」: 버림 더미에서 「플레이:」 효과를 재사용할 카드 1장 선택. */
+  | { kind: "reuseDiscard"; playerId: string; cardInstanceId: string; cardName: CardName; options: CardInstance[] }
+  /** 「대마도사(20세)」의 후속: 손에 든 카드(자기 카드 + 받아온 카드) 중
+   * 1장을 골라 버린다. */
+  | { kind: "discardFromHand"; playerId: string; cardInstanceId: string; cardName: CardName; options: CardInstance[] };
 
 export interface RevealInfo {
   id: string;
@@ -150,6 +179,9 @@ export interface RevealInfo {
   targetDisplayName: string;
   /** 광대: the card seen in the target's hand. */
   targetCard?: CardName;
+  /** 마술사(도제 tier1): 덱 위에서 확인한 여러 장 -- targetCard 대신 이
+   * 배열이 채워진다. */
+  targetCards?: CardName[];
   /** 기사: both hands compared. */
   compare?: { actorCard: CardName; targetCard: CardName; result: "win" | "lose" | "tie" };
 }
@@ -160,6 +192,10 @@ export interface RoundResult {
   reason: RoundEndReason;
   winnerId: string | null; // null => tie
   revealedHands: Record<string, CardInstance | undefined>;
+  /** 「점술사」의 공동 승리 선택지: 지목한 플레이어가 이 라운드에서
+   * 승리했다면, 지목했던 플레이어도 함께 승리한 것으로 취급한다 (편지
+   * 보상은 세션 레이어가 지급 -- see engine/session.ts). */
+  coWinnerIds?: string[];
 }
 
 /** A card's ability text/behavior can be upgraded by a player's accumulated
@@ -263,6 +299,9 @@ export interface GameState {
    * Set once per round by effects.ts's eliminatePlayer and never cleared
    * mid-round. */
   firstEliminatedThisRound?: string | null;
+  /** 「점술사」 공동 승리 지목 기록 -- 라운드 종료 시 지목 대상이 승자면
+   * 지목자가 coWinnerIds에 들어간다 (see rules.ts's endRound). */
+  fortuneCoWins?: Array<{ playerId: string; targetId: string }>;
   /** Structured record of specific effect resolutions this round, read by
    * the session layer after the round ends to award character-progress
    * tokens (e.g. 147/056's [편지] conditions) that aren't derivable from

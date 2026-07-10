@@ -1,6 +1,7 @@
 import { CARD_DEFS } from "../engine/cards";
 import type { RoundSummary } from "../engine/session";
 import type { PlayerConfig } from "../engine/types";
+import { slotDisplayName } from "./slotInfo";
 import { Modal } from "./Modal";
 import "./RoundEndSummary.css";
 
@@ -22,7 +23,7 @@ function uniqueArchiveReveals(reveals: RoundSummary["archiveCardsRevealed"]) {
 export function RoundEndSummary({ summary, players, ended, onContinue }: RoundEndSummaryProps) {
   const displayName = (id: string) => players.find((p) => p.id === id)?.displayName ?? id;
   const handLabel = (cardName: RoundSummary["revealedHands"][number]["cardName"]) =>
-    cardName ? `${CARD_DEFS[cardName].rank}. ${cardName}` : "없음";
+    cardName ? `${cardName === "왕" ? "X" : CARD_DEFS[cardName].rank}. ${cardName}` : "없음";
 
   const archiveReveals = uniqueArchiveReveals(summary.archiveCardsRevealed);
 
@@ -49,12 +50,17 @@ export function RoundEndSummary({ summary, players, ended, onContinue }: RoundEn
               : `${displayName(summary.winnerId)} 승리!`
             : "이번 라운드는 무승부입니다."}
         </p>
+        {(summary.coWinnerIds?.length ?? 0) > 0 && (
+          <p className="round-end-summary__co-winner">
+            「점술사」의 예언 적중: {summary.coWinnerIds!.map(displayName).join(", ")}도 함께 승리!
+          </p>
+        )}
         <p className="round-end-summary__clock">{summary.roundNumber}주가 지났습니다 (남은 시간 {Math.max(0, 8 - summary.roundNumber)}주)</p>
         {summary.letterTokensGained.length > 0 && (
           <ul className="round-end-summary__letters">
             {summary.letterTokensGained.map((g, i) => (
               <li key={i}>
-                {displayName(g.playerId)}: {g.slot} 편지 +{g.amount}
+                {displayName(g.playerId)}: {slotDisplayName(g.slot)} 편지 {g.amount > 0 ? `+${g.amount}` : g.amount}
                 {g.reason ? <span> - {g.reason}</span> : null}
               </li>
             ))}

@@ -1,25 +1,27 @@
 import { useEffect, useRef, useState } from "react";
-import type { ArchiveCardState, CardName, GameState, PendingDecision, PlayerConfig } from "./engine/types";
+import type { ArchiveCardState, CardName, PendingDecision, PlayerConfig } from "./engine/types";
 import {
   chooseCardToPlay,
   chooseTarget,
   chooseGuess,
+  chooseFortunePath,
+  chooseDeckSwap,
+  chooseTacticianSwap,
+  chooseReuseCard,
+  chooseHandDiscard,
   chooseIdentitySwap,
   chooseIdentityCancel,
   chooseIdentityReplacement,
   chooseIdentityExtraTurn,
 } from "./engine/rules";
 import {
-  chooseCardToPlayAI,
-  chooseGuessAI,
-  chooseTargetAI,
+  applyAiDecision,
   chooseArchiveTokenAI,
   chooseLetterTargetAI,
   chooseIdentityAI,
   chooseArchiveChoiceAI,
 } from "./engine/ai";
 import { computeRemainingCounts } from "./engine/remaining";
-import { cardRank } from "./engine/effects";
 import {
   startSession,
   applyToRound,
@@ -104,26 +106,13 @@ function decisionKey(decision: PendingDecision): string {
   if (decision.kind === "guessCard") return `${decision.kind}:${decision.playerId}:${decision.cardInstanceId}:${decision.targetId}:${decision.guesses?.join(",") ?? ""}`;
   if (decision.kind === "identityReplaceEffect") return `${decision.kind}:${decision.playerId}:${decision.cardInstanceId}:${decision.options.map((c) => c.instanceId).join(",")}`;
   if (decision.kind === "identityCancel") return `${decision.kind}:${decision.playerId}:${decision.cardInstanceId}:${decision.targetId}`;
+  if (decision.kind === "reuseDiscard" || decision.kind === "discardFromHand") {
+    return `${decision.kind}:${decision.playerId}:${decision.cardInstanceId}:${decision.options.map((c) => c.instanceId).join(",")}`;
+  }
+  if (decision.kind === "fortunePath" || decision.kind === "deckSwap" || decision.kind === "tacticianSwap") {
+    return `${decision.kind}:${decision.playerId}:${decision.cardInstanceId}`;
+  }
   return `${decision.kind}:${decision.playerId}`;
-}
-
-function applyAiDecision(state: GameState, decision: PendingDecision): GameState {
-  if (decision.kind === "playCard") {
-    const card = chooseCardToPlayAI(state, decision.playerId);
-    return chooseCardToPlay(state, card.instanceId);
-  }
-  if (decision.kind === "chooseTarget") {
-    const targetId = chooseTargetAI(decision.playerId, decision.cardName, decision.eligiblePlayerIds);
-    return chooseTarget(state, targetId);
-  }
-  if (decision.kind === "guessCard") return chooseGuess(state, chooseGuessAI(state, decision.playerId));
-  if (decision.kind === "identitySwap") {
-    const p = state.players.find((player) => player.id === decision.playerId);
-    return chooseIdentitySwap(state, Boolean(state.hiddenRemovedCard && p?.hand[0] && cardRank(state.hiddenRemovedCard.name) > cardRank(p.hand[0].name)));
-  }
-  if (decision.kind === "identityCancel") return chooseIdentityCancel(state, true);
-  if (decision.kind === "identityReplaceEffect") return chooseIdentityReplacement(state, decision.options[0]?.instanceId ?? null);
-  return chooseIdentityExtraTurn(state, state.deck.length > 0);
 }
 
 function safely<T>(fn: () => T): T | null {
@@ -139,14 +128,34 @@ function decisionLabel(decision: PendingDecision): string {
   if (decision.kind === "playCard") return `카드 선택: ${decision.options.map((c) => `「${c.name}」`).join(" / ")}`;
   if (decision.kind === "chooseTarget") return `대상 선택: 「${decision.cardName}」`;
   if (decision.kind === "guessCard") return `카드 추측: 「${decision.cardName}」`;
+  if (decision.kind === "fortunePath") return "점술사: 선택지 결정";
+  if (decision.kind === "deckSwap") return "점술사: 덱 카드 교환 여부";
+  if (decision.kind === "tacticianSwap") return "군사: 손패 교환 여부";
+  if (decision.kind === "reuseDiscard") return `${decision.cardName}: 재사용할 카드 선택`;
+  if (decision.kind === "discardFromHand") return "대마도사: 버릴 카드 선택";
   if (decision.kind === "identitySwap") return "정체 능력: 비공개 카드 교환";
   if (decision.kind === "identityCancel") return "정체 능력: 효과 취소";
   if (decision.kind === "identityReplaceEffect") return "정체 능력: 효과 대체";
   return "정체 능력: 추가 차례";
 }
 
-function chooseRoundStartCardsAI(): CardName[] {
-  return [];
+/** AI가 라운드 선(리더)일 때의 라운드 시작 선택: 공주/왕자 카드는 현재
+ * 라우트를 유지하고, 스토리로 열린 추가 8번 카드(백작부인/귀족영애 등)는
+ * 전부 덱에 넣는다 -- 이야기 진행 조건이 걸린 카드들이라 넣는 쪽이 이야기를
+ * 앞으로 굴린다. */
+function chooseRoundStartCardsAI(optionalCards: CardName[]): CardName[] {
+  const routeSwapCards = new Set<CardName>(["공주", "왕자", "공주둘째", "공주셋째"]);
+  return optionalCards.filter((name) => !routeSwapCards.has(name));
+}
+
+/** 라운드 시작 게이트에서 고른 8번 카드가 곧 그 라운드의 라우트다 --
+ * 「왕자」를 고르면 currentRoute도 왕자로 전환되어야 편지 배치 기본값과
+ * 050 「역사 8」 판정이 덱 구성과 어긋나지 않는다. 공주(둘째/셋째)는
+ * 별도 라우트가 아니므로 기존 라우트를 유지한다. */
+function routeForSelection(currentRoute: Route, selected: CardName[]): Route {
+  if (selected.includes("왕자")) return "왕자";
+  if (selected.includes("공주")) return "공주";
+  return currentRoute;
 }
 
 export default function App() {
@@ -318,7 +327,7 @@ export default function App() {
     const timer = setTimeout(() => {
       setSession((prev) => {
         if (!prev || prev.pendingArchivePlacement !== placement) return prev;
-        const choice = chooseArchiveTokenAI(prev.storyArchive);
+        const choice = chooseArchiveTokenAI(prev.storyArchive, prev.roundEndEligibleArchiveIds);
         return (
           safely(() =>
             choice
@@ -451,7 +460,7 @@ export default function App() {
       selectedOptionalCards:
         chooserId === HUMAN_ID
           ? session.activeOptionalRoundDeckCardNames.filter((name) => optionalCards.includes(name))
-          : chooseRoundStartCardsAI(),
+          : chooseRoundStartCardsAI(optionalCards),
     });
   }, [
     endSummaryAcknowledged,
@@ -507,6 +516,21 @@ export default function App() {
   }
   function handleIdentityExtraTurn(use: boolean) {
     setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseIdentityExtraTurn(s, use))) ?? prev : prev));
+  }
+  function handleFortunePath(path: "peek" | "coWin") {
+    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseFortunePath(s, path))) ?? prev : prev));
+  }
+  function handleDeckSwap(swap: boolean) {
+    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseDeckSwap(s, swap))) ?? prev : prev));
+  }
+  function handleTacticianSwap(swap: boolean) {
+    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseTacticianSwap(s, swap))) ?? prev : prev));
+  }
+  function handleReuseCard(instanceId: string) {
+    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseReuseCard(s, instanceId))) ?? prev : prev));
+  }
+  function handleHandDiscard(instanceId: string) {
+    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseHandDiscard(s, instanceId))) ?? prev : prev));
   }
 
   function proceedToNextRound(route: Route, selectedOptionalCards: CardName[] = []) {
@@ -814,6 +838,11 @@ export default function App() {
           remaining={remaining}
           onChooseTarget={handleChooseTarget}
           onChooseGuess={handleChooseGuess}
+          onFortunePath={handleFortunePath}
+          onDeckSwap={handleDeckSwap}
+          onTacticianSwap={handleTacticianSwap}
+          onReuseCard={handleReuseCard}
+          onHandDiscard={handleHandDiscard}
           onIdentitySwap={handleIdentitySwap}
           onIdentityCancel={handleIdentityCancel}
           onIdentityReplacement={handleIdentityReplacement}
@@ -907,7 +936,13 @@ export default function App() {
         !pendingElimination &&
         !pendingChoiceResult &&
         pendingStoryEvent && (
-        (!roundOver || endSummaryAcknowledged) && (
+        // 라운드 종료 후에는 결과 요약을 먼저 확인시키지만(!roundOver ||
+        // acknowledged), 라운드 시작 잠금 중에는 시작 시점 공개 이벤트를
+        // 즉시 보여준다 -- 새 라운드가 배분 직후 패시브(왕/대신)로 곧바로
+        // 끝나는 경우, 이 분기가 없으면 스토리 이벤트(잠금 게이트를 막음)/
+        // 잠금 게이트(요약을 막음)/요약(스토리 이벤트를 기다림)이 서로를
+        // 기다리는 교착이 생긴다.
+        (!roundOver || endSummaryAcknowledged || roundStartLocked) && (
           <StoryEventModal
             cards={pendingStoryEvent}
             clockTokens={session.clockTokens}
@@ -953,6 +988,7 @@ export default function App() {
             atCap={session.pendingLetterChoice!.atCap}
             tokens={humanLetterTokens}
             availableSlots={availableRank8LetterSlots(session)}
+            reason={session.pendingLetterChoice!.reason}
             onChoose={handleLetterChoice}
           />
         )}
@@ -1069,7 +1105,12 @@ export default function App() {
                 return { ...prev, selectedOptionalCards: selected };
               })
             }
-            onStart={() => proceedToNextRound(pendingRoundStart.route, pendingRoundStart.selectedOptionalCards)}
+            onStart={() =>
+              proceedToNextRound(
+                routeForSelection(pendingRoundStart.route, pendingRoundStart.selectedOptionalCards),
+                pendingRoundStart.selectedOptionalCards
+              )
+            }
           />
         )}
 

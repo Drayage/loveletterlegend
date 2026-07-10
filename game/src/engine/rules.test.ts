@@ -4,13 +4,21 @@ import {
   chooseCardToPlay,
   chooseTarget,
   chooseGuess,
-  chooseIdentitySwap,
-  chooseIdentityCancel,
-  chooseIdentityReplacement,
-  chooseIdentityExtraTurn,
+  chooseFortunePath,
+  chooseDeckSwap,
+  chooseTacticianSwap,
+  chooseReuseCard,
+  chooseHandDiscard,
 } from "./rules";
-import { chooseCardToPlayAI, chooseGuessAI, chooseTargetAI } from "./ai";
-import { applyEffect, checkKingElimination, checkMinisterElimination, discardCard, eliminatePlayer } from "./effects";
+import { applyAiDecision, chooseCardToPlayAI } from "./ai";
+import {
+  applyEffect,
+  checkKingElimination,
+  checkMinisterElimination,
+  discardCard,
+  effectiveCardRank,
+  eliminatePlayer,
+} from "./effects";
 import type { CardName, GameState, PlayerConfig } from "./types";
 
 const PLAYERS: PlayerConfig[] = [
@@ -27,29 +35,7 @@ function driveOneAiVsAiGame(): GameState {
 
     const decision = state.pendingDecision;
     if (!decision) throw new Error("진행할 결정이 없는데 라운드가 끝나지 않았습니다.");
-
-    if (decision.kind === "playCard") {
-      const card = chooseCardToPlayAI(state, decision.playerId);
-      state = chooseCardToPlay(state, card.instanceId);
-    } else if (decision.kind === "chooseTarget") {
-      const targetId = chooseTargetAI(
-        decision.playerId,
-        decision.cardName,
-        decision.eligiblePlayerIds
-      );
-      state = chooseTarget(state, targetId);
-    } else if (decision.kind === "guessCard") {
-      const guess = chooseGuessAI(state, decision.playerId);
-      state = chooseGuess(state, guess);
-    } else if (decision.kind === "identitySwap") {
-      state = chooseIdentitySwap(state, false);
-    } else if (decision.kind === "identityCancel") {
-      state = chooseIdentityCancel(state, true);
-    } else if (decision.kind === "identityReplaceEffect") {
-      state = chooseIdentityReplacement(state, null);
-    } else {
-      state = chooseIdentityExtraTurn(state, false);
-    }
+    state = applyAiDecision(state, decision);
   }
   return state;
 }
@@ -676,5 +662,178 @@ describe("Public effect popups (lastGuessEffect / lastForcedDiscard / lastEffect
     expect(state.lastGuessEffect?.guess).toBe("3");
     expect(state.lastGuessEffect?.hit).toBe(true);
     expect(state.players[1].eliminated).toBe(true);
+  });
+});
+
+describe("선택 플로우: 점술사/군사/수사·수녀/대마도사20", () => {
+  function twoCardTurnState(
+    p1Hand: Array<{ instanceId: string; name: CardName }>,
+    p2Hand: Array<{ instanceId: string; name: CardName }>,
+    deck: Array<{ instanceId: string; name: CardName }> = [{ instanceId: "deck-top", name: "공주" }, { instanceId: "deck-2", name: "광대" }]
+  ): GameState {
+    const state = setupRound(PLAYERS);
+    state.players[0].hand = p1Hand;
+    state.players[0].eliminated = false;
+    state.players[0].discardPile = [];
+    state.players[1].hand = p2Hand;
+    state.players[1].eliminated = false;
+    state.players[1].discardPile = [];
+    state.deck = deck;
+    state.deckExhaustedThisTurn = false;
+    state.currentPlayerIndex = 0;
+    state.pendingDecision = { kind: "playCard", playerId: "p1", options: state.players[0].hand };
+    return state;
+  }
+
+  it("점술사: peek -> deckSwap(교환)으로 덱 맨 위 카드와 손패를 바꾼다", () => {
+    let state = twoCardTurnState(
+      [{ instanceId: "ft", name: "점술사" }, { instanceId: "keep", name: "경비병" }],
+      [{ instanceId: "opp", name: "기사" }]
+    );
+    state = chooseCardToPlay(state, "ft");
+    expect(state.pendingDecision?.kind).toBe("fortunePath");
+    state = chooseFortunePath(state, "peek");
+    expect(state.pendingDecision?.kind).toBe("deckSwap");
+    if (state.pendingDecision?.kind === "deckSwap") {
+      expect(state.pendingDecision.seenCardName).toBe("공주");
+    }
+    state = chooseDeckSwap(state, true);
+    expect(state.players[0].hand[0].name).toBe("공주");
+    // 원래 들고 있던 카드는 덱 맨 위로 돌아간다 (이후 상대 턴의 드로우로
+    // 소비될 수 있으므로, p1 손패만 단정한다).
+    expect(state.players[0].eliminated).toBe(false);
+  });
+
+  it("점술사: peek -> deckSwap(유지)면 손패가 그대로다", () => {
+    let state = twoCardTurnState(
+      [{ instanceId: "ft", name: "점술사" }, { instanceId: "keep", name: "경비병" }],
+      [{ instanceId: "opp", name: "기사" }]
+    );
+    state = chooseCardToPlay(state, "ft");
+    state = chooseFortunePath(state, "peek");
+    state = chooseDeckSwap(state, false);
+    expect(state.players[0].hand[0].name).toBe("경비병");
+  });
+
+  it("점술사: coWin 지목 후 그 상대가 덱 소진 승리하면 coWinnerIds에 든다", () => {
+    let state = twoCardTurnState(
+      [{ instanceId: "ft", name: "점술사" }, { instanceId: "keep", name: "경비병" }],
+      [{ instanceId: "opp", name: "공주" }],
+      []
+    );
+    state.deckExhaustedThisTurn = true;
+    state = chooseCardToPlay(state, "ft");
+    state = chooseFortunePath(state, "coWin");
+    expect(state.roundResult?.winnerId).toBe("p2");
+    expect(state.roundResult?.coWinnerIds).toEqual(["p1"]);
+  });
+
+  it("군사: 확인 후 교환/비교환을 선택할 수 있다", () => {
+    let state = twoCardTurnState(
+      [{ instanceId: "tac", name: "군사" }, { instanceId: "keep", name: "광대" }],
+      [{ instanceId: "opp", name: "공주" }]
+    );
+    state = chooseCardToPlay(state, "tac");
+    expect(state.pendingDecision?.kind).toBe("chooseTarget");
+    state = chooseTarget(state, "p2");
+    expect(state.pendingDecision?.kind).toBe("tacticianSwap");
+    if (state.pendingDecision?.kind === "tacticianSwap") {
+      expect(state.pendingDecision.seenCardName).toBe("공주");
+    }
+    state = chooseTacticianSwap(state, true);
+    expect(state.players[0].hand[0].name).toBe("공주");
+    expect(state.players[1].hand[0].name).toBe("광대");
+
+    let keepState = twoCardTurnState(
+      [{ instanceId: "tac", name: "군사" }, { instanceId: "keep", name: "광대" }],
+      [{ instanceId: "opp", name: "공주" }]
+    );
+    keepState = chooseCardToPlay(keepState, "tac");
+    keepState = chooseTarget(keepState, "p2");
+    keepState = chooseTacticianSwap(keepState, false);
+    expect(keepState.players[0].hand[0].name).toBe("광대");
+    expect(keepState.players[1].hand[0].name).toBe("공주");
+  });
+
+  it("수사: 버림 더미에서 고른 경비병 효과를 재사용해 추측으로 탈락시킨다", () => {
+    let state = twoCardTurnState(
+      [{ instanceId: "friar", name: "수사" }, { instanceId: "keep", name: "승려" }],
+      [{ instanceId: "opp", name: "기사" }]
+    );
+    state.players[1].discardPile = [{ instanceId: "dis-guard", name: "경비병" }];
+    state = chooseCardToPlay(state, "friar");
+    expect(state.pendingDecision?.kind).toBe("reuseDiscard");
+    state = chooseReuseCard(state, "dis-guard");
+    expect(state.pendingDecision?.kind).toBe("chooseTarget");
+    state = chooseTarget(state, "p2");
+    expect(state.pendingDecision?.kind).toBe("guessCard");
+    state = chooseGuess(state, "기사");
+    expect(state.players[1].eliminated).toBe(true);
+  });
+
+  it("수사: 재사용 선택지에 효과 없는 카드(공주/대신 등)는 나오지 않는다", () => {
+    let state = twoCardTurnState(
+      [{ instanceId: "friar", name: "수사" }, { instanceId: "keep", name: "승려" }],
+      [{ instanceId: "opp", name: "기사" }]
+    );
+    state.players[1].discardPile = [
+      { instanceId: "dis-princess", name: "공주" },
+      { instanceId: "dis-minister", name: "대신" },
+      { instanceId: "dis-clown", name: "광대" },
+    ];
+    state = chooseCardToPlay(state, "friar");
+    expect(state.pendingDecision?.kind).toBe("reuseDiscard");
+    if (state.pendingDecision?.kind === "reuseDiscard") {
+      expect(state.pendingDecision.options.map((c) => c.name)).toEqual(["광대"]);
+    }
+  });
+
+  it("대마도사20: 교환 후 버릴 카드를 직접 고른다 (공주를 남길 수 있다)", () => {
+    let state = twoCardTurnState(
+      [{ instanceId: "arch", name: "대마도사20" }, { instanceId: "keep", name: "경비병" }],
+      [{ instanceId: "opp", name: "공주" }]
+    );
+    state = chooseCardToPlay(state, "arch");
+    state = chooseTarget(state, "p2");
+    expect(state.pendingDecision?.kind).toBe("discardFromHand");
+    expect(state.players[1].hand.map((c) => c.name)).toEqual(["쥐"]);
+    state = chooseHandDiscard(state, "keep");
+    expect(state.players[0].hand.map((c) => c.name)).toEqual(["공주"]);
+    expect(state.players[0].eliminated).toBe(false);
+    expect(state.players[0].discardPile.some((c) => c.name === "경비병")).toBe(true);
+  });
+});
+
+describe("숫자 판정 시점 (compare vs roundEnd)", () => {
+  it("배우(인쇄 9)는 기사 비교에서는 9로 취급된다 (종료 숫자 0 아님)", () => {
+    const state = setupRound(PLAYERS);
+    state.players[0].hand = [{ instanceId: "actor-card", name: "배우" }];
+    state.players[0].eliminated = false;
+    state.players[1].hand = [{ instanceId: "knight-card", name: "기사" }];
+    state.players[1].eliminated = false;
+    applyEffect(state, { actingPlayerId: "p2", card: { instanceId: "knight-card", name: "기사" }, targetId: "p1" });
+    // 비교 시점엔 인쇄 숫자 9 > 3 -- 기사를 낸 쪽이 진다.
+    expect(state.players[0].eliminated).toBe(false);
+    expect(state.players[1].eliminated).toBe(true);
+    // 라운드 종료 시점 값은 여전히 0.
+    expect(effectiveCardRank(state, "p1", "배우")).toBe(0);
+    expect(effectiveCardRank(state, "p1", "배우", "compare")).toBe(9);
+  });
+});
+
+describe("AI 자살 방지", () => {
+  it("AI는 대안이 있으면 왕자/쥐/공주(셋째)를 내지 않는다", () => {
+    const lethalNames: CardName[] = ["왕자", "쥐", "공주셋째", "귀족영애"];
+    for (const lethal of lethalNames) {
+      const state = setupRound(PLAYERS);
+      state.players[1].hand = [
+        { instanceId: "lethal", name: lethal },
+        { instanceId: "safe", name: "경비병" },
+      ];
+      state.currentPlayerIndex = 1;
+      state.pendingDecision = { kind: "playCard", playerId: "p2", options: state.players[1].hand };
+      const picked = chooseCardToPlayAI(state, "p2");
+      expect(picked.name).toBe("경비병");
+    }
   });
 });

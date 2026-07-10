@@ -72,6 +72,8 @@ const LETTER_TOKEN_POOL = 10;
 export interface RoundSummary {
   roundNumber: number;
   winnerId: string | null;
+  /** 「점술사」 공동 승리로 함께 승리한 플레이어들 (승자 제외). */
+  coWinnerIds?: string[];
   roundEndReason: RoundEndReason;
   revealedHands: Array<{ playerId: string; cardName: CardName | null }>;
   clockTokensGained: number;
@@ -122,8 +124,13 @@ export interface SessionState {
   pendingArchivePlacement: { eligiblePlayerId: string } | null;
   /** 라운드 승자가 이번 라운드에 얻은 [편지] 토큰을 어디에 놓을지 결정할
    * 차례 -- amount는 놓일 토큰 수(공주를 들고 승리했다면 2), atCap이면
-   * 놓을 자리가 없어 "이동" 또는 "이동하지 않음"만 선택 가능하다. */
-  pendingLetterChoice: { playerId: string; amount: number; atCap: boolean } | null;
+   * 놓을 자리가 없어 "이동" 또는 "이동하지 않음"만 선택 가능하다. reason은
+   * 라운드 요약에 남길 배치 사유 (없으면 "라운드 승리 보상"). */
+  pendingLetterChoice: { playerId: string; amount: number; atCap: boolean; reason?: string } | null;
+  /** 같은 라운드 종료에 [편지] 배치 차례가 여러 번 생기는 경우(점술사 공동
+   * 승리, 038 보너스 등)의 대기열 -- pendingLetterChoice가 해소될 때마다
+   * 하나씩 꺼내 이어간다 (atCap은 꺼내는 시점에 다시 계산). */
+  letterChoiceQueue: Array<{ playerId: string; amount: number; reason?: string }>;
   /** 025 「국왕 랜들 3세」가 등장하면 덱에 추가되는 「왕」처럼, 세션 진행 중
    * 이야기 보관소 공개로 인해 기본 16장 덱에 permanently 추가되는 카드
    * 이름 목록 -- 매 라운드 setupRound에 그대로 넘긴다. */
@@ -248,6 +255,7 @@ export function startSession(playerConfigs: PlayerConfig[], initialRoute: Route 
     storyArchive: initialArchive,
     pendingArchivePlacement: null,
     pendingLetterChoice: null,
+    letterChoiceQueue: [],
     extraDeckCardNames: [],
     optionalRoundDeckCardNames: [],
     activeOptionalRoundDeckCardNames: [],
@@ -750,6 +758,20 @@ function applySessionRoundEnd(session: SessionState): SessionState {
     if (winner?.hand.some((c) => c.name === "백작부인")) {
       grantCharacterLetter("백작부인카밀라", winnerId, 4, "「백작부인」을 손에 들고 라운드 승리", "199");
     }
+
+    // 「점술사」 공동 승리: 지목 대상이 이 라운드의 승자라면 지목자도 승리
+    // 보상 [편지]를 받는다 (공주/왕자 소지 보너스는 실제 승자에게만 해당).
+    // 승자의 배치가 끝난 뒤 대기열에서 차례로 이어진다.
+    for (const coWinnerId of result.coWinnerIds ?? []) {
+      let coAmount = 1;
+      if (next.storyArchive.some((c) => c.id === "049")) coAmount += 1;
+      if (next.storyArchive.some((c) => c.id === "027")) coAmount += 1;
+      if (next.storyArchive.some((c) => c.id === "050")) coAmount += 1;
+      next.letterChoiceQueue = [
+        ...next.letterChoiceQueue,
+        { playerId: coWinnerId, amount: coAmount, reason: "「점술사」 공동 승리 보상" },
+      ];
+    }
   }
 
   for (const event of next.round.sessionEvents ?? []) {
@@ -850,6 +872,22 @@ function applySessionRoundEnd(session: SessionState): SessionState {
     }
   }
 
+  // 029 「간판 점원 미란다」: 「마을소녀」가 버림 더미에 놓인 채 라운드가
+  // 끝나면 그 플레이어의 미란다 [편지]가 1개 줄어든다 (실카드 문구).
+  if (roundEndEligibleArchiveIds.has("029")) {
+    for (const p of next.round.players) {
+      if (!p.discardPile.some((c) => c.name === "마을소녀")) continue;
+      if ((next.letterTokens["마을소녀미란다"][p.id] ?? 0) <= 0) continue;
+      addLetterToken(next, "마을소녀미란다", p.id, -1);
+      letterGains.push({
+        playerId: p.id,
+        slot: "마을소녀미란다",
+        amount: -1,
+        reason: "「마을소녀」가 버림 더미에 놓인 채 라운드 종료",
+      });
+    }
+  }
+
   // Re-check now that this round's [성공]/[실패] grants are in.
   revealWithSummary(
     resolveArchiveConditions(next, "roundEnd", winnerCard?.name ?? null, roundEndEligibleArchiveIds),
@@ -869,6 +907,7 @@ function applySessionRoundEnd(session: SessionState): SessionState {
   next.lastRoundSummary = {
     roundNumber: next.roundNumber,
     winnerId,
+    coWinnerIds: result.coWinnerIds,
     roundEndReason: result.reason,
     revealedHands: next.playerConfigs.map((cfg) => ({
       playerId: cfg.id,
@@ -881,8 +920,23 @@ function applySessionRoundEnd(session: SessionState): SessionState {
     expiredCards: expired.map((c) => c.name),
   };
 
+  if (!next.pendingLetterChoice) dequeueLetterChoice(next);
   if (next.pendingLetterChoice) return next;
   return finalizeRoundEndDecisions(next, winnerId);
+}
+
+/** Pops the next queued [편지] 배치 차례 into pendingLetterChoice (atCap은
+ * 이 시점의 실제 토큰 수로 재계산). No-op when the queue is empty. */
+function dequeueLetterChoice(session: SessionState): void {
+  const [head, ...rest] = session.letterChoiceQueue;
+  if (!head) return;
+  session.letterChoiceQueue = rest;
+  session.pendingLetterChoice = {
+    playerId: head.playerId,
+    amount: head.amount,
+    reason: head.reason,
+    atCap: totalLetterTokens(session, head.playerId) >= LETTER_TOKEN_POOL,
+  };
 }
 
 /** Runs once the round winner's [편지] placement (or move/decline) is
@@ -1021,6 +1075,7 @@ function resolveEnding(
     }) ?? null;
   next.pendingArchivePlacement = null;
   next.pendingLetterChoice = null;
+  next.letterChoiceQueue = [];
   next.roundEndEligibleArchiveIds = null;
   return next;
 }
@@ -1201,6 +1256,7 @@ export function chooseIdentity(
       playerId,
       amount: 2,
       atCap: totalLetterTokens(next, playerId) >= LETTER_TOKEN_POOL,
+      reason: "「남작/여자작」 획득 보너스",
     };
   }
 
@@ -1277,7 +1333,7 @@ export function resolveLetterChoice(session: SessionState, playerId: string, cho
 
   if (choice.type === "place") {
     addLetterToken(next, choice.slot, playerId, pending.amount);
-    letterGains.push({ playerId, slot: choice.slot, amount: pending.amount, reason: "라운드 승리 보상" });
+    letterGains.push({ playerId, slot: choice.slot, amount: pending.amount, reason: pending.reason ?? "라운드 승리 보상" });
   } else if (choice.type === "move") {
     const available = next.letterTokens[choice.from][playerId] ?? 0;
     if (available <= 0) throw new Error(`${choice.from}에 이동시킬 토큰이 없습니다.`);
@@ -1288,6 +1344,10 @@ export function resolveLetterChoice(session: SessionState, playerId: string, cho
 
   if (next.lastRoundSummary) next.lastRoundSummary = { ...next.lastRoundSummary, letterTokensGained: letterGains };
   next.pendingLetterChoice = null;
+  // 같은 라운드 종료에 대기 중인 배치 차례(점술사 공동 승리 등)가 남아
+  // 있으면 종료 판정 전에 그것부터 이어간다.
+  dequeueLetterChoice(next);
+  if (next.pendingLetterChoice) return next;
   return finalizeRoundEndDecisions(next, next.round.roundResult?.winnerId ?? null);
 }
 
