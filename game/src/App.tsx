@@ -295,7 +295,17 @@ export default function App() {
         if (!prev || prev.pendingLetterChoice !== pending) return prev;
         const routeSlot = ROUTE_SLOT[prev.currentRoute];
         const choice: LetterChoice = chooseLetterTargetAI(routeSlot, pending.atCap);
-        return safely(() => resolveLetterChoice(prev, pending.playerId, choice)) ?? prev;
+        // 1차 선택이 거부되면 항상 유효한 기본 배치(공개된 첫 공주/왕자
+        // 슬롯) 또는 "이동하지 않음"으로 폴백 -- AI 차례가 소모되지 않으면
+        // 진행이 영구히 멈춘다 (교착 방지의 마지막 안전망).
+        const fallback: LetterChoice = pending.atCap
+          ? { type: "decline" }
+          : { type: "place", slot: availableRank8LetterSlots(prev)[0] ?? routeSlot };
+        return (
+          safely(() => resolveLetterChoice(prev, pending.playerId, choice)) ??
+          safely(() => resolveLetterChoice(prev, pending.playerId, fallback)) ??
+          prev
+        );
       });
     }, 700);
     return () => clearTimeout(timer);
@@ -328,12 +338,17 @@ export default function App() {
       setSession((prev) => {
         if (!prev || prev.pendingArchivePlacement !== placement) return prev;
         const choice = chooseArchiveTokenAI(prev.storyArchive, prev.roundEndEligibleArchiveIds);
+        // 실패 시 반드시 "놓지 않기"로라도 차례를 소모한다 -- AI 액션이
+        // 엔진에서 거부됐는데 세션이 그대로면 이 effect가 다시 돌 계기가
+        // 없어 진행이 영구히 멈춘다 (교착 방지의 마지막 안전망).
         return (
           safely(() =>
             choice
               ? placeArchiveToken(prev, placement.eligiblePlayerId, choice.cardId, choice.token)
               : skipArchivePlacement(prev, placement.eligiblePlayerId)
-          ) ?? prev
+          ) ??
+          safely(() => skipArchivePlacement(prev, placement.eligiblePlayerId)) ??
+          prev
         );
       });
     }, 700);

@@ -1004,12 +1004,17 @@ function finalizeRoundEndDecisions(session: SessionState, winnerId: string | nul
   // 역사 3[031]이 공개되기 전에는 "첫 탈락자가 조건 카드에 토큰을 놓을 수
   // 있다"는 규칙 자체가 아직 존재하지 않는다. 놓을 수 있는 대상도 실카드
   // 문구 그대로 "[조건]을 가진 카드"뿐이다 (053류) -- 시작/종료 공개표만
-  // 가진 카드(017/023 등)에는 놓을 수 없다.
+  // 가진 카드(017/023 등)에는 놓을 수 없다. 이번 라운드에 새로 공개된
+  // 조건 카드는 placeArchiveToken이 거부하므로(라운드 종료 전 공개분만
+  // 유효), 자격 있는 후보가 실제로 있을 때만 배치 차례를 연다 -- 후보 0장
+  // 상태로 차례가 열리면 놓을 카드가 없는 빈 결정만 남는다.
   if (
     roundEndEligibleArchiveIds.has("031") &&
     next.storyArchive.some((c) => c.id === "031") &&
     next.round.firstEliminatedThisRound &&
-    next.storyArchive.some((c) => c.conditionTag && c.conditions.some((cond) => !cond.fired))
+    next.storyArchive.some(
+      (c) => roundEndEligibleArchiveIds.has(c.id) && c.conditionTag && c.conditions.some((cond) => !cond.fired)
+    )
   ) {
     next.pendingArchivePlacement = { eligiblePlayerId: next.round.firstEliminatedThisRound };
   }
