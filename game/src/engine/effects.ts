@@ -59,6 +59,9 @@ export function drawCardFor(draft: GameState, playerId: string): CardInstance | 
   }
   if (card) {
     getPlayer(draft, playerId).hand.push(card);
+    // 실제로 손패가 바뀌었으므로 이 플레이어를 상대로 한 이전 경비병/신병
+    // 추측 기록은 더 이상 유효하지 않다 (see types.ts's GameState.guessHistory).
+    if (draft.guessHistory?.[playerId]) delete draft.guessHistory[playerId];
   }
   return card;
 }
@@ -283,7 +286,14 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
         setPlayOutcome(draft, card.instanceId, `「${String(guess).replace("|", ", ")}」 추측 적중! ${target.displayName} 탈락`);
       } else {
         log(draft, `${target.displayName}: 추측이 빗나갔습니다.`);
-        setPlayOutcome(draft, card.instanceId, `「${String(guess).replace("|", ", ")}」 추측 → 빗나감`);
+        setPlayOutcome(
+          draft,
+          card.instanceId,
+          `${target.displayName}에게 「${String(guess).replace("|", ", ")}」 추측 → 빗나감`
+        );
+        if (!draft.guessHistory) draft.guessHistory = {};
+        const missed = String(guess).includes("|") ? String(guess).split("|") : [guess];
+        draft.guessHistory[targetId] = [...(draft.guessHistory[targetId] ?? []), ...(missed as GuessOption[])];
       }
       return;
     }

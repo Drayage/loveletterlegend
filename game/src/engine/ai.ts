@@ -15,6 +15,7 @@ import {
   chooseIdentityReplacement,
   chooseIdentityExtraTurn,
 } from "./rules";
+import { ALL_SLOTS } from "./session";
 import type {
   ArchiveCardState,
   CardInstance,
@@ -26,6 +27,14 @@ import type {
   RankGuess,
 } from "./types";
 import type { Route } from "../data/routes";
+
+/** AI 타겟 선정에 필요한 세션 정보의 최소 구조 -- session.ts의
+ * `SessionState`를 그대로 받아도 되지만, ai.ts는 letterTokens만 알면
+ * 되므로 구조적으로 필요한 최소 타입만 요구한다(테스트에서 세션 전체를
+ * 만들지 않고도 간단히 목킹할 수 있도록). */
+export interface AiThreatContext {
+  letterTokens: Record<CharacterSlotId, Record<string, number>>;
+}
 
 /**
  * Heuristic (non-cheating) probability estimate of what a given "unseen"
@@ -87,22 +96,45 @@ function bestGuess(dist: Record<CardName, number>): { name: CardName; p: number 
   return best ?? { name: "광대", p: 0 };
 }
 
-function bestAllowedGuess(dist: Record<CardName, number>, options?: GuessOption[]): CardName {
+/** `tried`(같은 라운드에서 이 상대에게 이미 틀렸던 추측들)에 없는 후보
+ * 중 확률이 가장 높은 것을 우선한다 -- 모든 후보를 이미 다 시도해봤을
+ * 때만(정보가 소진됐을 때만) tried 여부와 무관하게 최선의 추측으로
+ * fallback한다. */
+function bestAllowedGuess(
+  dist: Record<CardName, number>,
+  options?: GuessOption[],
+  tried?: ReadonlySet<GuessOption>
+): CardName {
   const allowed = new Set(options?.filter((o): o is CardName => typeof o === "string" && o in dist));
   let best: { name: CardName; p: number } | null = null;
+  let bestUntried: { name: CardName; p: number } | null = null;
   for (const name of Object.keys(dist) as CardName[]) {
     if (name === "경비병") continue;
     if (options && !allowed.has(name)) continue;
     if (!best || dist[name] > best.p) best = { name, p: dist[name] };
+    if (!tried?.has(name) && (!bestUntried || dist[name] > bestUntried.p)) bestUntried = { name, p: dist[name] };
   }
-  return best?.name ?? (options?.find((o): o is CardName => typeof o === "string" && o in dist) ?? "광대");
+  const chosen = bestUntried ?? best;
+  return chosen?.name ?? (options?.find((o): o is CardName => typeof o === "string" && o in dist) ?? "광대");
 }
 
 export function chooseGuessAI(state: GameState, playerId: string): GuessOption {
-  if (state.pendingDecision?.kind === "guessCard" && state.pendingDecision.cardName === "신병") {
+  const decision = state.pendingDecision;
+  const targetId = decision?.kind === "guessCard" ? decision.targetId : undefined;
+  // 이번 판에서 이미 시도한 값(같은 카드의 2연속 추측) + 이번 라운드에
+  // 이 상대에게 이미 틀렸던 값(다른 카드/다른 플레이어의 이전 차례 포함)을
+  // 함께 피한다 -- 이게 "다 같이 같은 상대를 같은 값으로 계속 찌르는" 버그의
+  // 핵심 원인이었다 (see GameState.guessHistory, effects.ts's 경비병/신병 case).
+  const tried = new Set<GuessOption>([
+    ...(decision?.kind === "guessCard" ? decision.guesses ?? [] : []),
+    ...(targetId ? state.guessHistory?.[targetId] ?? [] : []),
+  ]);
+
+  if (decision?.kind === "guessCard" && decision.cardName === "신병") {
     const dist = estimateUnseenDistribution(state, playerId);
     const byRank = new Map<RankGuess, number>();
     let best: { rank: RankGuess; p: number } | null = null;
+    let bestUntried: { rank: RankGuess; p: number } | null = null;
     for (const name of Object.keys(dist) as CardName[]) {
       const rank = cardRank(name);
       if (rank < 2 || rank > 9) continue;
@@ -110,28 +142,63 @@ export function chooseGuessAI(state: GameState, playerId: string): GuessOption {
       const p = (byRank.get(guess) ?? 0) + (dist[name] ?? 0);
       byRank.set(guess, p);
       if (!best || p > best.p) best = { rank: guess, p };
+      if (!tried.has(guess) && (!bestUntried || p > bestUntried.p)) bestUntried = { rank: guess, p };
     }
-    return best?.rank ?? "2";
+    return (bestUntried ?? best)?.rank ?? "2";
   }
   const dist = estimateUnseenDistribution(state, playerId);
-  if (state.pendingDecision?.kind === "guessCard") return bestAllowedGuess(dist, state.pendingDecision.options);
+  if (decision?.kind === "guessCard") return bestAllowedGuess(dist, decision.options, tried);
   return bestGuess(dist).name;
+}
+
+/** AI 타겟팅용 최소 세션 컨텍스트가 있으면(App.tsx의 실제 게임 진행 중)
+ * "이기고 있는" 상대(편지 누적 총량이 많은 쪽)와, 나와 같은 캐릭터를
+ * 노리는 "라이벌"(가장 많이 투자한 슬롯이 겹치는 쪽)을 우선 공격하도록
+ * opponentIds를 재정렬한다. ctx가 없으면(세션 정보가 없는 단독 엔진
+ * 호출, 기존 rules.test.ts/session.test.ts 드라이버 등) 원래 순서를 그대로
+ * 유지해 기존 동작과 호환된다. */
+export function rankOpponentsByThreat(
+  opponentIds: string[],
+  actingPlayerId: string,
+  ctx?: AiThreatContext
+): string[] {
+  if (!ctx || opponentIds.length <= 1) return opponentIds;
+  const totalLetterTokens = (playerId: string) =>
+    ALL_SLOTS.reduce((sum, slot) => sum + (ctx.letterTokens[slot]?.[playerId] ?? 0), 0);
+  const primaryPursuedSlot = (playerId: string): CharacterSlotId | null => {
+    let best: { slot: CharacterSlotId; amount: number } | null = null;
+    for (const slot of ALL_SLOTS) {
+      const amount = ctx.letterTokens[slot]?.[playerId] ?? 0;
+      if (amount > 0 && (!best || amount > best.amount)) best = { slot, amount };
+    }
+    return best?.slot ?? null;
+  };
+  const mySlot = primaryPursuedSlot(actingPlayerId);
+  return opponentIds
+    .map((id, index) => {
+      const rivalBonus = mySlot && primaryPursuedSlot(id) === mySlot ? 6 : 0;
+      return { id, index, score: totalLetterTokens(id) * 2 + rivalBonus };
+    })
+    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .map((entry) => entry.id);
 }
 
 export function chooseTargetAI(
   playerId: string,
   cardName: CardName,
-  eligiblePlayerIds: string[]
+  eligiblePlayerIds: string[],
+  ctx?: AiThreatContext
 ): string {
   const opponentIds = eligiblePlayerIds.filter((id) => id !== playerId);
   if (cardName === "마술사") {
     // Prefer attacking the opponent (possible kill shot if they might be
     // holding 공주, or at minimum disrupts their hand) unless they're the
     // only non-eligible option, in which case fall back to self.
-    if (opponentIds.length > 0) return opponentIds[0];
+    if (opponentIds.length > 0) return rankOpponentsByThreat(opponentIds, playerId, ctx)[0];
     return playerId;
   }
-  return opponentIds[0] ?? eligiblePlayerIds[0];
+  const ranked = rankOpponentsByThreat(opponentIds, playerId, ctx);
+  return ranked[0] ?? eligiblePlayerIds[0];
 }
 
 /** 내는 즉시(또는 버려지는 즉시) 자기 자신이 탈락하는 카드들 -- AI가 다른
@@ -320,14 +387,14 @@ export function chooseWitchAssignAI(pool: CardInstance[]): CardInstance {
 /** Single entry point for resolving ANY in-round pending decision as the
  * AI -- shared by App.tsx and the engine test drivers so a newly added
  * decision kind only needs wiring here. */
-export function applyAiDecision(state: GameState, decision: PendingDecision): GameState {
+export function applyAiDecision(state: GameState, decision: PendingDecision, ctx?: AiThreatContext): GameState {
   switch (decision.kind) {
     case "playCard": {
       const card = chooseCardToPlayAI(state, decision.playerId);
       return chooseCardToPlay(state, card.instanceId);
     }
     case "chooseTarget": {
-      const targetId = chooseTargetAI(decision.playerId, decision.cardName, decision.eligiblePlayerIds);
+      const targetId = chooseTargetAI(decision.playerId, decision.cardName, decision.eligiblePlayerIds, ctx);
       return chooseTarget(state, targetId);
     }
     case "guessCard":

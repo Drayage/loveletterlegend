@@ -322,6 +322,16 @@ export interface GameState {
    * engine/session.ts) initializes it to []; plain single-round callers
    * (e.g. rules.test.ts) leave it undefined and these pushes are skipped. */
   sessionEvents?: SessionEvent[];
+  /** AI가 이번 라운드 중 각 상대에게 시도했다가 틀렸던 경비병/신병 추측
+   * 기록 (playerId -> 틀렸던 GuessOption들). 그 상대가 새 카드를 뽑아
+   * 손패가 실제로 바뀌는 순간(effects.ts's drawCardFor) 비워진다 --
+   * 그 전까지는 "이미 아니라고 확인된 값"이므로 AI가 같은 상대에게 같은
+   * 추측을 반복하지 않도록 engine/ai.ts's chooseGuessAI가 참조한다. 손패
+   * 교환류 효과(장군/시종/시녀/군사/대마도사20)로 인한 변화까지는
+   * 무효화하지 않는 v1 단순화 -- 최악의 경우 이제는 맞을 수도 있는 값을
+   * 여전히 피하는 정도라 안전한 방향의 근사치다. Optional for the same
+   * reason as sessionEvents (bare rules.test.ts fixtures may omit it). */
+  guessHistory?: Record<string /* targetPlayerId */, GuessOption[]>;
 }
 
 export type SessionEvent =

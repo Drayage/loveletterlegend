@@ -80,6 +80,7 @@ export function setupRound(
     lastEffectBlocked: null,
     firstEliminatedThisRound: null,
     recentPlays: [],
+    guessHistory: {},
   };
   log(state, "라운드를 시작합니다.");
   state = beginTurn(state);

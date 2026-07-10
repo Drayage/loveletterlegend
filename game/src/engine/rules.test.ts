@@ -12,16 +12,17 @@ import {
   chooseRegentChoice,
   chooseWitchAssign,
 } from "./rules";
-import { applyAiDecision, chooseCardToPlayAI } from "./ai";
+import { applyAiDecision, chooseCardToPlayAI, chooseGuessAI, chooseTargetAI, rankOpponentsByThreat } from "./ai";
 import {
   applyEffect,
   checkKingElimination,
   checkMinisterElimination,
   discardCard,
+  drawCardFor,
   effectiveCardRank,
   eliminatePlayer,
 } from "./effects";
-import type { CardName, GameState, PlayerConfig } from "./types";
+import type { CardName, CharacterSlotId, GameState, PlayerConfig } from "./types";
 
 const PLAYERS: PlayerConfig[] = [
   { id: "p1", displayName: "플레이어", isAI: false },
@@ -76,6 +77,73 @@ describe("Love Letter engine", () => {
       }
     }
     expect(sawEliminationLog).toBe(true);
+  });
+
+  it("chooseGuessAI avoids repeating a guess already missed against the same target this round", () => {
+    const state = setupRound(PLAYERS);
+    const [p1, p2] = state.players;
+    // 덱을 「기사」 위주로 채워 "기사"가 확률상 가장 유력한 추측이 되도록
+    // 강제한다.
+    state.deck = [
+      { instanceId: "d1", name: "기사" },
+      { instanceId: "d2", name: "기사" },
+      { instanceId: "d3", name: "기사" },
+      { instanceId: "d4", name: "광대" },
+    ];
+    state.hiddenRemovedCard = null;
+    state.faceUpRemovedCards = [];
+    p1.hand = [{ instanceId: "ph1", name: "여후작" }]; // target (guess당하는 쪽)
+    p2.hand = [{ instanceId: "ph2", name: "기사" }]; // guesser 자신의 카드 (dist에서 제외됨)
+    state.pendingDecision = {
+      kind: "guessCard",
+      playerId: "p2",
+      cardInstanceId: "test-guard",
+      cardName: "경비병",
+      targetId: "p1",
+      options: ["기사", "광대"],
+      guesses: [],
+      maxGuesses: 1,
+    };
+
+    // 기록이 없으면 확률이 가장 높은 "기사"를 고른다.
+    expect(chooseGuessAI(state, "p2")).toBe("기사");
+
+    // p1에게 이미 "기사"로 틀렸던 기록이 있으면 다른 값(광대)을 고른다.
+    state.guessHistory = { p1: ["기사"] };
+    expect(chooseGuessAI(state, "p2")).toBe("광대");
+  });
+
+  it("drawCardFor clears guessHistory for a player once their hand actually changes", () => {
+    const state = setupRound(PLAYERS);
+    state.guessHistory = { p1: ["기사", "5"] };
+    state.deck = [{ instanceId: "d1", name: "광대" }, ...state.deck];
+    drawCardFor(state, "p1");
+    expect(state.guessHistory.p1).toBeUndefined();
+  });
+
+  it("chooseTargetAI prefers the opponent with more accumulated [편지] tokens when given a threat context", () => {
+    const letterTokens = {
+      경비병알리오스: { p1: 0, p2: 0, p3: 5 },
+    } as unknown as Record<CharacterSlotId, Record<string, number>>;
+    const target = chooseTargetAI("p1", "경비병", ["p1", "p2", "p3"], { letterTokens });
+    expect(target).toBe("p3");
+  });
+
+  it("chooseTargetAI prefers a rival pursuing the same character slot over a stranger with fewer tokens", () => {
+    const letterTokens = {
+      경비병알리오스: { p1: 3, p2: 0, p3: 1 },
+      기사라이언: { p1: 0, p2: 2, p3: 0 },
+    } as unknown as Record<CharacterSlotId, Record<string, number>>;
+    // p1의 주력 슬롯은 "경비병알리오스". p3도 같은 슬롯에 소량 투자한
+    // "라이벌"이고, p2는 총량은 더 많지만(2) 겹치는 슬롯이 없다. 라이벌
+    // 보너스가 우선되어 p3를 노려야 한다.
+    const target = chooseTargetAI("p1", "경비병", ["p1", "p2", "p3"], { letterTokens });
+    expect(target).toBe("p3");
+  });
+
+  it("chooseTargetAI keeps default ordering when no threat context is given", () => {
+    expect(chooseTargetAI("p1", "경비병", ["p1", "p2", "p3"])).toBe("p2");
+    expect(rankOpponentsByThreat(["p2", "p3"], "p1")).toEqual(["p2", "p3"]);
   });
 
   it("공주 discard eliminates the player immediately", () => {
