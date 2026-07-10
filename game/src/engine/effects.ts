@@ -476,25 +476,33 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
         const held = p.hand.pop();
         if (held) pooled.push(held);
       }
+      // 강화된 마녀([편지] 3개 이상): 실카드 문구대로 "원하는 대로 다시
+      // 나눕니다" -- 모은 카드를 확인하고 자신이 가질 카드를 직접 고른다
+      // (rules.ts의 witchAssign 후속 결정, finishResolution의 followUp
+      // 일시정지 패턴 재사용).
+      if (upgrade) {
+        log(draft, `${actor.displayName}: 강화된 「마녀」 효과로 모은 카드를 확인하고 원하는 대로 나눕니다.`);
+        setPlayOutcome(draft, card.instanceId, "모든 손패를 모아 확인 후 직접 배분");
+        draft.pendingDecision = {
+          kind: "witchAssign",
+          playerId: actingPlayerId,
+          cardInstanceId: card.instanceId,
+          cardName: card.name,
+          pool: pooled,
+        };
+        return;
+      }
       for (let i = pooled.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pooled[i], pooled[j]] = [pooled[j], pooled[i]];
       }
       const alive = alivePlayers(draft);
-      if (upgrade) {
-        pooled.sort((a, b) => cardRank(a.name) - cardRank(b.name));
-        for (const p of alive) {
-          const dealt = p.id === actingPlayerId ? pooled.pop() : pooled.shift();
-          if (dealt) p.hand.push(dealt);
-        }
-      } else {
-        for (const p of alive) {
-          const dealt = pooled.pop();
-          if (dealt) p.hand.push(dealt);
-        }
+      for (const p of alive) {
+        const dealt = pooled.pop();
+        if (dealt) p.hand.push(dealt);
       }
       log(draft, `${actor.displayName}: 「마녀」 효과로 모든 손패를 모아 무작위로 다시 나눕니다.`);
-      setPlayOutcome(draft, card.instanceId, upgrade ? "모든 손패 재분배 (자신에게 높은 카드)" : "모든 손패 무작위 재분배");
+      setPlayOutcome(draft, card.instanceId, "모든 손패 무작위 재분배");
       return;
     }
     case "대마도사15": {
@@ -590,7 +598,11 @@ export function applyEffect(draft: GameState, args: ResolveArgs): void {
     }
     case "정무관남":
     case "정무관여": {
-      if (card.name === "정무관남" && upgrade && targetId) {
+      // 강화된 정무관(남자)([편지] 3개 이상): 실카드 문구대로 "탈락하지
+      // 않기"와 "상대 탈락" 중 하나를 고른다 -- rules.ts의 regentChoice
+      // 결정이 option으로 결과를 전달한다. option이 없는 경로(구버전 호출,
+      // 단독 엔진 테스트)는 항상 면역으로 안전하게 fallback한다.
+      if (card.name === "정무관남" && upgrade && option === "eliminate" && targetId) {
         eliminatePlayer(draft, targetId, "강화된 「정무관(남자)」 효과");
         setPlayOutcome(draft, card.instanceId, `${getPlayer(draft, targetId).displayName} 탈락`);
         return;

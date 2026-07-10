@@ -16,6 +16,8 @@ interface DecisionPanelProps {
   onTacticianSwap: (swap: boolean) => void;
   onReuseCard: (instanceId: string) => void;
   onHandDiscard: (instanceId: string) => void;
+  onRegentChoice: (choice: "immune" | "eliminate") => void;
+  onWitchAssign: (instanceId: string) => void;
   onIdentitySwap: (use: boolean) => void;
   onIdentityCancel: (use: boolean) => void;
   onIdentityReplacement: (instanceId: string | null) => void;
@@ -33,11 +35,56 @@ export function DecisionPanel({
   onTacticianSwap,
   onReuseCard,
   onHandDiscard,
+  onRegentChoice,
+  onWitchAssign,
   onIdentitySwap,
   onIdentityCancel,
   onIdentityReplacement,
   onIdentityExtraTurn,
 }: DecisionPanelProps) {
+  if (decision.kind === "regentChoice") {
+    return (
+      <Modal title="강화된 「정무관(남자)」" onClose={() => {}} dismissible={false}>
+        <div className="decision-panel">
+          <p className="decision-panel__prompt">[편지] 3개 이상 -- 둘 중 하나를 고르세요.</p>
+          <div className="decision-panel__options decision-panel__options--column">
+            <button type="button" className="decision-panel__btn" onClick={() => onRegentChoice("immune")}>
+              이번 라운드 동안 탈락하지 않습니다
+            </button>
+            <button type="button" className="decision-panel__btn" onClick={() => onRegentChoice("eliminate")}>
+              다른 플레이어 한 명을 탈락시킵니다
+            </button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
+  if (decision.kind === "witchAssign") {
+    return (
+      <Modal title="강화된 「마녀」" onClose={() => {}} dismissible={false}>
+        <div className="decision-panel">
+          <p className="decision-panel__prompt">[편지] 3개 이상 -- 모은 카드 중 자신이 가질 카드를 고르세요.</p>
+          <div className="decision-panel__guess-grid">
+            {decision.pool.map((card) => (
+              <button
+                key={card.instanceId}
+                type="button"
+                className="decision-panel__guess-btn"
+                onClick={() => onWitchAssign(card.instanceId)}
+              >
+                <span className="decision-panel__guess-card">
+                  <Card name={card.name} size="sm" />
+                  <span className="decision-panel__guess-count">「{card.name}」 갖기</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
   if (decision.kind === "fortunePath") {
     return (
       <Modal title="「점술사」 예언" onClose={() => {}} dismissible={false}>

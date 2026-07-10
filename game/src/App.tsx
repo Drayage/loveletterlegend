@@ -9,6 +9,8 @@ import {
   chooseTacticianSwap,
   chooseReuseCard,
   chooseHandDiscard,
+  chooseRegentChoice,
+  chooseWitchAssign,
   chooseIdentitySwap,
   chooseIdentityCancel,
   chooseIdentityReplacement,
@@ -109,7 +111,15 @@ function decisionKey(decision: PendingDecision): string {
   if (decision.kind === "reuseDiscard" || decision.kind === "discardFromHand") {
     return `${decision.kind}:${decision.playerId}:${decision.cardInstanceId}:${decision.options.map((c) => c.instanceId).join(",")}`;
   }
-  if (decision.kind === "fortunePath" || decision.kind === "deckSwap" || decision.kind === "tacticianSwap") {
+  if (decision.kind === "witchAssign") {
+    return `${decision.kind}:${decision.playerId}:${decision.cardInstanceId}:${decision.pool.map((c) => c.instanceId).join(",")}`;
+  }
+  if (
+    decision.kind === "fortunePath" ||
+    decision.kind === "deckSwap" ||
+    decision.kind === "tacticianSwap" ||
+    decision.kind === "regentChoice"
+  ) {
     return `${decision.kind}:${decision.playerId}:${decision.cardInstanceId}`;
   }
   return `${decision.kind}:${decision.playerId}`;
@@ -133,6 +143,8 @@ function decisionLabel(decision: PendingDecision): string {
   if (decision.kind === "tacticianSwap") return "군사: 손패 교환 여부";
   if (decision.kind === "reuseDiscard") return `${decision.cardName}: 재사용할 카드 선택`;
   if (decision.kind === "discardFromHand") return "대마도사: 버릴 카드 선택";
+  if (decision.kind === "regentChoice") return "정무관: 면역/상대 탈락 선택";
+  if (decision.kind === "witchAssign") return "마녀: 가질 카드 선택";
   if (decision.kind === "identitySwap") return "정체 능력: 비공개 카드 교환";
   if (decision.kind === "identityCancel") return "정체 능력: 효과 취소";
   if (decision.kind === "identityReplaceEffect") return "정체 능력: 효과 대체";
@@ -547,6 +559,12 @@ export default function App() {
   function handleHandDiscard(instanceId: string) {
     setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseHandDiscard(s, instanceId))) ?? prev : prev));
   }
+  function handleRegentChoice(choice: "immune" | "eliminate") {
+    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseRegentChoice(s, choice))) ?? prev : prev));
+  }
+  function handleWitchAssign(instanceId: string) {
+    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseWitchAssign(s, instanceId))) ?? prev : prev));
+  }
 
   function proceedToNextRound(route: Route, selectedOptionalCards: CardName[] = []) {
     handledDecisionRef.current = null;
@@ -858,6 +876,8 @@ export default function App() {
           onTacticianSwap={handleTacticianSwap}
           onReuseCard={handleReuseCard}
           onHandDiscard={handleHandDiscard}
+          onRegentChoice={handleRegentChoice}
+          onWitchAssign={handleWitchAssign}
           onIdentitySwap={handleIdentitySwap}
           onIdentityCancel={handleIdentityCancel}
           onIdentityReplacement={handleIdentityReplacement}

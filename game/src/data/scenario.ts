@@ -529,9 +529,9 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
     name: "경비병 알리오스",
     category: "character",
     art: guard,
-    // Real ability text (편지 누적 -> 경비병 문구 변경) -- shown as flavor
-    // only in v1; not wired into gameplay (see plan's noted asymmetry,
-    // only "마술사의도제" got a live mechanical hookup this round).
+    // 편지 누적 -> 경비병 문구 변경: engine/session.ts's upgradesForPlayer가
+    // [편지] 3개 이상이면 "경비병" 카드에 tier1을 걸어 실제로 두 숫자를
+    // 동시에 추측하게 한다 (guessCard's maxGuesses=2, rules.ts).
     flavor:
       "《1 경비병》을 손에 들고 라운드 승리: +[편지] 2개. [편지] 3개 이상이면 「1」 외에 두 숫자를 대는 경비병으로 문구가 바뀝니다.",
     conditions: [],

@@ -506,7 +506,7 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
   });
 
   it("does NOT reveal 024 at round 1's end -- only at round 2's start (시작/종료 timing split)", () => {
-    let session = startSession(PLAYERS);
+    let session = freshSession();
     session = forceImmediateWin(session, "p1", [
       { instanceId: "c1", name: "대신" },
       { instanceId: "c2", name: "장군" },
@@ -1327,7 +1327,11 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
     });
 
     it("017's clockThreshold reveals (round-start timing) also carry revealedFrom", () => {
-      let session = startSession(PLAYERS);
+      // freshSession (not bare startSession): 초기 배분이 드물게(~2-3%)
+      // 대신 패시브로 라운드 1을 즉시 끝내버리면 이후 beginNextRound가
+      // pendingLetterChoice 등 남은 라운드 종료 결정과 충돌해 플레이크가
+      // 났다.
+      let session = freshSession();
       session = forceImmediateWin(session, "p1", [
         { instanceId: "c1", name: "대신" },
         { instanceId: "c2", name: "장군" },
@@ -1436,5 +1440,46 @@ describe("점술사 공동 승리 + 마을소녀 편지 감소 (세션 레이어
         (g) => g.playerId === "p1" && g.slot === "마을소녀미란다" && g.amount === -1
       )
     ).toBe(true);
+  });
+});
+
+describe("127 「수사 알베르트」 편지 임계값 -- 승려 1장이 영구히 수사로 교체", () => {
+  it("[편지] 2개 이상이 되면 덱 구성이 바뀌고, 두 번째 트리거는 없다", () => {
+    let s = freshSession();
+    // 127 자체가 이야기 보관소에 미리 공개돼 있어야 grantCharacterLetter의
+    // roundEndEligibleArchiveIds 자격 검사를 통과한다 (다른 캐릭터 편지
+    // 테스트와 동일한 패턴 -- see "revealed character reward cards..." 위).
+    s = forceImmediateWin(
+      s,
+      "p1",
+      [
+        { instanceId: "c1", name: "수사" },
+        { instanceId: "c2", name: "경비병" },
+      ],
+      [seedArchiveForTest("127")]
+    );
+    expect(s.letterTokens["수사알베르트"]["p1"]).toBe(2);
+    expect(s.extraDeckCardNames).toContain("수사");
+    expect(s.removedBaseCardNames).toContain("승려");
+    expect(s.letterThresholdDeckEffectsApplied).toContain("127-swap");
+
+    // 다시 같은 조건으로 승리해도(4개까지 누적) 두 번째 스왑은 없다.
+    // forceImmediateWin은 매 호출마다 extraDeckCardNames를 리셋하므로,
+    // "이미 스왑된 상태의 실제 세션"을 preset으로 재현해 검증한다.
+    s.pendingLetterChoice = null;
+    s = forceImmediateWin(
+      s,
+      "p1",
+      [
+        { instanceId: "c3", name: "수사" },
+        { instanceId: "c4", name: "경비병" },
+      ],
+      [seedArchiveForTest("127")],
+      0,
+      [],
+      ["수사"]
+    );
+    expect(s.letterTokens["수사알베르트"]["p1"]).toBe(4);
+    expect(s.extraDeckCardNames.filter((n) => n === "수사")).toHaveLength(1);
   });
 });

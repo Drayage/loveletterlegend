@@ -9,6 +9,8 @@ import {
   chooseTacticianSwap,
   chooseReuseCard,
   chooseHandDiscard,
+  chooseRegentChoice,
+  chooseWitchAssign,
 } from "./rules";
 import { applyAiDecision, chooseCardToPlayAI } from "./ai";
 import {
@@ -801,6 +803,85 @@ describe("선택 플로우: 점술사/군사/수사·수녀/대마도사20", () 
     expect(state.players[0].hand.map((c) => c.name)).toEqual(["공주"]);
     expect(state.players[0].eliminated).toBe(false);
     expect(state.players[0].discardPile.some((c) => c.name === "경비병")).toBe(true);
+  });
+
+  it("강화된 정무관(남자): '탈락하지 않기'를 고르면 즉시 면역으로 끝난다", () => {
+    let state = twoCardTurnState(
+      [{ instanceId: "regent", name: "정무관남" }, { instanceId: "keep", name: "경비병" }],
+      [{ instanceId: "opp", name: "기사" }]
+    );
+    state.activeCardUpgradesByPlayer = { p1: { 정무관남: "tier1" } };
+    state = chooseCardToPlay(state, "regent");
+    expect(state.pendingDecision?.kind).toBe("regentChoice");
+    state = chooseRegentChoice(state, "immune");
+    expect(state.players[0].immuneThisRound).toBe(true);
+    expect(state.players[1].eliminated).toBe(false);
+  });
+
+  it("강화된 정무관(남자): '상대 탈락'을 고르면 대상을 지목해 탈락시킨다", () => {
+    let state = twoCardTurnState(
+      [{ instanceId: "regent", name: "정무관남" }, { instanceId: "keep", name: "경비병" }],
+      [{ instanceId: "opp", name: "기사" }]
+    );
+    state.activeCardUpgradesByPlayer = { p1: { 정무관남: "tier1" } };
+    state = chooseCardToPlay(state, "regent");
+    state = chooseRegentChoice(state, "eliminate");
+    expect(state.pendingDecision?.kind).toBe("chooseTarget");
+    state = chooseTarget(state, "p2");
+    expect(state.players[1].eliminated).toBe(true);
+    expect(state.players[0].immuneThisRound).toBeFalsy();
+  });
+
+  it("업그레이드 없는 정무관(남자)는 선택지 없이 항상 면역만 준다", () => {
+    let state = twoCardTurnState(
+      [{ instanceId: "regent", name: "정무관남" }, { instanceId: "keep", name: "경비병" }],
+      [{ instanceId: "opp", name: "기사" }]
+    );
+    state = chooseCardToPlay(state, "regent");
+    // regentChoice 개입 없이 곧바로 해소되고, 턴이 끝나 상대 차례로
+    // 자동 진행된다(다음 playCard 결정) -- 라운드가 안 끝났으므로 null이
+    // 아니라 다음 플레이어의 새 결정이 서게 된다.
+    expect(state.pendingDecision?.kind).toBe("playCard");
+    expect(state.players[0].immuneThisRound).toBe(true);
+    expect(state.players[1].eliminated).toBe(false);
+  });
+
+  it("강화된 마녀: 모은 카드 중 자신이 가질 카드를 직접 고른다", () => {
+    // deck-top을 "기사"로 둬 witchAssign 이후 자동으로 진행되는 상대 턴의
+    // 드로우가 분배받은 「공주」와 겹쳐 판별을 헷갈리게 하지 않도록 한다.
+    let state = twoCardTurnState(
+      [{ instanceId: "witch", name: "마녀" }, { instanceId: "keep", name: "경비병" }],
+      [{ instanceId: "opp", name: "공주" }],
+      [{ instanceId: "deck-x", name: "기사" }]
+    );
+    state.activeCardUpgradesByPlayer = { p1: { 마녀: "tier1" } };
+    state = chooseCardToPlay(state, "witch");
+    expect(state.pendingDecision?.kind).toBe("witchAssign");
+    if (state.pendingDecision?.kind === "witchAssign") {
+      expect(state.pendingDecision.pool.map((c) => c.name).sort()).toEqual(["경비병", "공주"]);
+    }
+    state = chooseWitchAssign(state, "keep");
+    expect(state.players[0].hand.map((c) => c.name)).toEqual(["경비병"]);
+    // 상대 턴이 자동으로 시작돼 덱에서 1장을 더 뽑으므로, 분배받은
+    // 「공주」에 그 카드가 더해진다.
+    expect(state.players[1].hand.map((c) => c.name).sort()).toEqual(["공주", "기사"]);
+  });
+
+  it("업그레이드 없는 마녀는 그대로 무작위 재분배된다 (선택 없음)", () => {
+    let state = twoCardTurnState(
+      [{ instanceId: "witch", name: "마녀" }, { instanceId: "keep", name: "경비병" }],
+      [{ instanceId: "opp", name: "공주" }],
+      [{ instanceId: "deck-x", name: "기사" }]
+    );
+    state = chooseCardToPlay(state, "witch");
+    expect(state.pendingDecision?.kind).toBe("playCard");
+    // 재분배는 무작위(어느 쪽이 「경비병」/「공주」를 받을지 불특정)이므로
+    // p1은 정확히 1장, p2는 재분배분 1장 + 자동 드로우 1장으로 2장을
+    // 갖는지와, 세 장의 이름 다중집합이 정확히 일치하는지만 검증한다.
+    expect(state.players[0].hand).toHaveLength(1);
+    expect(state.players[1].hand).toHaveLength(2);
+    const allNames = [...state.players[0].hand, ...state.players[1].hand].map((c) => c.name).sort();
+    expect(allNames).toEqual(["경비병", "공주", "기사"]);
   });
 });
 

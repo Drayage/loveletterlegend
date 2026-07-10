@@ -191,6 +191,14 @@ export function chooseCardToPlay(state: GameState, cardInstanceId: string): Game
     return draft;
   }
 
+  // 강화된 정무관(남자)([편지] 3개 이상): "탈락하지 않기"와 "상대 탈락" 중
+  // 하나를 먼저 고른다 (기존엔 항상 탈락으로 자동 처리되어 실카드의
+  // "선택" 문구를 반영하지 못했다).
+  if (card.name === "정무관남" && upgrade) {
+    draft.pendingDecision = { kind: "regentChoice", playerId, cardInstanceId: card.instanceId, cardName: card.name };
+    return draft;
+  }
+
   // 수사/수녀: 버림 더미에서 재사용할 「플레이:」 효과 카드를 직접 고른다.
   if (card.name === "수사" || card.name === "수녀") {
     const options = draft.players
@@ -234,7 +242,7 @@ export function chooseTarget(state: GameState, targetId: string): GameState {
   if (!draft.pendingDecision || draft.pendingDecision.kind !== "chooseTarget") {
     throw new Error("현재 대상을 고를 차례가 아닙니다.");
   }
-  const { playerId, cardName, effectCardName } = draft.pendingDecision;
+  const { playerId, cardName, effectCardName, option } = draft.pendingDecision;
   if (!draft.pendingDecision.eligiblePlayerIds.includes(targetId)) {
     throw new Error("선택할 수 없는 대상입니다.");
   }
@@ -253,6 +261,7 @@ export function chooseTarget(state: GameState, targetId: string): GameState {
       cardName,
       effectCardName,
       targetId,
+      option,
     };
     return draft;
   }
@@ -263,18 +272,28 @@ export function chooseTarget(state: GameState, targetId: string): GameState {
     cardName,
     effectCardName,
     targetId,
+    option,
   });
 }
 
 /** Shared tail of the target-selection flow (chooseTarget and the 034
  * identity-cancel decline path): installs the follow-up decision the chosen
  * card still needs -- 경비병/신병's guess, 군사's "확인 후 교환 여부" -- or
- * resolves immediately when there is none. */
+ * resolves immediately when there is none. `option` is opaque passthrough
+ * (currently only 정무관남's "eliminate" choice uses it) for cards whose
+ * chosen sub-behavior must survive a 034 cancellation prompt in between. */
 function continueAfterTarget(
   draft: GameState,
-  args: { playerId: string; cardInstanceId: string; cardName: CardName; effectCardName?: CardName; targetId: string }
+  args: {
+    playerId: string;
+    cardInstanceId: string;
+    cardName: CardName;
+    effectCardName?: CardName;
+    targetId: string;
+    option?: string;
+  }
 ): GameState {
-  const { playerId, cardInstanceId, cardName, effectCardName, targetId } = args;
+  const { playerId, cardInstanceId, cardName, effectCardName, targetId, option } = args;
   if (needsGuess(cardName)) {
     const upgrade = resolveUpgradeTier(draft, cardName, playerId);
     draft.pendingDecision = {
@@ -311,7 +330,7 @@ function continueAfterTarget(
     }
   }
 
-  return finishResolution(draft, { targetId, effectCardName });
+  return finishResolution(draft, { targetId, effectCardName, option });
 }
 
 export function chooseGuess(state: GameState, guess: GuessOption): GameState {
@@ -387,6 +406,55 @@ export function chooseTacticianSwap(state: GameState, swap: boolean): GameState 
   });
 }
 
+/** 강화된 「정무관(남자)」([편지] 3개 이상): "탈락하지 않기"를 고르면 즉시
+ * 면역으로 해소되고, "상대 탈락"을 고르면 (기존 upgrade 경로 그대로)
+ * 대상을 지목해야 한다. */
+export function chooseRegentChoice(state: GameState, choice: "immune" | "eliminate"): GameState {
+  const draft = cloneState(state);
+  if (!draft.pendingDecision || draft.pendingDecision.kind !== "regentChoice") {
+    throw new Error("현재 정무관 선택지를 고를 차례가 아닙니다.");
+  }
+  const decision = draft.pendingDecision;
+  if (choice === "immune") {
+    return finishResolution(draft, { effectCardName: decision.effectCardName, option: "immune" });
+  }
+  const upgrade = resolveUpgradeTier(draft, decision.cardName, decision.playerId);
+  const eligible = targetsFor(draft, decision.playerId, decision.cardName, upgrade);
+  draft.pendingDecision = {
+    kind: "chooseTarget",
+    playerId: decision.playerId,
+    cardInstanceId: decision.cardInstanceId,
+    cardName: decision.cardName,
+    effectCardName: decision.effectCardName,
+    eligiblePlayerIds: eligible,
+    option: "eliminate",
+  };
+  if (eligible.length === 0) return finishResolution(draft, { effectCardName: decision.effectCardName, option: "eliminate" });
+  return draft;
+}
+
+/** 강화된 「마녀」([편지] 3개 이상): 모아 확인한 카드 중 자신이 가질 카드를
+ * 직접 고른다 -- 나머지는 (2인전 고정) 유일한 상대에게 돌아간다. */
+export function chooseWitchAssign(state: GameState, keepInstanceId: string): GameState {
+  const draft = cloneState(state);
+  if (!draft.pendingDecision || draft.pendingDecision.kind !== "witchAssign") {
+    throw new Error("현재 마녀 카드 배분을 선택할 차례가 아닙니다.");
+  }
+  const decision = draft.pendingDecision;
+  const kept = decision.pool.find((c) => c.instanceId === keepInstanceId);
+  if (!kept) throw new Error("선택할 수 없는 카드입니다.");
+  const rest = decision.pool.filter((c) => c.instanceId !== keepInstanceId);
+  const actor = getPlayer(draft, decision.playerId);
+  actor.hand.push(kept);
+  const others = alivePlayers(draft).filter((p) => p.id !== decision.playerId);
+  others.forEach((p, i) => {
+    if (rest[i]) p.hand.push(rest[i]);
+  });
+  log(draft, `${actor.displayName}: 강화된 「마녀」 효과로 원하는 카드를 직접 골라 나눕니다.`);
+  draft.pendingDecision = null;
+  return afterTurnResolved(draft, decision.playerId);
+}
+
 /** 「수사/수녀」: 선택한 버림 더미 카드의 「플레이:」 효과를 재사용한다 --
  * effectCardName 메커니즘(036 「학생/여학생」과 동일)으로 대상/추측 등
  * 후속 플로우까지 그대로 이어진다. */
@@ -407,6 +475,16 @@ export function chooseReuseCard(state: GameState, reuseInstanceId: string): Game
   if (reused.name === "점술사") {
     draft.pendingDecision = {
       kind: "fortunePath",
+      playerId: decision.playerId,
+      cardInstanceId: decision.cardInstanceId,
+      cardName: reused.name,
+      effectCardName: reused.name,
+    };
+    return draft;
+  }
+  if (reused.name === "정무관남" && upgrade) {
+    draft.pendingDecision = {
+      kind: "regentChoice",
       playerId: decision.playerId,
       cardInstanceId: decision.cardInstanceId,
       cardName: reused.name,
@@ -492,6 +570,7 @@ export function chooseIdentityCancel(state: GameState, use: boolean): GameState 
     cardName: decision.cardName,
     effectCardName: decision.effectCardName,
     targetId: decision.targetId,
+    option: decision.option,
   });
 }
 
@@ -508,6 +587,26 @@ export function chooseIdentityReplacement(state: GameState, replacementInstanceI
     log(draft, `${getPlayer(draft, decision.playerId).displayName}: 「학생/여학생」 효과로 「${decision.cardName}」 대신 「${replacement.name}」 효과를 사용합니다.`);
     draft.pendingDecision = null;
     const upgrade = resolveUpgradeTier(draft, replacement.name, decision.playerId);
+    if (replacement.name === "점술사") {
+      draft.pendingDecision = {
+        kind: "fortunePath",
+        playerId: decision.playerId,
+        cardInstanceId: decision.cardInstanceId,
+        cardName: replacement.name,
+        effectCardName: replacement.name,
+      };
+      return draft;
+    }
+    if (replacement.name === "정무관남" && upgrade) {
+      draft.pendingDecision = {
+        kind: "regentChoice",
+        playerId: decision.playerId,
+        cardInstanceId: decision.cardInstanceId,
+        cardName: replacement.name,
+        effectCardName: replacement.name,
+      };
+      return draft;
+    }
     if (needsTarget(replacement.name, upgrade)) {
       const eligible = targetsFor(draft, decision.playerId, replacement.name, upgrade);
       draft.pendingDecision = {
@@ -565,7 +664,10 @@ function finishResolution(
   }
 
   // 수녀의 [편지] 강화: 재사용 여부와 무관하게 사용 후 다음 차례까지 보호.
-  if (card.name === "수녀" && !actor.eliminated && resolveUpgradeTier(draft, "수녀", playerId)) {
+  // effectCard.name을 써야 한다 -- 036/수사가 다른 카드를 낸 뒤 그 「플레이:」
+  // 효과를 수녀로 대체한 경우 실제로 발동한 효과는 수녀이므로 card.name
+  // (원래 손에서 낸 카드)이 아니라 effectCard.name으로 판정해야 한다.
+  if (effectCard.name === "수녀" && !actor.eliminated && resolveUpgradeTier(draft, "수녀", playerId)) {
     actor.protected = true;
     log(draft, `${actor.displayName}: 강화된 「수녀」 효과로 다음 차례까지 보호받습니다.`);
   }

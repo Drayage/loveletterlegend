@@ -178,6 +178,11 @@ export interface SessionState {
    * everything the player has already unlocked the moment it's consumed --
    * see pushArchiveCard. */
   archiveHistory: Record<string, ArchiveCardState>;
+  /** 라운드 승리 보상과 별개로, 특정 캐릭터의 [편지] 누적이 일정 수치에
+   * 도달하는 순간 "덱 구성"이 영구히 바뀌는 몇몇 카드(127 「수사 알베르트」
+   * 등)를 위한 일회성 트리거 기록 -- 같은 임계값이 매 라운드 다시
+   * 발동하지 않도록 id 문자열(예: "127-swap")로 멱등성을 보장한다. */
+  letterThresholdDeckEffectsApplied: string[];
 }
 
 /** See SessionState.lastResolvedChoice. */
@@ -270,6 +275,7 @@ export function startSession(playerConfigs: PlayerConfig[], initialRoute: Route 
     pendingChoice: null,
     lastResolvedChoice: null,
     archiveHistory: Object.fromEntries(initialArchive.map((c) => [c.id, c])),
+    letterThresholdDeckEffectsApplied: [],
   });
 }
 
@@ -695,6 +701,16 @@ function applySessionRoundEnd(session: SessionState): SessionState {
     if (winner?.hand.some((c) => c.name === "수사") || winner?.discardPile.some((c) => c.name === "수사")) {
       grantArchive("123", "성공", 1, "「수사」를 들거나 버린 채로 라운드 승리");
       grantCharacterLetter("수사알베르트", winnerId, 2, "「수사」를 들거나 버린 채로 라운드 승리", "127");
+    }
+    // 127 「수사 알베르트」: [편지] 2개 이상이면 승려 1장이 영구히 수사
+    // 1장으로 바뀐다 -- 라운드 승리 보상과 별개의, 편지 누적 자체가 트리거인
+    // 유일한 덱 구성 변경 사례라 별도 멱등 플래그로 딱 한 번만 적용한다.
+    if (
+      (next.letterTokens["수사알베르트"][winnerId] ?? 0) >= 2 &&
+      !next.letterThresholdDeckEffectsApplied.includes("127-swap")
+    ) {
+      next.letterThresholdDeckEffectsApplied = [...next.letterThresholdDeckEffectsApplied, "127-swap"];
+      applyDeckEffect(next, { kind: "replace", removeName: "승려", addName: "수사" });
     }
     if (winner?.hand.some((c) => c.name === "수녀") || winner?.discardPile.some((c) => c.name === "수녀")) {
       grantCharacterLetter("수녀로베리아", winnerId, 2, "「수녀」를 들거나 버린 채로 라운드 승리", "135");
