@@ -111,6 +111,9 @@ export type PendingDecision =
       cardName: CardName;
       effectCardName?: CardName;
       targetId: string;
+      /** See chooseTarget's `option` -- carried through when 034가 강화된
+       * 「정무관(남자)」의 "상대 탈락" 선택을 취소할지 묻는 경우. */
+      option?: string;
     }
   | {
       kind: "identityReplaceEffect";
@@ -127,6 +130,10 @@ export type PendingDecision =
       cardName: CardName;
       effectCardName?: CardName;
       eligiblePlayerIds: string[];
+      /** 강화된 「정무관(남자)」가 "상대 탈락"을 고른 뒤의 대상 선택일 때만
+       * "eliminate"로 채워진다 -- finishResolution까지 그대로 흘러가
+       * applyEffect가 면역 대신 탈락을 적용하게 한다. */
+      option?: string;
     }
   | {
       kind: "guessCard";
@@ -167,7 +174,13 @@ export type PendingDecision =
   | { kind: "reuseDiscard"; playerId: string; cardInstanceId: string; cardName: CardName; options: CardInstance[] }
   /** 「대마도사(20세)」의 후속: 손에 든 카드(자기 카드 + 받아온 카드) 중
    * 1장을 골라 버린다. */
-  | { kind: "discardFromHand"; playerId: string; cardInstanceId: string; cardName: CardName; options: CardInstance[] };
+  | { kind: "discardFromHand"; playerId: string; cardInstanceId: string; cardName: CardName; options: CardInstance[] }
+  /** 강화된 「정무관(남자)」([편지] 3개 이상): "탈락하지 않기"와 "상대 탈락"
+   * 중 하나를 고른다. */
+  | { kind: "regentChoice"; playerId: string; cardInstanceId: string; cardName: CardName; effectCardName?: CardName }
+  /** 강화된 「마녀」([편지] 3개 이상): 모은 카드를 확인하고 자신이 가질
+   * 카드를 직접 고른다 (나머지는 유일한 상대에게). */
+  | { kind: "witchAssign"; playerId: string; cardInstanceId: string; cardName: CardName; pool: CardInstance[] };
 
 export interface RevealInfo {
   id: string;
@@ -222,13 +235,13 @@ export interface GameState {
   /** The most recent card played by anyone, shown as "the card currently in
    * play" until the next card is played (by either player). */
   lastPlayedCard: { playerId: string; card: CardInstance } | null;
-  /** Rolling window of the last two plays (one per player in 2P) with a
-   * one-line outcome summary attached once the effect resolves -- drives
-   * the center table's "who played what and what happened" exchange view.
-   * `outcome` is null while a freshly-played card still awaits its
-   * target/guess decision. Optional for the same reason as sessionEvents:
-   * bare GameState fixtures (rules.test.ts) may omit it, in which case
-   * the tracking is skipped. */
+  /** Rolling window of the last N plays (one per player, N = current
+   * player count) with a one-line outcome summary attached once the effect
+   * resolves -- drives the center table's "who played what and what
+   * happened" exchange view. `outcome` is null while a freshly-played card
+   * still awaits its target/guess decision. Optional for the same reason
+   * as sessionEvents: bare GameState fixtures (rules.test.ts) may omit it,
+   * in which case the tracking is skipped. */
   recentPlays?: Array<{ playerId: string; card: CardInstance; outcome: string | null }>;
   /** Private info revealed by the last-resolved effect, if any -- only
    * meaningful to whoever is named in viewerPlayerId. */
@@ -270,9 +283,9 @@ export interface GameState {
     cardName: CardName;
     discardedCardName: CardName;
   } | null;
-  /** Public: an effect fizzled because it had no legal target -- in this 2P
-   * implementation that only happens when the sole opponent is 승려-protected
-   * (see effects.ts's eligibleTargets), so this doubles as a "blocked by
+  /** Public: an effect fizzled because it had no legal target -- only
+   * happens when every other eligible player is 승려-protected at once (see
+   * effects.ts's eligibleTargets), so this doubles as a "blocked by
    * protection" notice. Surfaced as its own popup instead of a log-only line
    * so a turn that visibly "did nothing" still reads as an intentional
    * block, not a silent no-op/bug. */

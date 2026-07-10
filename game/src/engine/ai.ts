@@ -8,6 +8,8 @@ import {
   chooseTacticianSwap,
   chooseReuseCard,
   chooseHandDiscard,
+  chooseRegentChoice,
+  chooseWitchAssign,
   chooseIdentitySwap,
   chooseIdentityCancel,
   chooseIdentityReplacement,
@@ -299,6 +301,22 @@ export function chooseHandDiscardAI(options: CardInstance[]): CardInstance {
   return sorted[0];
 }
 
+/** 강화된 「정무관(남자)」: 탈락시킬 합법적인 상대가 있으면 공격적으로
+ * "상대 탈락"을, 없으면(대상 전원 승려 보호 등) "탈락하지 않기"를 고른다. */
+export function chooseRegentChoiceAI(state: GameState, playerId: string): "immune" | "eliminate" {
+  const hasTarget = state.players.some(
+    (p) => p.id !== playerId && !p.eliminated && !p.protected
+  );
+  return hasTarget ? "eliminate" : "immune";
+}
+
+/** 강화된 「마녀」: 손에 들고 있는 것만으로는 위험하지 않으므로(discard 시
+ * 탈락하는 공주류도 포함) 숫자가 가장 높은 카드를 자신이 갖는다. */
+export function chooseWitchAssignAI(pool: CardInstance[]): CardInstance {
+  const sorted = [...pool].sort((a, b) => cardRank(b.name) - cardRank(a.name));
+  return sorted[0];
+}
+
 /** Single entry point for resolving ANY in-round pending decision as the
  * AI -- shared by App.tsx and the engine test drivers so a newly added
  * decision kind only needs wiring here. */
@@ -324,6 +342,10 @@ export function applyAiDecision(state: GameState, decision: PendingDecision): Ga
       return chooseReuseCard(state, chooseReuseCardAI(decision.options).instanceId);
     case "discardFromHand":
       return chooseHandDiscard(state, chooseHandDiscardAI(decision.options).instanceId);
+    case "regentChoice":
+      return chooseRegentChoice(state, chooseRegentChoiceAI(state, decision.playerId));
+    case "witchAssign":
+      return chooseWitchAssign(state, chooseWitchAssignAI(decision.pool).instanceId);
     case "identitySwap": {
       const p = state.players.find((player) => player.id === decision.playerId);
       return chooseIdentitySwap(

@@ -15,8 +15,15 @@ interface CardProps {
    * discarded or publicly removed). Defaults to the full deck count, i.e.
    * "none used up yet", when the caller doesn't track this. */
   remainingCount?: number;
-  /** Small marker for session-driven ability upgrades currently active. */
+  /** Small marker for session-driven ability upgrades currently active --
+   * short tier label ("효과 변경 1단계"), used as a fallback badge title
+   * when upgradeAbilityText isn't available for this card. */
   upgradeBadge?: string;
+  /** What the upgrade ACTUALLY changed, in the card's own wording -- shown
+   * in the badge tooltip and replaces the base ability text in the overlay/
+   * tap-popup, so the badge means something more than "something changed"
+   * (see engine/upgrades.ts's UPGRADE_ABILITY_TEXT). */
+  upgradeAbilityText?: string;
 }
 
 export function Card({
@@ -28,6 +35,7 @@ export function Card({
   onClick,
   remainingCount,
   upgradeBadge,
+  upgradeAbilityText,
 }: CardProps) {
   // Explicit tap-to-toggle state, used as the primary interaction on touch
   // devices (which have no hover). Desktop mouse users get the ability text
@@ -83,7 +91,11 @@ export function Card({
     >
       <img className="card__art" src={CARD_ART[name]} alt={def.name} draggable={false} />
       {upgradeBadge && (
-        <span className="card__upgrade-badge" title={upgradeBadge} aria-label={upgradeBadge}>
+        <span
+          className="card__upgrade-badge"
+          title={upgradeAbilityText ? `${upgradeBadge}: ${upgradeAbilityText}` : upgradeBadge}
+          aria-label={upgradeAbilityText ? `${upgradeBadge}: ${upgradeAbilityText}` : upgradeBadge}
+        >
           ●
         </span>
       )}
@@ -129,7 +141,12 @@ export function Card({
         </span>
       )}
 
-      {size !== "sm" && <span className="card__ability-overlay">{def.shortAbility}</span>}
+      {size !== "sm" && (
+        <span className="card__ability-overlay">
+          {upgradeAbilityText ?? def.shortAbility}
+          {upgradeAbilityText && <span className="card__ability-overlay-upgraded-tag">효과 변경됨</span>}
+        </span>
+      )}
     </div>
   );
 }

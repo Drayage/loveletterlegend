@@ -26,7 +26,10 @@ export type { CharacterSlotId } from "./types";
  * change. */
 export const ROUTE_SLOT: Record<Route, CharacterSlotId> = { 공주: "잉그리드공주", 왕자: "아레스왕자" };
 export const RANK8_SLOTS: readonly CharacterSlotId[] = ["잉그리드공주", "아레스왕자", "루나공주", "마가렛공주"];
-const ALL_SLOTS: readonly CharacterSlotId[] = [
+/** Exported (not just module-local) so UI code -- the 기록보관실(records)
+ * gallery in particular -- can enumerate every possible ending slot without
+ * duplicating this list. */
+export const ALL_SLOTS: readonly CharacterSlotId[] = [
   "잉그리드공주",
   "아레스왕자",
   "루나공주",
@@ -178,6 +181,11 @@ export interface SessionState {
    * everything the player has already unlocked the moment it's consumed --
    * see pushArchiveCard. */
   archiveHistory: Record<string, ArchiveCardState>;
+  /** 라운드 승리 보상과 별개로, 특정 캐릭터의 [편지] 누적이 일정 수치에
+   * 도달하는 순간 "덱 구성"이 영구히 바뀌는 몇몇 카드(127 「수사 알베르트」
+   * 등)를 위한 일회성 트리거 기록 -- 같은 임계값이 매 라운드 다시
+   * 발동하지 않도록 id 문자열(예: "127-swap")로 멱등성을 보장한다. */
+  letterThresholdDeckEffectsApplied: string[];
 }
 
 /** See SessionState.lastResolvedChoice. */
@@ -270,6 +278,7 @@ export function startSession(playerConfigs: PlayerConfig[], initialRoute: Route 
     pendingChoice: null,
     lastResolvedChoice: null,
     archiveHistory: Object.fromEntries(initialArchive.map((c) => [c.id, c])),
+    letterThresholdDeckEffectsApplied: [],
   });
 }
 
@@ -696,6 +705,16 @@ function applySessionRoundEnd(session: SessionState): SessionState {
       grantArchive("123", "성공", 1, "「수사」를 들거나 버린 채로 라운드 승리");
       grantCharacterLetter("수사알베르트", winnerId, 2, "「수사」를 들거나 버린 채로 라운드 승리", "127");
     }
+    // 127 「수사 알베르트」: [편지] 2개 이상이면 승려 1장이 영구히 수사
+    // 1장으로 바뀐다 -- 라운드 승리 보상과 별개의, 편지 누적 자체가 트리거인
+    // 유일한 덱 구성 변경 사례라 별도 멱등 플래그로 딱 한 번만 적용한다.
+    if (
+      (next.letterTokens["수사알베르트"][winnerId] ?? 0) >= 2 &&
+      !next.letterThresholdDeckEffectsApplied.includes("127-swap")
+    ) {
+      next.letterThresholdDeckEffectsApplied = [...next.letterThresholdDeckEffectsApplied, "127-swap"];
+      applyDeckEffect(next, { kind: "replace", removeName: "승려", addName: "수사" });
+    }
     if (winner?.hand.some((c) => c.name === "수녀") || winner?.discardPile.some((c) => c.name === "수녀")) {
       grantCharacterLetter("수녀로베리아", winnerId, 2, "「수녀」를 들거나 버린 채로 라운드 승리", "135");
     }
@@ -1004,12 +1023,17 @@ function finalizeRoundEndDecisions(session: SessionState, winnerId: string | nul
   // 역사 3[031]이 공개되기 전에는 "첫 탈락자가 조건 카드에 토큰을 놓을 수
   // 있다"는 규칙 자체가 아직 존재하지 않는다. 놓을 수 있는 대상도 실카드
   // 문구 그대로 "[조건]을 가진 카드"뿐이다 (053류) -- 시작/종료 공개표만
-  // 가진 카드(017/023 등)에는 놓을 수 없다.
+  // 가진 카드(017/023 등)에는 놓을 수 없다. 이번 라운드에 새로 공개된
+  // 조건 카드는 placeArchiveToken이 거부하므로(라운드 종료 전 공개분만
+  // 유효), 자격 있는 후보가 실제로 있을 때만 배치 차례를 연다 -- 후보 0장
+  // 상태로 차례가 열리면 놓을 카드가 없는 빈 결정만 남는다.
   if (
     roundEndEligibleArchiveIds.has("031") &&
     next.storyArchive.some((c) => c.id === "031") &&
     next.round.firstEliminatedThisRound &&
-    next.storyArchive.some((c) => c.conditionTag && c.conditions.some((cond) => !cond.fired))
+    next.storyArchive.some(
+      (c) => roundEndEligibleArchiveIds.has(c.id) && c.conditionTag && c.conditions.some((cond) => !cond.fired)
+    )
   ) {
     next.pendingArchivePlacement = { eligiblePlayerId: next.round.firstEliminatedThisRound };
   }

@@ -33,6 +33,23 @@
   filter: brightness(1.08);
 }
 
+.start-screen__secondary-btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 20px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.start-screen__secondary-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 /* Fixed-viewport shell: the page itself never scrolls or grows -- only the
  * board region in the middle scrolls when it must. This keeps the play
  * area centered on screen instead of the log dragging the document down. */
@@ -61,6 +78,25 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 8px;
+}
+
+/* 상대(2P) 1명일 땐 기존처럼 단일 카드 폭을 꽉 채우고, 2~3명(3~4인 플레이)
+ * 이면 나란히 줄이 감싸며 배치된다 -- 좁은 화면에서는 자동으로 아래로
+ * 접힌다. */
+.opponents-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.opponents-row > .player-area {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.opponents-row--count-2 > .player-area,
+.opponents-row--count-3 > .player-area {
+  flex: 1 1 240px;
 }
 
 .removed-row {

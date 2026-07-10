@@ -5,7 +5,12 @@ import "./TablePlay.css";
 interface TablePlayProps {
   state: GameState;
   remaining: Record<CardName, number>;
-  upgradeBadges?: Partial<Record<CardName, string>>;
+  /** playerId -> that player's own upgrade badges -- keyed per player
+   * (not a single shared map) because the two players' [편지] progress
+   * differs, so the SAME card name can be upgraded for one and not the
+   * other. */
+  upgradeBadgesByPlayer?: Record<string, Partial<Record<CardName, string>>>;
+  upgradeAbilityTextsByPlayer?: Record<string, Partial<Record<CardName, string>>>;
   hidden?: boolean;
 }
 
@@ -14,7 +19,13 @@ interface TablePlayProps {
  * so "상대가 뭘 냈고 내가 뭘 내서 어떻게 됐는지" is readable at a glance
  * without digging through the log. Outcomes come from the engine's
  * recentPlays tracking (see effects.ts setPlayOutcome). */
-export function TablePlay({ state, remaining, upgradeBadges = {}, hidden = false }: TablePlayProps) {
+export function TablePlay({
+  state,
+  remaining,
+  upgradeBadgesByPlayer = {},
+  upgradeAbilityTextsByPlayer = {},
+  hidden = false,
+}: TablePlayProps) {
   const plays = state.recentPlays ?? [];
   const latest = plays[plays.length - 1];
   const visiblePlays = hidden ? [] : plays;
@@ -39,7 +50,8 @@ export function TablePlay({ state, remaining, upgradeBadges = {}, hidden = false
                   name={p.card.name}
                   size="sm"
                   remainingCount={remaining[p.card.name]}
-                  upgradeBadge={upgradeBadges[p.card.name]}
+                  upgradeBadge={upgradeBadgesByPlayer[p.playerId]?.[p.card.name]}
+                  upgradeAbilityText={upgradeAbilityTextsByPlayer[p.playerId]?.[p.card.name]}
                 />
                 <span className={`table-play__outcome${p.outcome ? "" : " table-play__outcome--pending"}`}>
                   {p.outcome ?? "효과 처리 중..."}

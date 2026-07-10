@@ -18,6 +18,7 @@ interface PlayerAreaProps {
   handSize?: "sm" | "md";
   compact?: boolean;
   upgradeBadges?: Partial<Record<CardName, string>>;
+  upgradeAbilityTexts?: Partial<Record<CardName, string>>;
   concealStatus?: boolean;
 }
 
@@ -34,6 +35,7 @@ export function PlayerArea({
   handSize = "md",
   compact,
   upgradeBadges = {},
+  upgradeAbilityTexts = {},
   concealStatus = false,
 }: PlayerAreaProps) {
   const [showDiscards, setShowDiscards] = useState(false);
@@ -103,6 +105,7 @@ export function PlayerArea({
                   size={handSize}
                   remainingCount={remaining[c.name]}
                   upgradeBadge={upgradeBadges[c.name]}
+                  upgradeAbilityText={upgradeAbilityTexts[c.name]}
                   onClick={
                     selectableCardIds?.includes(c.instanceId)
                       ? () => onSelectCard?.(c.instanceId)
@@ -135,7 +138,13 @@ export function PlayerArea({
       {showDiscards && (
         <Modal title={`${displayName}의 버린 카드`} onClose={() => setShowDiscards(false)}>
           {player.discardPile.map((c) => (
-            <Card key={c.instanceId} name={c.name} size="sm" upgradeBadge={upgradeBadges[c.name]} />
+            <Card
+              key={c.instanceId}
+              name={c.name}
+              size="sm"
+              upgradeBadge={upgradeBadges[c.name]}
+              upgradeAbilityText={upgradeAbilityTexts[c.name]}
+            />
           ))}
         </Modal>
       )}
