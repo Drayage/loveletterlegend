@@ -1,15 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  chooseCardToPlay,
-  chooseTarget,
-  chooseGuess,
-  beginTurn,
-  chooseIdentitySwap,
-  chooseIdentityCancel,
-  chooseIdentityReplacement,
-  chooseIdentityExtraTurn,
-} from "./rules";
-import { chooseCardToPlayAI, chooseGuessAI, chooseTargetAI, chooseRouteAI, chooseLetterTargetAI } from "./ai";
+import { chooseCardToPlay, beginTurn } from "./rules";
+import { applyAiDecision, chooseRouteAI, chooseLetterTargetAI } from "./ai";
 import { needsTarget, targetsFor, applyEffect } from "./effects";
 import {
   startSession,
@@ -90,24 +81,7 @@ function driveOneSessionRound(session: SessionState): SessionState {
     if (steps > 500) throw new Error("라운드가 끝나지 않습니다 (무한 루프 의심)");
     const decision = s.round.pendingDecision;
     if (!decision) throw new Error("진행할 결정이 없는데 라운드가 끝나지 않았습니다.");
-    if (decision.kind === "playCard") {
-      const card = chooseCardToPlayAI(s.round, decision.playerId);
-      s = applyToRound(s, (r) => chooseCardToPlay(r, card.instanceId));
-    } else if (decision.kind === "chooseTarget") {
-      const targetId = chooseTargetAI(decision.playerId, decision.cardName, decision.eligiblePlayerIds);
-      s = applyToRound(s, (r) => chooseTarget(r, targetId));
-    } else if (decision.kind === "guessCard") {
-      const guess = chooseGuessAI(s.round, decision.playerId);
-      s = applyToRound(s, (r) => chooseGuess(r, guess));
-    } else if (decision.kind === "identitySwap") {
-      s = applyToRound(s, (r) => chooseIdentitySwap(r, false));
-    } else if (decision.kind === "identityCancel") {
-      s = applyToRound(s, (r) => chooseIdentityCancel(r, true));
-    } else if (decision.kind === "identityReplaceEffect") {
-      s = applyToRound(s, (r) => chooseIdentityReplacement(r, null));
-    } else {
-      s = applyToRound(s, (r) => chooseIdentityExtraTurn(r, false));
-    }
+    s = applyToRound(s, (r) => applyAiDecision(r, decision));
   }
   return s;
 }
@@ -857,7 +831,10 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
   });
 
   it("reveals new archive cards once a shared token condition is met", () => {
-    let session = startSession(PLAYERS);
+    // freshSession: 초기 배분이 대신 패시브로 라운드를 즉시 끝내면
+    // roundEndEligibleArchiveIds 스냅샷이 아래에서 push하는 053을 모르는
+    // 채로 굳어 placeArchiveToken이 거부하는 드문 플레이크가 있었다.
+    let session = freshSession();
     session.storyArchive.push({
       id: "053",
       name: "고지식한 병사",
@@ -1417,5 +1394,47 @@ describe("Session (Phase 2 round loop + tokens + ending)", () => {
       // 052 (already resolved earlier) is also still there.
       expect(session.archiveHistory["052"]).toBeDefined();
     });
+  });
+});
+
+describe("점술사 공동 승리 + 마을소녀 편지 감소 (세션 레이어)", () => {
+  it("coWinnerIds가 있으면 승자 배치 후 공동 승리자의 편지 배치 차례가 이어진다", () => {
+    let s = freshSession();
+    s = applyToRound(s, (r) => {
+      const draft = structuredClone(r);
+      draft.roundResult = {
+        reason: "deckExhausted",
+        winnerId: "p2",
+        revealedHands: {},
+        coWinnerIds: ["p1"],
+      };
+      return draft;
+    });
+    expect(s.pendingLetterChoice?.playerId).toBe("p2");
+    s = resolveLetterChoice(s, "p2", { type: "place", slot: "잉그리드공주" });
+    expect(s.pendingLetterChoice?.playerId).toBe("p1");
+    expect(s.pendingLetterChoice?.reason).toContain("점술사");
+    s = resolveLetterChoice(s, "p1", { type: "place", slot: "잉그리드공주" });
+    expect(s.pendingLetterChoice).toBeNull();
+    expect(s.letterTokens["잉그리드공주"]["p1"]).toBe(1);
+    expect(s.letterTokens["잉그리드공주"]["p2"]).toBe(1);
+  });
+
+  it("029 공개 후 마을소녀가 버림 더미에 남은 채 라운드가 끝나면 편지 1개가 줄어든다", () => {
+    let s = freshSession();
+    s.archiveHistory["029"] = seedArchiveForTest("029");
+    s.letterTokens["마을소녀미란다"]["p1"] = 2;
+    s = applyToRound(s, (r) => {
+      const draft = structuredClone(r);
+      draft.players[0].discardPile.push({ instanceId: "vg", name: "마을소녀" });
+      draft.roundResult = { reason: "deckExhausted", winnerId: null, revealedHands: {} };
+      return draft;
+    });
+    expect(s.letterTokens["마을소녀미란다"]["p1"]).toBe(1);
+    expect(
+      s.lastRoundSummary?.letterTokensGained.some(
+        (g) => g.playerId === "p1" && g.slot === "마을소녀미란다" && g.amount === -1
+      )
+    ).toBe(true);
   });
 });

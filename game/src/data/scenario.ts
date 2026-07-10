@@ -15,17 +15,12 @@
 //   "라운드 종료시, 승자가 든 카드 확인" branch -- 《1 경비병》. All 8
 //   branches (광대/기사/승려/마술사/장군/대신/공주 too, revealing
 //   [079]/[103]/[119]/[142]/[162]/[172]/[188]) are wired all the way down
-//   each real card's own further "선택"/조건 chain, with ONE exception: 188
-//   「공주님들」의 3개 분기 중 2개(루나공주/마가렛공주, ids 189-194)는
-//   실카드가 "매 라운드 시작시 되돌릴
-//   수 있는 선택적 토글"로 대응 rank8 카드를 덱에 넣었다 뺐다 하는데, 이건
-//   v1 엔진에 없는 새 "라운드 시작 시점 결정" 메커니즘이 필요해 캐릭터
-//   리프까지만 공개하고 실제 덱 주입은 하지 않는다 (see comment on
-//   ARCHIVE_CARD_SEEDS["188"] below). 195's own 백작부인 분기(196-199)는
-//   196/199가 활성화된 동안 매 라운드 「백작부인」을 덱에 넣는 방식으로
-//   구현한다. 142(마술사)와 188의 3번째 분기
-//   (195 -> 200 「귀족 영애」)도 평범한 1회성 [등장] 태그라 끝까지
-//   구현했다. Every deck-effect card the live branches introduce (신병/
+//   each real card's own further "선택"/조건 chain. 188 「공주님들」의
+//   루나공주/마가렛공주 분기(190/193)와 195의 백작부인 분기(196), 200의
+//   귀족영애가 쓰는 "매 라운드 시작시 대응 rank8 카드를 덱에 넣을 수
+//   있다"는 실카드 토글은 deckEffect "optionalRound"로 구현 -- 매 라운드
+//   시작 게이트(RoundStartGate)에서 선(리더)이 이번 라운드 덱 구성을
+//   토글한다 (engine/session.ts's optionalRoundDeckCardNames). Every deck-effect card the live branches introduce (신병/
 //   광대의제자/점술사/복면기사/상인/수사/수녀/여장군/군사/정무관남/
 //   정무관여/여후작/마술사의도제/백작부인/귀족영애) is a fully playable CardName
 //   (engine/cards.ts) wired into effects.ts. Where a branch's own further
@@ -59,14 +54,11 @@
 //   갖는다 (engine/session.ts's identityPool/playerIdentities/
 //   pendingIdentityChoice, chooseIdentity). 전원이 정체를 보유하면 039
 //   공개 + 032 제거 (post-selection 상태가 필요해 bespoke 체크, 050->051과
-//   동일 패턴). 6장 모두 실카드 능력 텍스트는 살아있지만, v1에서 실제
-//   기계적으로 연결하는 건 이 중 자기 차례 조작이나 리액티브 취소 없이
-//   단순 수치 보정/획득 시점 훅만으로 충분한 2장뿐 -- 035(+2 패시브,
-//   engine/effects.ts의 순위 비교 지점) 및 038(획득 시 편지 2개 배치, 기존
-//   pendingLetterChoice 재사용). 033(손패↔비공개 교환)/034(효과 무효화)/
-//   036(플레이 효과 교체)/037(추가 차례)은 각각 새로운 자기 차례 액션이나
-//   리액티브 프롬프트가 필요해 flavor 텍스트만 보여주고 미연결로 둔다
-//   (056/060/061 등 기존 [지속] 보너스 처리와 동일한 선례).
+//   동일 패턴). 6장 모두 기계적으로 연결되어 있다 -- 033(손패↔비공개
+//   교환: rules.ts의 identitySwap), 034(효과 무효화: identityCancel),
+//   035(+2 패시브: effects.ts의 effectiveCardRank), 036(플레이 효과 교체:
+//   identityReplaceEffect), 037(추가 차례: identityExtraTurn), 038(획득 시
+//   편지 2개 배치: pendingLetterChoice 재사용).
 // - 039 「역사 5」의 "축제 덱"(040~047)은 별도로 구현 (engine/session.ts's
 //   festivalDeck/activeFestivalCardId, rules.ts's endRound 승자 결정 로직).
 // - 049/050 (「역사 7」/「역사 8」) don't gate new mechanics -- their real
@@ -1856,16 +1848,15 @@ export const ARCHIVE_CARD_SEEDS: Record<string, ArchiveCardSeed> = {
   // ---- 023의 《8 공주/왕자》 분기: 188 -> (189/190 루나공주) 또는
   // (192/193 마가렛공주) 또는 (195 -> 196 백작부인 또는 200 -> 202/203
   // 귀족영애) ----
-  // 루나공주/마가렛공주/백작부인(189/190, 192/193, 196) 세 캐릭터는 실카드가
-  // "매 라운드 시작시, 대응하는 rank8 카드를 덱에 넣었다 뺐다 할 수
-  // 있습니다"라는 되돌릴 수 있는 매 라운드 선택적 토글로 서로 다른 rank8
-  // 정체성 카드를 교체하는데, 이는 v1 엔진에 없는 새 "라운드 시작 시점
-  // 선택" 메커니즘이 필요해 각 캐릭터는 flavor 리프로만 공개하고 실제
-  // 덱 주입/추가 rank8 CardName은 만들지 않는다 (토글이 없어도 190/193의
+  // 루나공주/마가렛공주/백작부인(190/193/196)의 "매 라운드 시작시, 대응하는
+  // rank8 카드를 덱에 넣었다 뺐다 할 수 있습니다" 토글은 deckEffect
+  // "optionalRound"로 구현 -- 매 라운드 시작 게이트에서 선(리더)이 이번
+  // 라운드 덱에 넣을지 결정한다 (engine/session.ts's
+  // optionalRoundDeckCardNames / activeOptionalRoundDeckCardNames). 190/193의
   // "편지 10개 -> 즉시 종료, [051] 공개" 조항은 018/020 「잉그리드공주/
-  // 아레스왕자」에 이미 있는 RANK8_SLOTS 얼리엔딩 체크로 동일하게 적용되어
-  // 별도 처리가 필요 없다). 3번째 분기(195 -> 200 -> 202/203 「귀족 영애」)는
-  // 실카드가 평범한 1회성 [등장] 태그를 쓰므로 끝까지 구현한다.
+  // 아레스왕자」에 이미 있는 RANK8_SLOTS 얼리엔딩 체크가 동일하게 처리한다.
+  // 3번째 분기(195 -> 200 -> 202/203 「귀족 영애」)는 실카드가 평범한 1회성
+  // [등장] 태그를 쓰므로 끝까지 구현되어 있다.
   "188": {
     id: "188",
     name: "공주님들",

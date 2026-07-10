@@ -10,11 +10,16 @@ interface EffectRevealModalProps {
 }
 
 // 광대와 같은 "상대(또는 덱) 카드 한 장 확인" 형태를 공유하는 카드들.
+// 여기 없는 카드가 확인 정보를 만들어도 폴백 타이틀로 항상 표시된다 --
+// 초기 구현은 타이틀이 없으면 모달을 아예 그리지 않아, 닫을 수 없는
+// 보이지 않는 팝업이 흐름을 영영 막는 교착이 있었다 (예: 광대의 제자(여)).
 const PEEK_TITLES: Partial<Record<CardName, string>> = {
   광대: "「광대」로 확인한 카드",
   광대의제자: "「광대의 제자」로 확인한 카드",
+  광대의제자여: "「광대의 제자(여)」로 확인한 비공개 카드",
   점술사: "「점술사」로 확인한 덱 맨 위 카드",
   군사: "「군사」로 확인하고 교환한 카드",
+  마술사: "「마술사」(도제 강화)로 확인한 덱 위 카드",
   마술사의도제: "「마술사의 도제」로 확인한 덱 맨 위 카드",
 };
 
@@ -22,6 +27,7 @@ const PEEK_TITLES: Partial<Record<CardName, string>> = {
 const COMPARE_TITLES: Partial<Record<CardName, string>> = {
   기사: "「기사」 대결 결과",
   복면기사: "「복면 기사」 대결 결과",
+  여기사: "「여기사」 대결 결과",
 };
 
 export function EffectRevealModal({ reveal, onDismiss }: EffectRevealModalProps) {
@@ -38,8 +44,22 @@ export function EffectRevealModal({ reveal, onDismiss }: EffectRevealModalProps)
 
   const close = onDismiss;
 
-  const peekTitle = PEEK_TITLES[reveal.cardName];
-  if (reveal.targetCard && peekTitle) {
+  const peekTitle = PEEK_TITLES[reveal.cardName] ?? `「${reveal.cardName}」로 확인한 카드`;
+  if (reveal.targetCards && reveal.targetCards.length > 0) {
+    return (
+      <Modal title={peekTitle} onClose={close}>
+        <div className="reveal-modal">
+          <p className="reveal-modal__caption">{reveal.targetDisplayName}</p>
+          <div className="reveal-modal__row">
+            {reveal.targetCards.map((name, i) => (
+              <Card key={`${name}-${i}`} name={name} size="md" />
+            ))}
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+  if (reveal.targetCard) {
     return (
       <Modal title={peekTitle} onClose={close}>
         <div className="reveal-modal">
@@ -50,7 +70,7 @@ export function EffectRevealModal({ reveal, onDismiss }: EffectRevealModalProps)
     );
   }
 
-  const compareTitle = COMPARE_TITLES[reveal.cardName];
+  const compareTitle = COMPARE_TITLES[reveal.cardName] ?? `「${reveal.cardName}」 대결 결과`;
   if (reveal.compare && compareTitle) {
     const { actorCard, targetCard, result } = reveal.compare;
     return (
@@ -84,5 +104,13 @@ export function EffectRevealModal({ reveal, onDismiss }: EffectRevealModalProps)
     );
   }
 
-  return null;
+  // 알 수 없는 형태의 확인 정보라도 닫을 수 있는 모달은 반드시 그린다 --
+  // null을 돌려주면 이 팝업이 흐름을 막은 채 닫을 방법이 없어진다.
+  return (
+    <Modal title={`「${reveal.cardName}」 효과`} onClose={close}>
+      <div className="reveal-modal">
+        <p className="reveal-modal__caption">{reveal.targetDisplayName}</p>
+      </div>
+    </Modal>
+  );
 }

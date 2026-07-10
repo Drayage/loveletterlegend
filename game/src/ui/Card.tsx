@@ -87,7 +87,8 @@ export function Card({
           ●
         </span>
       )}
-      <span className="card__rank-badge">{def.rank}</span>
+      {/* 「왕」의 실카드 숫자는 "X" (순위 비교에 참여하지 않음) */}
+      <span className="card__rank-badge">{name === "왕" ? "X" : def.rank}</span>
       {def.count > 1 && (
         <span
           className="card__count-badge"

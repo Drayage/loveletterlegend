@@ -11,6 +11,11 @@ interface DecisionPanelProps {
   remaining: Partial<Record<CardName, number>>;
   onChooseTarget: (targetId: string) => void;
   onChooseGuess: (name: GuessOption) => void;
+  onFortunePath: (path: "peek" | "coWin") => void;
+  onDeckSwap: (swap: boolean) => void;
+  onTacticianSwap: (swap: boolean) => void;
+  onReuseCard: (instanceId: string) => void;
+  onHandDiscard: (instanceId: string) => void;
   onIdentitySwap: (use: boolean) => void;
   onIdentityCancel: (use: boolean) => void;
   onIdentityReplacement: (instanceId: string | null) => void;
@@ -23,11 +28,145 @@ export function DecisionPanel({
   remaining,
   onChooseTarget,
   onChooseGuess,
+  onFortunePath,
+  onDeckSwap,
+  onTacticianSwap,
+  onReuseCard,
+  onHandDiscard,
   onIdentitySwap,
   onIdentityCancel,
   onIdentityReplacement,
   onIdentityExtraTurn,
 }: DecisionPanelProps) {
+  if (decision.kind === "fortunePath") {
+    return (
+      <Modal title="「점술사」 예언" onClose={() => {}} dismissible={false}>
+        <div className="decision-panel">
+          <p className="decision-panel__prompt">점술사에게 무엇을 부탁하시겠습니까?</p>
+          <div className="decision-panel__options decision-panel__options--column">
+            <button type="button" className="decision-panel__btn" onClick={() => onFortunePath("peek")}>
+              덱 맨 위 카드를 봅니다 (손패와 교환 가능)
+            </button>
+            <button type="button" className="decision-panel__btn" onClick={() => onFortunePath("coWin")}>
+              상대를 지목합니다 (그가 이번 라운드에서 승리하면 나도 함께 승리)
+            </button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
+  if (decision.kind === "deckSwap") {
+    const myCard = state.players.find((p) => p.id === decision.playerId)?.hand[0];
+    return (
+      <Modal title="「점술사」 덱 맨 위 카드" onClose={() => {}} dismissible={false}>
+        <div className="decision-panel">
+          <div className="decision-panel__card-compare">
+            <div className="decision-panel__card-col">
+              <p className="decision-panel__caption">덱 맨 위 카드</p>
+              <Card name={decision.seenCardName} size="md" />
+            </div>
+            {myCard && (
+              <div className="decision-panel__card-col">
+                <p className="decision-panel__caption">내 손패</p>
+                <Card name={myCard.name} size="md" />
+              </div>
+            )}
+          </div>
+          <p className="decision-panel__prompt">손에 든 카드와 교환하시겠습니까?</p>
+          <div className="decision-panel__options">
+            <button type="button" className="decision-panel__btn" onClick={() => onDeckSwap(true)}>교환</button>
+            <button type="button" className="decision-panel__btn" onClick={() => onDeckSwap(false)}>그대로 두기</button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
+  if (decision.kind === "tacticianSwap") {
+    const myCard = state.players.find((p) => p.id === decision.playerId)?.hand[0];
+    const targetName = state.players.find((p) => p.id === decision.targetId)?.displayName ?? "상대";
+    return (
+      <Modal title="「군사」 손패 확인" onClose={() => {}} dismissible={false}>
+        <div className="decision-panel">
+          <div className="decision-panel__card-compare">
+            <div className="decision-panel__card-col">
+              <p className="decision-panel__caption">{targetName}의 손패</p>
+              <Card name={decision.seenCardName} size="md" />
+            </div>
+            {myCard && (
+              <div className="decision-panel__card-col">
+                <p className="decision-panel__caption">내 손패</p>
+                <Card name={myCard.name} size="md" />
+              </div>
+            )}
+          </div>
+          <p className="decision-panel__prompt">확인한 카드와 내 손패를 교환하시겠습니까?</p>
+          <div className="decision-panel__options">
+            <button type="button" className="decision-panel__btn" onClick={() => onTacticianSwap(true)}>교환</button>
+            <button type="button" className="decision-panel__btn" onClick={() => onTacticianSwap(false)}>교환하지 않기</button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
+  if (decision.kind === "reuseDiscard") {
+    return (
+      <Modal title={`「${decision.cardName}」 효과 재사용`} onClose={() => {}} dismissible={false}>
+        <div className="decision-panel">
+          <p className="decision-panel__prompt">버림 더미에서 「플레이:」 효과를 다시 사용할 카드를 고르세요.</p>
+          <div className="decision-panel__guess-grid">
+            {decision.options.map((card) => (
+              <button
+                key={card.instanceId}
+                type="button"
+                className="decision-panel__guess-btn"
+                onClick={() => onReuseCard(card.instanceId)}
+              >
+                <span className="decision-panel__guess-card">
+                  <Card name={card.name} size="sm" />
+                  <span className="decision-panel__guess-count">「{card.name}」</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
+  if (decision.kind === "discardFromHand") {
+    const actor = state.players.find((p) => p.id === decision.playerId);
+    const handOptions = decision.options.filter((c) =>
+      actor?.hand.some((h) => h.instanceId === c.instanceId)
+    );
+    return (
+      <Modal title="「대마도사(20세)」 카드 버리기" onClose={() => {}} dismissible={false}>
+        <div className="decision-panel">
+          <p className="decision-panel__prompt">
+            상대의 카드를 받았습니다. 손에 든 카드 중 1장을 골라 버리세요 (공주 계열을 버리면 탈락합니다).
+          </p>
+          <div className="decision-panel__guess-grid">
+            {handOptions.map((card) => (
+              <button
+                key={card.instanceId}
+                type="button"
+                className="decision-panel__guess-btn"
+                onClick={() => onHandDiscard(card.instanceId)}
+              >
+                <span className="decision-panel__guess-card">
+                  <Card name={card.name} size="sm" />
+                  <span className="decision-panel__guess-count">「{card.name}」 버리기</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
   if (decision.kind === "identitySwap") {
     return (
       <Modal title="「농부/양치기」 정체 능력" onClose={() => {}} dismissible={false}>

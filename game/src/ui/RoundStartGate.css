@@ -28,6 +28,12 @@
   color: var(--muted);
 }
 
+.round-start-gate__optional-hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
 .round-start-gate__optional-list {
   display: flex;
   flex-wrap: wrap;

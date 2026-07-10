@@ -13,6 +13,13 @@
   font-weight: 700;
 }
 
+.round-end-summary__co-winner {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
 .round-end-summary__clock {
   margin: 0;
   font-size: 13px;
