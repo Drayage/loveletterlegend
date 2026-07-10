@@ -24,6 +24,7 @@ import {
   chooseArchiveChoiceAI,
 } from "./engine/ai";
 import { computeRemainingCounts } from "./engine/remaining";
+import { UPGRADE_ABILITY_TEXT } from "./engine/upgrades";
 import {
   startSession,
   applyToRound,
@@ -650,12 +651,43 @@ export default function App() {
     needsIdentityChoice && session.pendingIdentityChoice!.eligiblePlayerId === HUMAN_ID;
   const needsArchiveChoice = Boolean(session.pendingChoice);
   const humanNeedsArchiveChoice = needsArchiveChoice && session.pendingChoice!.eligiblePlayerId === HUMAN_ID;
-  const cardUpgradeBadges = Object.fromEntries(
-    Object.entries(round.activeCardUpgrades ?? {}).map(([name, tier]) => [
-      name,
-      tier === "tier2" ? "효과 변경 2단계" : "효과 변경 1단계",
-    ])
-  ) as Partial<Record<CardName, string>>;
+  // 카드별 강화 배지/설명은 "누구의 편지 진행도인지"에 따라 달라지므로
+  // 플레이어별로 따로 계산한다 -- 이전엔 사람 쪽 진행도(round.activeCardUpgrades)
+  // 하나만 계산해 AI의 카드에도 그대로 갖다 붙였는데, 두 플레이어의 편지
+  // 진행도가 다르면 AI 카드에 잘못된(사람 기준) 강화 정보가 뜨는 문제가
+  // 있었다.
+  const upgradesByPlayer = round.activeCardUpgradesByPlayer ?? {};
+  function upgradeBadgesFor(playerId: string): Partial<Record<CardName, string>> {
+    return Object.fromEntries(
+      Object.entries(upgradesByPlayer[playerId] ?? {}).map(([name, tier]) => [
+        name,
+        tier === "tier2" ? "효과 변경 2단계" : "효과 변경 1단계",
+      ])
+    ) as Partial<Record<CardName, string>>;
+  }
+  // 배지가 "뭔가 바뀌었다"는 것 이상을 말해주도록, 실제로 무엇이 바뀌었는지
+  // 짧은 문장으로 함께 보여준다 (없으면 배지 자체가 안 뜨므로 fallback
+  // 불필요 -- see engine/upgrades.ts's UPGRADE_ABILITY_TEXT).
+  function upgradeAbilityTextsFor(playerId: string): Partial<Record<CardName, string>> {
+    return Object.fromEntries(
+      Object.entries(upgradesByPlayer[playerId] ?? {}).flatMap(([name, tier]) => {
+        const text = UPGRADE_ABILITY_TEXT[name as CardName]?.[tier as "tier1" | "tier2"];
+        return text ? [[name, text]] : [];
+      })
+    ) as Partial<Record<CardName, string>>;
+  }
+  const humanCardUpgradeBadges = upgradeBadgesFor(HUMAN_ID);
+  const humanCardUpgradeAbilityTexts = upgradeAbilityTextsFor(HUMAN_ID);
+  const aiCardUpgradeBadges = upgradeBadgesFor(AI_ID);
+  const aiCardUpgradeAbilityTexts = upgradeAbilityTextsFor(AI_ID);
+  const tableUpgradeBadgesByPlayer: Record<string, Partial<Record<CardName, string>>> = {
+    [HUMAN_ID]: humanCardUpgradeBadges,
+    [AI_ID]: aiCardUpgradeBadges,
+  };
+  const tableUpgradeAbilityTextsByPlayer: Record<string, Partial<Record<CardName, string>>> = {
+    [HUMAN_ID]: humanCardUpgradeAbilityTexts,
+    [AI_ID]: aiCardUpgradeAbilityTexts,
+  };
   const humanLetterTokens = Object.fromEntries(
     CHARACTER_SLOTS.map((slot) => [
       slot,
@@ -794,7 +826,6 @@ export default function App() {
                   name={c.name}
                   size="sm"
                   remainingCount={remaining[c.name]}
-                  upgradeBadge={cardUpgradeBadges[c.name]}
                 />
               ))}
             </div>
@@ -840,11 +871,18 @@ export default function App() {
         remaining={remaining}
         handSize="sm"
         compact
-        upgradeBadges={cardUpgradeBadges}
+        upgradeBadges={aiCardUpgradeBadges}
+        upgradeAbilityTexts={aiCardUpgradeAbilityTexts}
         concealStatus={concealRoundStart}
       />
 
-      <TablePlay state={round} remaining={remaining} upgradeBadges={cardUpgradeBadges} hidden={concealRoundStart} />
+      <TablePlay
+        state={round}
+        remaining={remaining}
+        upgradeBadgesByPlayer={tableUpgradeBadgesByPlayer}
+        upgradeAbilityTextsByPlayer={tableUpgradeAbilityTextsByPlayer}
+        hidden={concealRoundStart}
+      />
 
       <PlayerArea
         player={human}
@@ -860,7 +898,8 @@ export default function App() {
         }
         onSelectCard={handleSelectCard}
         remaining={remaining}
-        upgradeBadges={cardUpgradeBadges}
+        upgradeBadges={humanCardUpgradeBadges}
+        upgradeAbilityTexts={humanCardUpgradeAbilityTexts}
         concealStatus={concealRoundStart}
       />
 
