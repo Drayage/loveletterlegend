@@ -168,9 +168,13 @@ describe("Love Letter engine", () => {
   it("033 「농부/양치기」: declining the once-per-round swap re-offers it next turn instead of looping or locking out", () => {
     let state = setupRound(PLAYERS);
     state.activeIdentities = { p1: "033" };
-    if (!state.hiddenRemovedCard) state.hiddenRemovedCard = { instanceId: "hidden-test", name: "장군" };
+    state.hiddenRemovedCard = { instanceId: "hidden-test", name: "장군" };
+    // 손패를 확정된 안전한 카드로 고정 -- 대신/왕처럼 draw 직후 패시브
+    // 탈락을 유발하는 카드가 무작위로 섞여 들어오면 proceedWithTurn이
+    // "playCard" 대신 다른 결정으로 넘어가 이 테스트가 이따금 실패했다.
+    state.deck = [{ instanceId: "deck-test", name: "기사" }, ...state.deck];
     const p1 = state.players.find((p) => p.id === "p1")!;
-    if (p1.hand.length === 0) p1.hand.push({ instanceId: "ph1", name: "경비병" });
+    p1.hand = [{ instanceId: "ph1", name: "경비병" }];
     state.currentPlayerIndex = state.players.findIndex((p) => p.id === "p1");
     state.pendingDecision = { kind: "identitySwap", playerId: "p1" };
 

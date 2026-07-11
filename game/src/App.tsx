@@ -519,13 +519,17 @@ export default function App() {
   // 기록보관실 저장은 이제 엔딩씬(EndingSequence)이 끝까지 재생된 뒤
   // 그 결과(진엔딩 성공 여부 포함)를 갖고 정확히 한 번 호출한다 -- see
   // handleEndingSequenceComplete below.
-  function handleEndingSequenceComplete(endingSlot: CharacterSlotId | null, wasTrueEnding: boolean) {
+  function handleEndingSequenceComplete(
+    identityName: string | null,
+    endingSlot: CharacterSlotId | null,
+    wasTrueEnding: boolean
+  ) {
     if (recordedEndingRef.current) {
       setEndingSceneDone(true);
       return;
     }
     recordedEndingRef.current = true;
-    recordSessionEnding(endingSlot, wasTrueEnding);
+    recordSessionEnding(identityName, endingSlot, wasTrueEnding);
     setEndingSceneDone(true);
   }
 

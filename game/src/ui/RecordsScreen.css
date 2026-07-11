@@ -46,6 +46,12 @@
   color: var(--muted);
 }
 
+.records-screen__section-progress {
+  font-weight: 600;
+  color: var(--muted);
+  opacity: 0.8;
+}
+
 .records-screen__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
@@ -53,6 +59,7 @@
 }
 
 .records-screen__card {
+  font-family: inherit;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -62,10 +69,12 @@
   background: var(--panel);
   border: 1px solid var(--border);
   opacity: 0.55;
+  cursor: default;
 }
 
 .records-screen__card--unlocked {
   opacity: 1;
+  cursor: pointer;
   border-color: var(--accent);
 }
 

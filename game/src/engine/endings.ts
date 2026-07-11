@@ -13,6 +13,30 @@ import { CHARACTER_ENDINGS, NO_MATCH_ENDINGS, SAME_SEX_ENDINGS } from "../data/e
  * 여자작)는 "남성향" 캐릭터 상대의 엔딩만 갖는다. */
 const MALE_PRESENTING_IDENTITIES = new Set(["농부", "사냥꾼", "견습기사", "학생", "여행자", "남작"]);
 
+/** identityVariants.ts's IDENTITY_VARIANTS 두 갈래를 순서대로 편 이름
+ * 목록 -- 기록보관실(RecordsScreen)이 정체별 섹션을 만들 때 쓴다. */
+export const ALL_IDENTITY_NAMES: readonly string[] = [
+  "농부",
+  "양치기",
+  "사냥꾼",
+  "약초꾼",
+  "견습기사",
+  "호위",
+  "학생",
+  "여학생",
+  "여행자",
+  "순례자",
+  "남작",
+  "여자작",
+];
+
+/** 이 정체가 만날 수 있는 캐릭터 슬롯 전체 목록(=CHARACTER_ENDINGS에
+ * 텍스트가 있는 슬롯들) -- 기록보관실이 정체별 "수집 대상" 칸을 전부
+ * 나열할 때 쓴다. */
+export function targetSlotsForIdentity(identityName: string): CharacterSlotId[] {
+  return Object.keys(CHARACTER_ENDINGS[identityName] ?? {}) as CharacterSlotId[];
+}
+
 /** data/endings.ts 추출 시 확정된 "남성향" 캐릭터 슬롯(=여성 정체가 만나는
  * 목록) 12개 -- 나머지 20개 슬롯은 전부 "여성향"이다. */
 const MALE_ORIENTED_SLOTS = new Set<CharacterSlotId>([
