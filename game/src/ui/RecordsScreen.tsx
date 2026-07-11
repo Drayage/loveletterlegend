@@ -9,9 +9,8 @@ interface RecordsScreenProps {
 }
 
 /** "기록보관실" -- 지금까지 어떤 상대와 맺어져 세션을 마쳤는지 기기에 남은
- * 기록을 보여주는 갤러리. 엔딩 씬(CG/스토리)이 아직 구현되지 않았으므로,
- * 지금은 달성 여부 + 횟수만 보여주는 자리로 준비해 둔다 -- 엔딩 씬이
- * 추가되면 unlocked 카드를 눌러 그 씬을 다시 보는 식으로 확장하면 된다. */
+ * 기록을 보여주는 갤러리. 8번 캐릭터(공주/왕자 루트)는 진엔딩 달성 여부도
+ * 별도 배지로 보여준다 (see persistence/records.ts's trueEndingsSeen). */
 export function RecordsScreen({ onBack }: RecordsScreenProps) {
   const records = loadRecords();
   const routeSlots = RANK8_SLOTS;
@@ -20,6 +19,7 @@ export function RecordsScreen({ onBack }: RecordsScreenProps) {
   function renderSlot(slot: CharacterSlotId) {
     const info = SLOT_INFO[slot];
     const count = records.endingsAchieved[slot] ?? 0;
+    const trueCount = records.trueEndingsSeen[slot] ?? 0;
     const unlocked = count > 0;
     return (
       <div key={slot} className={`records-screen__card${unlocked ? " records-screen__card--unlocked" : ""}`}>
@@ -32,6 +32,7 @@ export function RecordsScreen({ onBack }: RecordsScreenProps) {
         </div>
         <span className="records-screen__name">{unlocked ? info.name : "???"}</span>
         {unlocked && <span className="records-screen__count">{count}회 달성</span>}
+        {trueCount > 0 && <span className="records-screen__true-ending">★ 진엔딩 달성</span>}
       </div>
     );
   }
@@ -44,8 +45,8 @@ export function RecordsScreen({ onBack }: RecordsScreenProps) {
         {records.lastPlayedAt && ` (최근: ${new Date(records.lastPlayedAt).toLocaleDateString()})`}
       </p>
       <p className="records-screen__note">
-        엔딩 씬은 추후 업데이트에서 추가될 예정입니다. 지금은 어떤 상대와 맺어져 세션을 마쳤는지만
-        기록됩니다 -- 씬이 추가되면 달성한 카드를 눌러 다시 볼 수 있게 됩니다.
+        게임을 마치면 맺어진 상대의 엔딩을 보게 됩니다. 공주/왕자 루트는 진엔딩에 도전할 기회가 주어지며,
+        한 번 달성한 진엔딩은 이후 도전에서 성공 확률이 낮아집니다.
       </p>
 
       <section className="records-screen__section">

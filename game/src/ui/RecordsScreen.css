@@ -105,6 +105,12 @@
   color: var(--accent);
 }
 
+.records-screen__true-ending {
+  font-size: 10px;
+  font-weight: 800;
+  color: #c9a227;
+}
+
 .records-screen__back-btn {
   margin-top: 8px;
   font-family: inherit;

@@ -50,6 +50,7 @@ import { CardReferenceModal } from "./ui/CardReferenceModal";
 import { SessionHeader } from "./ui/SessionHeader";
 import { RoundEndSummary } from "./ui/RoundEndSummary";
 import { SessionEndScreen } from "./ui/SessionEndScreen";
+import { EndingSequence } from "./ui/EndingSequence";
 import { StoryArchiveModal } from "./ui/StoryArchiveModal";
 import { ArchiveTokenModal } from "./ui/ArchiveTokenModal";
 import { IdentityChoiceModal } from "./ui/IdentityChoiceModal";
@@ -185,6 +186,7 @@ export default function App() {
   const [dismissedForcedDiscardId, setDismissedForcedDiscardId] = useState<string | null>(null);
   const [dismissedEffectBlockedId, setDismissedEffectBlockedId] = useState<string | null>(null);
   const [endSummaryAcknowledged, setEndSummaryAcknowledged] = useState(false);
+  const [endingSceneDone, setEndingSceneDone] = useState(false);
   const [pendingStoryEvent, setPendingStoryEvent] = useState<ArchiveCardState[] | null>(null);
   const [pendingChoiceResult, setPendingChoiceResult] = useState<ResolvedChoiceInfo | null>(null);
   const [pendingRoundStart, setPendingRoundStart] = useState<{ route: Route; chooserId: string; optionalCards: CardName[]; selectedOptionalCards: CardName[] } | null>(null);
@@ -514,13 +516,18 @@ export default function App() {
     session,
   ]);
 
-  // 세션이 완전히 끝나(결과 요약까지 확인된) 시점에 기록보관실에 딱 한 번
-  // 저장한다 -- 향후 엔딩 씬 수집 요소의 기반 데이터.
-  useEffect(() => {
-    if (!session?.ended || !endSummaryAcknowledged || recordedEndingRef.current) return;
+  // 기록보관실 저장은 이제 엔딩씬(EndingSequence)이 끝까지 재생된 뒤
+  // 그 결과(진엔딩 성공 여부 포함)를 갖고 정확히 한 번 호출한다 -- see
+  // handleEndingSequenceComplete below.
+  function handleEndingSequenceComplete(endingSlot: CharacterSlotId | null, wasTrueEnding: boolean) {
+    if (recordedEndingRef.current) {
+      setEndingSceneDone(true);
+      return;
+    }
     recordedEndingRef.current = true;
-    recordSessionEnding(session.playerEndings?.[HUMAN_ID] ?? null);
-  }, [session, endSummaryAcknowledged]);
+    recordSessionEnding(endingSlot, wasTrueEnding);
+    setEndingSceneDone(true);
+  }
 
   // 효과음: 상태가 실제로 "새로" 바뀐 시점에만 울리도록 각 이벤트의 id에
   // 걸어 둔다 -- 사람/AI 누가 일으켰든 동일하게 반응하므로 여기 한 곳에서
@@ -580,6 +587,7 @@ export default function App() {
     setDismissedForcedDiscardId(null);
     setDismissedEffectBlockedId(null);
     setEndSummaryAcknowledged(false);
+    setEndingSceneDone(false);
     setPendingStoryEvent(null);
     setPendingChoiceResult(null);
     setPendingRoundStart(null);
@@ -1310,7 +1318,8 @@ export default function App() {
         !roundStartLocked &&
         roundOver &&
         session.ended &&
-        endSummaryAcknowledged && (
+        endSummaryAcknowledged &&
+        (endingSceneDone ? (
           <SessionEndScreen
             session={session}
             players={session.playerConfigs}
@@ -1319,7 +1328,9 @@ export default function App() {
               setUiScreen("setup");
             }}
           />
-        )}
+        ) : (
+          <EndingSequence session={session} humanId={HUMAN_ID} onComplete={handleEndingSequenceComplete} />
+        ))}
 
       <button type="button" className="flow-status-fab" onClick={() => setShowFlowStatus(true)}>
         진행 확인

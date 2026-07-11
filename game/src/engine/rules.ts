@@ -109,21 +109,14 @@ function restrictedPlayOptions(hand: CardInstance[]): CardInstance[] {
   return withoutLadyGeneral.length > 0 ? withoutLadyGeneral : hand;
 }
 
-export function beginTurn(state: GameState): GameState {
-  const draft = cloneState(state);
-  const player = draft.players[draft.currentPlayerIndex];
-  player.protected = false;
-
-  if (
-    draft.activeIdentities?.[player.id] === "033" &&
-    !draft.identityRoundUsed?.[`${player.id}:033`] &&
-    draft.hiddenRemovedCard &&
-    player.hand[0]
-  ) {
-    draft.pendingDecision = { kind: "identitySwap", playerId: player.id };
-    return draft;
-  }
-
+/** beginTurn의 "033 정체 능력을 물어볼지" 판단 이후의 실제 턴 시작 처리
+ * (카드 뽑기 -> 패시브 탈락 체크 -> playCard 결정). chooseIdentitySwap이
+ * "안쓰기"를 골랐을 때도 이 부분만 재사용해야 한다 -- beginTurn을 통째로
+ * 다시 부르면 identityRoundUsed가 여전히 비어 있는 채 033 조건을 다시
+ * 만족시켜 같은 결정을 무한히 다시 띄우게 된다 (033은 "라운드 중 한 번"
+ * 이라 034/036과 달리 매 차례 시작마다 다시 물어봐야 하므로, 그 판단은
+ * beginTurn에서만 하고 여기서는 건너뛴다). */
+function proceedWithTurn(draft: GameState, player: PlayerState): GameState {
   const drawn = drawCardFor(draft, player.id);
   if (draft.deck.length === 0) {
     draft.deckExhaustedThisTurn = true;
@@ -144,6 +137,24 @@ export function beginTurn(state: GameState): GameState {
     options: restrictedPlayOptions(player.hand),
   };
   return draft;
+}
+
+export function beginTurn(state: GameState): GameState {
+  const draft = cloneState(state);
+  const player = draft.players[draft.currentPlayerIndex];
+  player.protected = false;
+
+  if (
+    draft.activeIdentities?.[player.id] === "033" &&
+    !draft.identityRoundUsed?.[`${player.id}:033`] &&
+    draft.hiddenRemovedCard &&
+    player.hand[0]
+  ) {
+    draft.pendingDecision = { kind: "identitySwap", playerId: player.id };
+    return draft;
+  }
+
+  return proceedWithTurn(draft, player);
 }
 
 export function chooseCardToPlay(state: GameState, cardInstanceId: string): GameState {
@@ -535,15 +546,19 @@ export function chooseIdentitySwap(state: GameState, use: boolean): GameState {
     throw new Error("현재 정체 교환을 선택할 차례가 아닙니다.");
   }
   const player = getPlayer(draft, draft.pendingDecision.playerId);
-  draft.identityRoundUsed = { ...(draft.identityRoundUsed ?? {}), [`${player.id}:033`]: true };
+  // "각 라운드 중에 한 번" -- 037과 같은 이유로, 실제로 교환했을 때만
+  // 이번 라운드 소모 처리한다. "안쓰기"를 고르면 다음 차례에 다시
+  // 물어봐야 한다 (declining은 그 기회를 못 쓴 게 아니라 미룬 것).
   if (use && draft.hiddenRemovedCard && player.hand[0]) {
+    draft.identityRoundUsed = { ...(draft.identityRoundUsed ?? {}), [`${player.id}:033`]: true };
     const previous = player.hand[0];
     player.hand[0] = draft.hiddenRemovedCard;
     draft.hiddenRemovedCard = previous;
     log(draft, `${player.displayName}: 「농부/양치기」 효과로 비공개 카드와 손패를 교환합니다.`);
   }
   draft.pendingDecision = null;
-  return beginTurn(draft);
+  // beginTurn을 다시 부르면 안 된다 -- proceedWithTurn 주석 참고.
+  return proceedWithTurn(draft, player);
 }
 
 export function chooseIdentityCancel(state: GameState, use: boolean): GameState {
@@ -721,9 +736,13 @@ export function chooseIdentityExtraTurn(state: GameState, use: boolean): GameSta
     throw new Error("현재 추가 차례를 선택할 차례가 아닙니다.");
   }
   const playerId = draft.pendingDecision.playerId;
-  draft.identityGameUsed = { ...(draft.identityGameUsed ?? {}), [`${playerId}:037`]: true };
   draft.pendingDecision = null;
   if (use) {
+    // "전체 게임 중에 단 한 번" -- 실제로 사용했을 때만 소모 처리한다.
+    // "안쓰기"를 골랐다고 소모시키면 이후 다시는 제안조차 되지 않는
+    // 버그가 된다 (이번 라운드/차례엔 그냥 안 쓰는 것뿐, 다음 기회에
+    // 다시 물어봐야 한다).
+    draft.identityGameUsed = { ...(draft.identityGameUsed ?? {}), [`${playerId}:037`]: true };
     log(draft, `${getPlayer(draft, playerId).displayName}: 「여행자/순례자」 효과로 한 번 더 차례를 가집니다.`);
     return beginTurn(draft);
   }

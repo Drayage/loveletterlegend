@@ -11,6 +11,8 @@ import {
   chooseHandDiscard,
   chooseRegentChoice,
   chooseWitchAssign,
+  chooseIdentitySwap,
+  chooseIdentityExtraTurn,
 } from "./rules";
 import { applyAiDecision, chooseCardToPlayAI, chooseGuessAI, chooseTargetAI, rankOpponentsByThreat } from "./ai";
 import {
@@ -144,6 +146,39 @@ describe("Love Letter engine", () => {
   it("chooseTargetAI keeps default ordering when no threat context is given", () => {
     expect(chooseTargetAI("p1", "경비병", ["p1", "p2", "p3"])).toBe("p2");
     expect(rankOpponentsByThreat(["p2", "p3"], "p1")).toEqual(["p2", "p3"]);
+  });
+
+  it("037 「여행자/순례자」: declining the once-per-game extra turn does not consume it", () => {
+    let state = setupRound(PLAYERS);
+    const p1 = state.players.find((p) => p.id === "p1")!;
+    state.activeIdentities = { p1: "037" };
+    state.currentPlayerIndex = state.players.findIndex((p) => p.id === "p1");
+    state.pendingDecision = { kind: "identityExtraTurn", playerId: "p1" };
+
+    state = chooseIdentityExtraTurn(state, false);
+    expect(state.identityGameUsed?.["p1:037"]).toBeFalsy();
+
+    // 나중에 다시 제안됐을 때 실제로 사용해야만 그제서야 소모된다.
+    state.pendingDecision = { kind: "identityExtraTurn", playerId: "p1" };
+    expect(p1.eliminated).toBe(false);
+    state = chooseIdentityExtraTurn(state, true);
+    expect(state.identityGameUsed?.["p1:037"]).toBe(true);
+  });
+
+  it("033 「농부/양치기」: declining the once-per-round swap re-offers it next turn instead of looping or locking out", () => {
+    let state = setupRound(PLAYERS);
+    state.activeIdentities = { p1: "033" };
+    if (!state.hiddenRemovedCard) state.hiddenRemovedCard = { instanceId: "hidden-test", name: "장군" };
+    const p1 = state.players.find((p) => p.id === "p1")!;
+    if (p1.hand.length === 0) p1.hand.push({ instanceId: "ph1", name: "경비병" });
+    state.currentPlayerIndex = state.players.findIndex((p) => p.id === "p1");
+    state.pendingDecision = { kind: "identitySwap", playerId: "p1" };
+
+    // "그대로" (declined): 소모되지 않고, 무한 재질문 없이 정상적으로
+    // 카드를 뽑아 playCard 결정까지 진행되어야 한다.
+    state = chooseIdentitySwap(state, false);
+    expect(state.identityRoundUsed?.["p1:033"]).toBeFalsy();
+    expect(state.pendingDecision?.kind).toBe("playCard");
   });
 
   it("공주 discard eliminates the player immediately", () => {
