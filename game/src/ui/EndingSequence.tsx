@@ -26,8 +26,9 @@ interface EndingSequenceProps {
   session: SessionState;
   humanId: string;
   /** 시퀀스가 끝까지 재생된 뒤 정확히 한 번 호출된다 -- 호출부가 이
-   * 결과로 기록(persistence/records.ts)을 남기고 다음 화면으로 넘어간다. */
-  onComplete: (endingSlot: CharacterSlotId | null, wasTrueEnding: boolean) => void;
+   * 결과로 기록(persistence/records.ts)을 남기고 다음 화면으로 넘어간다.
+   * identityName은 032(정체)를 받아본 적 없는 경우에만 null. */
+  onComplete: (identityName: string | null, endingSlot: CharacterSlotId | null, wasTrueEnding: boolean) => void;
 }
 
 interface EndingSetup {
@@ -82,7 +83,7 @@ export function EndingSequence({ session, humanId, onComplete }: EndingSequenceP
     // 032(정체)를 한 번도 못 받아본 채 세션이 끝난 경우엔 재생할 엔딩
     // 텍스트가 아예 없다 -- 곧바로 완료 처리하고 기존 SessionEndScreen
     // 요약으로 넘어간다.
-    if (!setup) onComplete(null, false);
+    if (!setup) onComplete(null, null, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -115,7 +116,7 @@ export function EndingSequence({ session, humanId, onComplete }: EndingSequenceP
         title={`${displayTitle} · 진엔딩`}
         imageSrc={ENDING_IMAGES.trueEnding}
         text={TRUE_ENDING_TEXT}
-        onDone={() => onComplete(slot, true)}
+        onDone={() => onComplete(identityName, slot, true)}
       />
     );
   }
@@ -136,7 +137,7 @@ export function EndingSequence({ session, humanId, onComplete }: EndingSequenceP
       title={displayTitle}
       imageSrc={ENDING_IMAGES[imageKey]}
       text={resolved.text}
-      onDone={() => onComplete(slot, false)}
+      onDone={() => onComplete(identityName, slot, false)}
       doneLabel="결과 보기"
     />
   );
