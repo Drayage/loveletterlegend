@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import type { SessionState } from "../engine/session";
-import type { CharacterSlotId } from "../engine/types";
+import { seedArchiveCard, type SessionState } from "../engine/session";
+import type { ArchiveCardState, CharacterSlotId } from "../engine/types";
 import {
   resolveEndingForPlayer,
   trueEndingSuccessCardCount,
@@ -19,6 +19,8 @@ import {
 import { slotDisplayName } from "./slotInfo";
 import { EndingScene } from "./EndingScene";
 import { TrueEndingDraw } from "./TrueEndingDraw";
+import { TrueEndingFailModal } from "./TrueEndingFailModal";
+import { StoryEventModal } from "./StoryEventModal";
 
 interface EndingSequenceProps {
   session: SessionState;
@@ -34,6 +36,12 @@ interface EndingSetup {
   resolved: ResolvedEnding;
   /** 8번 캐릭터와 정상 매칭됐을 때만 채워진다. */
   deck: TrueEndingCard[] | null;
+  /** deck이 있을 때만 채워진다 -- 진엔딩 도전 전에 항상 보여주는 「역사 9
+   * 운명의 순간」 카드. 세션이 "10개 편지" 조기 종료 경로로 끝나면 이
+   * 카드가 플레이 중 한 번도 실제로 공개되지 않았을 수 있어(050의 "held
+   * 8 + 최다" 조건과는 별개 트리거), archiveHistory에 없으면 표시용으로
+   * 새로 만든다 (see engine/session.ts's seedArchiveCard). */
+  introCard: ArchiveCardState | null;
 }
 
 /** 세션/기록을 컴포넌트가 마운트되는 시점 딱 한 번만 읽어 시퀀스 구성을
@@ -45,6 +53,7 @@ function computeSetup(session: SessionState, humanId: string): EndingSetup | nul
   const slot = session.playerEndings?.[humanId] ?? null;
   const resolved = resolveEndingForPlayer(identityFace.name, slot);
   let deck: TrueEndingCard[] | null = null;
+  let introCard: ArchiveCardState | null = null;
   if (resolved.trueEndingEligible && slot) {
     const history = trueEndingHistoryFor(loadRecords(), slot);
     const successCount = trueEndingSuccessCardCount(
@@ -53,11 +62,12 @@ function computeSetup(session: SessionState, humanId: string): EndingSetup | nul
       history.hasSeenNormalEndingOnlyBefore
     );
     deck = shuffleTrueEndingDeck(successCount);
+    introCard = session.archiveHistory["051"] ?? seedArchiveCard("051");
   }
-  return { identityName: identityFace.name, slot, resolved, deck };
+  return { identityName: identityFace.name, slot, resolved, deck, introCard };
 }
 
-type Step = "draw" | "trueScene" | "failLine" | "resultScene";
+type Step = "intro" | "draw" | "trueScene" | "failLine" | "resultScene";
 
 /** 「역사 9 운명의 순간」(8번 캐릭터와 맺어진 경우의 성공/실패 카드 뽑기)과
  * 그 결과에 따른 비주얼노벨풍 엔딩 컷신을 이어서 재생하는 오케스트레이터.
@@ -66,7 +76,7 @@ type Step = "draw" | "trueScene" | "failLine" | "resultScene";
  * 자체가 플레이어 개인의 것이라, 여럿에게 같은 연출을 반복할 이유가 없다). */
 export function EndingSequence({ session, humanId, onComplete }: EndingSequenceProps) {
   const [setup] = useState(() => computeSetup(session, humanId));
-  const [step, setStep] = useState<Step>(setup?.deck ? "draw" : "resultScene");
+  const [step, setStep] = useState<Step>(setup?.deck ? "intro" : "resultScene");
 
   useEffect(() => {
     // 032(정체)를 한 번도 못 받아본 채 세션이 끝난 경우엔 재생할 엔딩
@@ -77,8 +87,18 @@ export function EndingSequence({ session, humanId, onComplete }: EndingSequenceP
   }, []);
 
   if (!setup) return null;
-  const { identityName, slot, resolved, deck } = setup;
+  const { identityName, slot, resolved, deck, introCard } = setup;
   const displayTitle = slot ? slotDisplayName(slot) : "이루어진 상대가 없음";
+
+  if (step === "intro" && introCard) {
+    return (
+      <StoryEventModal
+        cards={[introCard]}
+        clockTokens={session.clockTokens}
+        onNext={() => setStep("draw")}
+      />
+    );
+  }
 
   if (step === "draw" && deck) {
     return (
@@ -101,14 +121,7 @@ export function EndingSequence({ session, humanId, onComplete }: EndingSequenceP
   }
 
   if (step === "failLine") {
-    return (
-      <EndingScene
-        title={displayTitle}
-        imageSrc={ENDING_IMAGES.trueEndingFail}
-        text={TRUE_ENDING_FAIL_TEXT}
-        onDone={() => setStep("resultScene")}
-      />
-    );
+    return <TrueEndingFailModal text={TRUE_ENDING_FAIL_TEXT} onNext={() => setStep("resultScene")} />;
   }
 
   const imageKey =

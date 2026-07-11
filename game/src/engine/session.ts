@@ -197,7 +197,11 @@ export interface ResolvedChoiceInfo {
   chosenBy: string;
 }
 
-function seedArchiveCard(id: string, revealedFrom?: ArchiveCardState["revealedFrom"]): ArchiveCardState {
+/** Exported so ui/EndingSequence can build a display-only ArchiveCardState
+ * for 051 (「역사 9 운명의 순간」) even when the session ended via the
+ * "10 tokens" early threshold without ever revealing it mid-game (see
+ * ui/EndingSequence.tsx's true-ending intro step). */
+export function seedArchiveCard(id: string, revealedFrom?: ArchiveCardState["revealedFrom"]): ArchiveCardState {
   const seed = ARCHIVE_CARD_SEEDS[id];
   if (!seed) throw new Error(`알 수 없는 이야기 보관소 카드 id: ${id}`);
   return {

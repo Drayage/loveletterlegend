@@ -13,8 +13,7 @@ export type EndingImageKey =
   | `character:${string}:${CharacterSlotId}`
   | `noMatch:${string}`
   | `sameSex:${string}`
-  | "trueEnding"
-  | "trueEndingFail";
+  | "trueEnding";
 
 export function characterEndingImageKey(identityName: string, slot: CharacterSlotId): EndingImageKey {
   return `character:${identityName}:${slot}`;

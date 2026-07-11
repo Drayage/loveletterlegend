@@ -1,0 +1,25 @@
+.true-ending-fail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.true-ending-fail__text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.true-ending-fail__confirm-btn {
+  align-self: flex-start;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+}
