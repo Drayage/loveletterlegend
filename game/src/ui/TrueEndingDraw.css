@@ -1,0 +1,83 @@
+.true-ending-draw {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: #0b0906;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.true-ending-draw__frame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  max-width: 480px;
+  text-align: center;
+}
+
+.true-ending-draw__title {
+  color: #f3ede0;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.true-ending-draw__prompt {
+  color: #d8cfbe;
+  font-size: 14px;
+  min-height: 1.4em;
+}
+
+.true-ending-draw__cards {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.true-ending-draw__card {
+  width: 64px;
+  height: 92px;
+  border-radius: 8px;
+  border: 1px solid #6e6455;
+  background: linear-gradient(155deg, #2a241a, #171310);
+  color: #e0806c;
+  font-size: 26px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: transform 0.15s ease;
+}
+
+.true-ending-draw__card:not(:disabled):hover {
+  transform: translateY(-4px);
+  border-color: #e0806c;
+}
+
+.true-ending-draw__card--picked {
+  border-color: #e0806c;
+  background: linear-gradient(155deg, #3a2620, #1c130f);
+}
+
+.true-ending-draw__card--dim {
+  opacity: 0.45;
+}
+
+.true-ending-draw__next-btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 8px 22px;
+  border-radius: 999px;
+  border: 1px solid #e0806c;
+  background: transparent;
+  color: #e0806c;
+  cursor: pointer;
+}
+
+.true-ending-draw__next-btn:hover {
+  background: rgba(224, 128, 108, 0.15);
+}
