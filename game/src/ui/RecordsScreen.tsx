@@ -2,13 +2,19 @@ import { useState } from "react";
 import { RANK8_SLOTS } from "../engine/session";
 import type { CharacterSlotId } from "../engine/session";
 import { loadRecords, endingRecordKey, parseEndingRecordKey, type GameRecords } from "../persistence/records";
-import { ALL_IDENTITY_NAMES, resolveEndingForPlayer, targetSlotsForIdentity } from "../engine/endings";
+import {
+  ALL_IDENTITY_NAMES,
+  resolveEndingForPlayer,
+  targetSlotsForIdentity,
+  trueEndingIdentityGenderForSlot,
+} from "../engine/endings";
 import { TRUE_ENDING_TEXT, SAME_SEX_ENDINGS } from "../data/endings";
 import {
   ENDING_IMAGES,
   characterEndingImageKey,
   noMatchEndingImageKey,
   sameSexEndingImageKey,
+  trueEndingImageKey,
 } from "../data/endingImages";
 import { SLOT_INFO } from "./slotInfo";
 import { EndingScene } from "./EndingScene";
@@ -75,7 +81,11 @@ export function RecordsScreen({ onBack }: RecordsScreenProps) {
         className={`records-screen__card${unlocked ? " records-screen__card--unlocked" : ""}`}
         disabled={!unlocked}
         onClick={() =>
-          setReplay({ title: `${info.name} · 진엔딩`, text: TRUE_ENDING_TEXT, imageSrc: ENDING_IMAGES.trueEnding })
+          setReplay({
+            title: `${info.name} · 진엔딩`,
+            text: TRUE_ENDING_TEXT,
+            imageSrc: ENDING_IMAGES[trueEndingImageKey(trueEndingIdentityGenderForSlot(slot))],
+          })
         }
       >
         <div className="records-screen__portrait">

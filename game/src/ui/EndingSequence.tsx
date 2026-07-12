@@ -5,6 +5,7 @@ import {
   resolveEndingForPlayer,
   trueEndingSuccessCardCount,
   shuffleTrueEndingDeck,
+  identityGenderOf,
   type ResolvedEnding,
   type TrueEndingCard,
 } from "../engine/endings";
@@ -15,6 +16,7 @@ import {
   characterEndingImageKey,
   noMatchEndingImageKey,
   sameSexEndingImageKey,
+  trueEndingImageKey,
 } from "../data/endingImages";
 import { slotDisplayName } from "./slotInfo";
 import { EndingScene } from "./EndingScene";
@@ -114,7 +116,7 @@ export function EndingSequence({ session, humanId, onComplete }: EndingSequenceP
     return (
       <EndingScene
         title={`${displayTitle} · 진엔딩`}
-        imageSrc={ENDING_IMAGES.trueEnding}
+        imageSrc={ENDING_IMAGES[trueEndingImageKey(identityGenderOf(identityName))]}
         text={TRUE_ENDING_TEXT}
         onDone={() => onComplete(identityName, slot, true)}
       />

@@ -73,6 +73,23 @@ function identityIsMalePresenting(identityName: string): boolean {
   return MALE_PRESENTING_IDENTITIES.has(identityName);
 }
 
+export type IdentityGender = "male" | "female";
+
+/** 정체가 "남캐"(농부 계열)인지 "여캐"(양치기 계열)인지 -- 진엔딩 CG처럼
+ * 정체의 겉모습에 따라 달라지는 자원을 고를 때 쓴다. */
+export function identityGenderOf(identityName: string): IdentityGender {
+  return identityIsMalePresenting(identityName) ? "male" : "female";
+}
+
+/** 이 8번 캐릭터 슬롯과 "정상적으로"(동성 엔딩이 아니라) 진엔딩을 맞이할
+ * 수 있는 정체는 항상 슬롯의 캐릭터 성향과 반대쪽 성별 하나뿐이다 --
+ * resolveEndingForPlayer의 mismatchedGroup 판정과 동일한 근거. 기록보관실
+ * 다시보기처럼 정체 이름 없이 슬롯만 아는 상황(진엔딩 텍스트/CG는 정체와
+ * 무관하게 슬롯 하나에 하나만 기록됨)에서 이미지를 고를 때 쓴다. */
+export function trueEndingIdentityGenderForSlot(slot: CharacterSlotId): IdentityGender {
+  return slotIsMaleOriented(slot) ? "female" : "male";
+}
+
 /** 정체 표시 이름(예: "농부", identityVariants.ts/playerIdentityFaces의
  * `.name`과 동일)과 맺어진 슬롯(없으면 null)으로 어떤 엔딩을 보여줄지
  * 정한다. 슬롯이 정체의 "기본 상대방 성별 그룹"과 다른 그룹(원작에 해당

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { resolveEndingForPlayer, trueEndingSuccessCardCount, shuffleTrueEndingDeck, TRUE_ENDING_DECK_SIZE } from "./endings";
+import {
+  resolveEndingForPlayer,
+  trueEndingSuccessCardCount,
+  shuffleTrueEndingDeck,
+  identityGenderOf,
+  trueEndingIdentityGenderForSlot,
+  TRUE_ENDING_DECK_SIZE,
+} from "./endings";
 import { CHARACTER_ENDINGS, NO_MATCH_ENDINGS, SAME_SEX_ENDINGS } from "../data/endings";
 import { ALL_SLOTS, RANK8_SLOTS } from "./session";
 import type { CharacterSlotId } from "./types";
@@ -59,6 +66,27 @@ describe("엔딩 데이터 완전성 (data/endings.ts)", () => {
     }
     // 8번이 아닌 캐릭터는 정상 매칭이어도 도전 자격이 없다.
     expect(resolveEndingForPlayer("농부", "시녀메이블").trueEndingEligible).toBe(false);
+  });
+});
+
+describe("진엔딩 CG의 남/여 정체 분기", () => {
+  it("정체 이름으로 남캐/여캐를 정확히 구분한다", () => {
+    for (const identity of MALE_IDENTITIES) expect(identityGenderOf(identity)).toBe("male");
+    for (const identity of FEMALE_IDENTITIES) expect(identityGenderOf(identity)).toBe("female");
+  });
+
+  it("8번 캐릭터 슬롯별로 진엔딩에 도달하는 정체의 성별이 고정돼 있다", () => {
+    for (const slot of RANK8_SLOTS) {
+      const gender = trueEndingIdentityGenderForSlot(slot as CharacterSlotId);
+      const identity = gender === "male" ? "농부" : "양치기";
+      // 이 슬롯에 그 성별의 정체를 매칭하면 실제로 "character"(정상 매칭)
+      // 이어야 한다 -- 슬롯별 진엔딩 CG를 고를 때 이 함수 하나로 정체
+      // 이름 없이도 올바른 성별을 알 수 있다는 것을 보증한다.
+      expect(resolveEndingForPlayer(identity, slot as CharacterSlotId).kind).toBe("character");
+      // 반대 성별 정체를 매칭하면 동성(진엔딩 대상 아님)이어야 한다.
+      const oppositeIdentity = gender === "male" ? "양치기" : "농부";
+      expect(resolveEndingForPlayer(oppositeIdentity, slot as CharacterSlotId).kind).toBe("sameSex");
+    }
   });
 });
 
