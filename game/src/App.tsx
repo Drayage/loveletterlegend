@@ -1,34 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import type { CardName, PendingDecision, PlayerConfig } from "./engine/types";
-import {
-  chooseCardToPlay,
-  chooseTarget,
-  chooseGuess,
-  chooseFortunePath,
-  chooseDeckSwap,
-  chooseTacticianSwap,
-  chooseReuseCard,
-  chooseHandDiscard,
-  chooseRegentChoice,
-  chooseWitchAssign,
-  chooseIdentitySwap,
-  chooseIdentityCancel,
-  chooseIdentityReplacement,
-  chooseIdentityExtraTurn,
-} from "./engine/rules";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { CardName, GuessOption, PendingDecision, PlayerConfig } from "./engine/types";
 import { computeRemainingCounts } from "./engine/remaining";
 import { UPGRADE_ABILITY_TEXT } from "./engine/upgrades";
-import {
-  startSession,
-  applyToRound,
-  beginNextRound,
-  placeArchiveToken,
-  skipArchivePlacement,
-  resolveLetterChoice,
-  chooseIdentity,
-  resolveArchiveChoice,
-  availableRank8LetterSlots,
-} from "./engine/session";
+import { startSession, beginNextRound, availableRank8LetterSlots } from "./engine/session";
 import type { CharacterSlotId, LetterChoice, Route, SessionState } from "./engine/session";
 import {
   ackFlowEvent,
@@ -43,6 +17,12 @@ import {
 } from "./engine/flow";
 import type { FlowEvent, FlowOverlay } from "./engine/flow";
 import { runAIStep, safely } from "./engine/flowDriver";
+import { applyIntent } from "./net/intents";
+import type { PlayerIntent } from "./net/intents";
+import { mergeIncomingState } from "./net/sync";
+import { seatsFromPlayers } from "./net/net";
+import { useOnlineRoom } from "./net/useOnlineRoom";
+import { OnlineJoinScreen } from "./ui/OnlineJoinScreen";
 import { LetterTokenChoiceModal } from "./ui/LetterTokenChoiceModal";
 import { Card } from "./ui/Card";
 import { PlayerArea } from "./ui/PlayerArea";
@@ -203,10 +183,36 @@ const OVERLAY_TEXT: Record<Exclude<FlowOverlay, null>, { title: string; detail: 
 
 export default function App() {
   const [session, setSession] = useState<SessionState | null>(null);
-  const [uiScreen, setUiScreen] = useState<"title" | "setup" | "records">("title");
+  const [uiScreen, setUiScreen] = useState<"title" | "setup" | "records" | "join">("title");
   // 세션 하나당 기록보관실 저장은 정확히 한 번만 -- 엔딩 연출이 끝난
   // 뒤 리렌더가 여러 번 일어나도 localStorage에 중복 누적되지 않도록.
   const recordedEndingRef = useRef(false);
+  // 내 좌석 id. 로컬(AI 전용) 플레이에서는 항상 "human"이고, 온라인
+  // 게스트일 때만 방에서 배정받은 좌석 id가 된다.
+  const localIdRef = useRef<string>(HUMAN_ID);
+  const lastBroadcastRef = useRef<SessionState | null>(null);
+
+  // 게스트: 호스트가 보낸 (검열된) 상태를 내 확인 기록을 유지한 채 반영.
+  const handleRemoteState = useCallback((view: SessionState) => {
+    setSession((prev) => mergeIncomingState(prev, view, localIdRef.current));
+  }, []);
+  // 호스트: 게스트의 의도를 플로우 큐 기준으로 검증해 적용 (엔진은 여기서만 돈다).
+  const handleRemoteIntent = useCallback((playerId: string, intent: PlayerIntent) => {
+    setSession((prev) => (prev ? (applyIntent(prev, playerId, intent, localIdRef.current) ?? prev) : prev));
+  }, []);
+  const online = useOnlineRoom({ onRemoteState: handleRemoteState, onRemoteIntent: handleRemoteIntent });
+  const localId = online.localPlayerId ?? HUMAN_ID;
+  localIdRef.current = localId;
+  const isGuest = online.role === "guest";
+
+  // 호스트는 세션이 바뀔 때마다 좌석별 검열 뷰를 브로드캐스트한다 --
+  // 플로우 큐가 한 걸음 나아간 직후가 곧 동기화 지점이다.
+  useEffect(() => {
+    if (online.role !== "host" || !session) return;
+    if (lastBroadcastRef.current === session) return;
+    lastBroadcastRef.current = session;
+    online.broadcast(session);
+  }, [session, online]);
 
   /** 세션을 바꾸는 유일한 진입점: 엔진/플로우 호출 뒤 항상 큐를 다시
    * 계산한다. 실패하면(예외) 이전 상태를 그대로 유지한다. */
@@ -214,7 +220,7 @@ export default function App() {
     setSession((prev) => {
       if (!prev) return prev;
       const next = safely(() => fn(prev)) ?? prev;
-      return next === prev ? prev : recomputeFlow(next, HUMAN_ID);
+      return next === prev ? prev : recomputeFlow(next, localId);
     });
   }
 
@@ -226,17 +232,18 @@ export default function App() {
   // (예전에는 결정 종류마다 별도의 effect + "이미 처리함" ref가 있었고,
   // 그 조합이 이 저장소의 교착 버그 대부분의 원인이었다.)
   useEffect(() => {
-    if (!aiEventId) return;
+    // 게스트는 엔진을 절대 돌리지 않는다 -- AI 판정도 호스트가 계산해 보낸다.
+    if (!aiEventId || isGuest) return;
     const timer = setTimeout(() => {
       setSession((prev) => {
         if (!prev) return prev;
         const pending = pendingAIEvent(prev);
         if (!pending || pending.id !== aiEventId) return prev;
-        return runAIStep(prev, HUMAN_ID);
+        return runAIStep(prev, localId);
       });
     }, AI_THINK_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [session, aiEventId]);
+  }, [session, aiEventId, isGuest, localId]);
 
   // 기록보관실 저장은 엔딩씬(EndingSequence)이 끝까지 재생된 뒤 그
   // 결과(진엔딩 성공 여부 포함)를 갖고 정확히 한 번 호출한다.
@@ -249,7 +256,7 @@ export default function App() {
       recordedEndingRef.current = true;
       recordSessionEnding(identityName, endingSlot, wasTrueEnding);
     }
-    updateSession((prev) => ackFlowEvent(prev, HUMAN_ID));
+    updateSession((prev) => ackFlowEvent(prev, localId));
   }
 
   // 효과음: 상태가 실제로 "새로" 바뀐 시점에만 울리도록 각 이벤트의 id에
@@ -298,92 +305,123 @@ export default function App() {
 
   function startGame(players: PlayerConfig[]) {
     recordedEndingRef.current = false;
-    setSession(recomputeFlow(startSession(players), HUMAN_ID));
+    lastBroadcastRef.current = null;
+    setSession(recomputeFlow(startSession(players), localId));
+    if (online.role === "host") void online.start();
+  }
+
+  /**
+   * 사람의 모든 행동은 "의도(intent)" 하나로 표현된다.
+   * - 게스트: 호스트에게 보내기만 하고, 결과는 브로드캐스트로 돌아온다.
+   * - 로컬/호스트: 그 자리에서 엔진에 적용한다 (자격 검증은 양쪽 모두
+   *   플로우 큐가 한다 -- net/intents.ts의 isIntentAllowed).
+   */
+  function submit(intent: PlayerIntent) {
+    if (online.submitIntent(intent)) return;
+    updateSession((prev) => applyIntent(prev, localId, intent, localId) ?? prev);
   }
 
   function openOverlay(overlay: FlowOverlay) {
-    updateSession((prev) => setFlowOverlay(prev, overlay, HUMAN_ID));
+    updateSession((prev) => setFlowOverlay(prev, overlay, localId));
   }
 
   /** 모든 팝업의 "확인"은 플로우 큐의 머리를 소비하는 단 하나의 전이다. */
   function acknowledge(count = 1) {
-    updateSession((prev) => ackFlowEvent(prev, HUMAN_ID, count));
+    updateSession((prev) => ackFlowEvent(prev, localId, count));
   }
 
   function handleSelectCard(instanceId: string) {
-    updateSession((prev) => applyToRound(prev, (s) => chooseCardToPlay(s, instanceId)));
+    submit({ type: "selectCard", instanceId });
   }
   function handleChooseTarget(targetId: string) {
     getSoundEngine().playTargetLock();
-    updateSession((prev) => applyToRound(prev, (s) => chooseTarget(s, targetId)));
+    submit({ type: "chooseTarget", targetId });
   }
-  function handleChooseGuess(name: Parameters<typeof chooseGuess>[1]) {
+  function handleChooseGuess(guess: GuessOption) {
     getSoundEngine().playClick();
-    updateSession((prev) => applyToRound(prev, (s) => chooseGuess(s, name)));
+    submit({ type: "chooseGuess", guess });
   }
   function handleIdentitySwap(use: boolean) {
-    updateSession((prev) => applyToRound(prev, (s) => chooseIdentitySwap(s, use)));
+    submit({ type: "identitySwap", use });
   }
   function handleIdentityCancel(use: boolean) {
-    updateSession((prev) => applyToRound(prev, (s) => chooseIdentityCancel(s, use)));
+    submit({ type: "identityCancel", use });
   }
   function handleIdentityReplacement(instanceId: string | null) {
-    updateSession((prev) => applyToRound(prev, (s) => chooseIdentityReplacement(s, instanceId)));
+    submit({ type: "identityReplacement", instanceId });
   }
   function handleIdentityExtraTurn(use: boolean) {
-    updateSession((prev) => applyToRound(prev, (s) => chooseIdentityExtraTurn(s, use)));
+    submit({ type: "identityExtraTurn", use });
   }
   function handleFortunePath(path: "peek" | "coWin") {
-    updateSession((prev) => applyToRound(prev, (s) => chooseFortunePath(s, path)));
+    submit({ type: "fortunePath", path });
   }
   function handleDeckSwap(swap: boolean) {
-    updateSession((prev) => applyToRound(prev, (s) => chooseDeckSwap(s, swap)));
+    submit({ type: "deckSwap", swap });
   }
   function handleTacticianSwap(swap: boolean) {
-    updateSession((prev) => applyToRound(prev, (s) => chooseTacticianSwap(s, swap)));
+    submit({ type: "tacticianSwap", swap });
   }
   function handleReuseCard(instanceId: string) {
-    updateSession((prev) => applyToRound(prev, (s) => chooseReuseCard(s, instanceId)));
+    submit({ type: "reuseCard", instanceId });
   }
   function handleHandDiscard(instanceId: string) {
-    updateSession((prev) => applyToRound(prev, (s) => chooseHandDiscard(s, instanceId)));
+    submit({ type: "handDiscard", instanceId });
   }
   function handleRegentChoice(choice: "immune" | "eliminate") {
-    updateSession((prev) => applyToRound(prev, (s) => chooseRegentChoice(s, choice)));
+    submit({ type: "regentChoice", choice });
   }
   function handleWitchAssign(instanceId: string) {
-    updateSession((prev) => applyToRound(prev, (s) => chooseWitchAssign(s, instanceId)));
+    submit({ type: "witchAssign", instanceId });
   }
 
+  /** 라운드 전환은 방장(로컬 플레이에서는 그냥 나)만 진행한다 -- 게스트는
+   * 호스트의 브로드캐스트로 새 라운드를 받는다. */
   function proceedToNextRound(route: Route, selectedOptionalCards: CardName[] = []) {
-    updateSession((prev) => enterRound(beginNextRound(prev, route, selectedOptionalCards), HUMAN_ID));
+    updateSession((prev) => enterRound(beginNextRound(prev, route, selectedOptionalCards), localId));
   }
 
   function handlePlaceArchiveToken(cardId: string, token: "성공" | "실패") {
-    updateSession((prev) => placeArchiveToken(prev, HUMAN_ID, cardId, token));
+    submit({ type: "placeArchiveToken", cardId, token });
   }
   function handleSkipArchivePlacement() {
-    updateSession((prev) => skipArchivePlacement(prev, HUMAN_ID));
+    submit({ type: "skipArchivePlacement" });
   }
 
   function handleLetterChoice(choice: LetterChoice) {
     if (choice.type === "place") getSoundEngine().playLetterGain();
-    updateSession((prev) => resolveLetterChoice(prev, HUMAN_ID, choice));
+    submit({ type: "letterChoice", choice });
   }
 
   function handleChooseIdentity(identityId: string, variantId: IdentityVariantId) {
-    updateSession((prev) => chooseIdentity(prev, HUMAN_ID, identityId, variantId));
+    submit({ type: "chooseIdentity", identityId, variantId });
   }
 
   function handleChooseArchiveOption(optionId: string) {
-    updateSession((prev) => resolveArchiveChoice(prev, HUMAN_ID, optionId));
+    submit({ type: "archiveChoice", optionId });
   }
 
   if (!session || !round) {
     if (uiScreen === "setup") {
       return (
         <>
-          <SetupScreen onStart={startGame} onBack={() => setUiScreen("title")} />
+          <SetupScreen
+            onStart={startGame}
+            onBack={() => {
+              void online.leave();
+              setUiScreen("title");
+            }}
+            online={online}
+            onHostRoom={(players) => void online.host(seatsFromPlayers(players), HUMAN_ID)}
+          />
+          <SoundControls />
+        </>
+      );
+    }
+    if (uiScreen === "join") {
+      return (
+        <>
+          <OnlineJoinScreen online={online} onBack={() => setUiScreen("title")} />
           <SoundControls />
         </>
       );
@@ -413,6 +451,18 @@ export default function App() {
         >
           게임 시작
         </button>
+        {online.enabled && (
+          <button
+            type="button"
+            className="start-screen__secondary-btn"
+            onClick={() => {
+              getSoundEngine().unlock();
+              setUiScreen("join");
+            }}
+          >
+            온라인 참가
+          </button>
+        )}
         <button type="button" className="start-screen__secondary-btn" onClick={() => setUiScreen("records")}>
           기록보관실
         </button>
@@ -424,11 +474,11 @@ export default function App() {
   const flow = session.flowState;
   const overlay = flow.overlay;
   const headIs = (kind: FlowEvent["kind"]) => head?.kind === kind;
-  const headActorIsHuman = head?.actorId === HUMAN_ID;
+  const headActorIsHuman = head?.actorId === localId;
   const roundStartLocked = isRoundStartLocked(session);
 
-  const human = round.players.find((p) => p.id === HUMAN_ID)!;
-  const otherPlayers = round.players.filter((p) => p.id !== HUMAN_ID);
+  const human = round.players.find((p) => p.id === localId)!;
+  const otherPlayers = round.players.filter((p) => p.id !== localId);
   const displayNameFor = (playerId: string) =>
     session.playerIdentityFaces[playerId]?.name ??
     round.players.find((p) => p.id === playerId)?.displayName ??
@@ -441,7 +491,7 @@ export default function App() {
     return [flavor, usage].filter(Boolean).join("\n");
   };
   const decision = round.pendingDecision;
-  const isHumanDecision = decision?.playerId === HUMAN_ID;
+  const isHumanDecision = decision?.playerId === localId;
   const remaining = computeRemainingCounts(round);
 
   const concealRoundStart = roundStartLocked;
@@ -466,8 +516,8 @@ export default function App() {
       })
     ) as Partial<Record<CardName, string>>;
   }
-  const humanCardUpgradeBadges = upgradeBadgesFor(HUMAN_ID);
-  const humanCardUpgradeAbilityTexts = upgradeAbilityTextsFor(HUMAN_ID);
+  const humanCardUpgradeBadges = upgradeBadgesFor(localId);
+  const humanCardUpgradeAbilityTexts = upgradeAbilityTextsFor(localId);
   // 상대는 몇 명이든(1~3명) 각자 자기 진행도 기준으로 따로 계산한다.
   const otherCardUpgradeBadges = Object.fromEntries(
     otherPlayers.map((p) => [p.id, upgradeBadgesFor(p.id)])
@@ -476,15 +526,15 @@ export default function App() {
     otherPlayers.map((p) => [p.id, upgradeAbilityTextsFor(p.id)])
   ) as Record<string, Partial<Record<CardName, string>>>;
   const tableUpgradeBadgesByPlayer: Record<string, Partial<Record<CardName, string>>> = {
-    [HUMAN_ID]: humanCardUpgradeBadges,
+    [localId]: humanCardUpgradeBadges,
     ...otherCardUpgradeBadges,
   };
   const tableUpgradeAbilityTextsByPlayer: Record<string, Partial<Record<CardName, string>>> = {
-    [HUMAN_ID]: humanCardUpgradeAbilityTexts,
+    [localId]: humanCardUpgradeAbilityTexts,
     ...otherCardUpgradeAbilityTexts,
   };
   const humanLetterTokens = Object.fromEntries(
-    CHARACTER_SLOTS.map((slot) => [slot, session.letterTokens[slot]?.[HUMAN_ID] ?? 0])
+    CHARACTER_SLOTS.map((slot) => [slot, session.letterTokens[slot]?.[localId] ?? 0])
   ) as Record<CharacterSlotId, number>;
 
   // 진행 확인 탭: 예전엔 팝업 조건을 다시 한 번 세어 만들었지만, 이제는
@@ -532,7 +582,7 @@ export default function App() {
     <div className="app-layout">
       <SessionHeader
         session={session}
-        humanId={HUMAN_ID}
+        humanId={localId}
         onShowArchive={() => openOverlay("storyArchive")}
         onShowFlowStatus={() => openOverlay("flowStatus")}
       />
@@ -590,7 +640,7 @@ export default function App() {
           archiveHistory={session.archiveHistory}
           clockTokens={session.clockTokens}
           session={session}
-          humanId={HUMAN_ID}
+          humanId={localId}
           onClose={() => openOverlay(null)}
         />
       )}
@@ -629,10 +679,10 @@ export default function App() {
 
       <PlayerArea
         player={human}
-        displayName={displayNameFor(HUMAN_ID)}
-        identityFace={session.playerIdentityFaces[HUMAN_ID]}
-        identityAbility={identityAbilityFor(HUMAN_ID)}
-        isCurrentTurn={round.pendingDecision?.playerId === HUMAN_ID}
+        displayName={displayNameFor(localId)}
+        identityFace={session.playerIdentityFaces[localId]}
+        identityAbility={identityAbilityFor(localId)}
+        isCurrentTurn={round.pendingDecision?.playerId === localId}
         revealHand={!concealRoundStart}
         selectableCardIds={
           isHumanDecision && decision?.kind === "playCard" && !concealRoundStart
@@ -792,12 +842,22 @@ export default function App() {
         />
       )}
 
-      {headIs("roundStartSetup") && flow.roundStart && (
+      {/* 게스트는 라운드 전환을 직접 실행하지 않는다 (엔진은 호스트에서만
+          돈다) -- 방장이 다음 주차를 시작하면 브로드캐스트로 넘어온다. */}
+      {headIs("roundStartSetup") && flow.roundStart && isGuest && (
+        <Modal title={`${session.roundNumber + 1}주차 준비`} onClose={() => {}} dismissible={false}>
+          <div className="round-start-gate">
+            <p className="round-start-gate__prompt">방장이 다음 주차를 준비하고 있습니다. 잠시만 기다려 주세요.</p>
+          </div>
+        </Modal>
+      )}
+
+      {headIs("roundStartSetup") && flow.roundStart && !isGuest && (
         <RoundStartGate
           upcomingRoundNumber={session.roundNumber + 1}
           route={flow.roundStart.route}
           chooserName={displayNameFor(flow.roundStart.chooserId)}
-          readOnly={flow.roundStart.chooserId !== HUMAN_ID}
+          readOnly={flow.roundStart.chooserId !== localId}
           optionalCards={flow.roundStart.optionalCards}
           selectedOptionalCards={flow.roundStart.selectedOptionalCards}
           onToggleOptionalCard={(cardName) =>
@@ -813,7 +873,7 @@ export default function App() {
                 : plan.selectedOptionalCards.includes(cardName)
                   ? plan.selectedOptionalCards.filter((name) => name !== cardName)
                   : [...plan.selectedOptionalCards, cardName];
-              return setRoundStartSelection(prev, selected, HUMAN_ID);
+              return setRoundStartSelection(prev, selected, localId);
             })
           }
           onStart={() =>
@@ -836,7 +896,7 @@ export default function App() {
             }}
           />
         ) : (
-          <EndingSequence session={session} humanId={HUMAN_ID} onComplete={handleEndingSequenceComplete} />
+          <EndingSequence session={session} humanId={localId} onComplete={handleEndingSequenceComplete} />
         ))}
 
       <button type="button" className="flow-status-fab" onClick={() => openOverlay("flowStatus")}>

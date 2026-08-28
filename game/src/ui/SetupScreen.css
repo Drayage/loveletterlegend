@@ -157,3 +157,32 @@
   color: var(--text);
   cursor: pointer;
 }
+
+/* 온라인 방 코드 -- 다른 기기에 불러 주기 쉽도록 크고 넓게. */
+.setup-screen__room-code {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.setup-screen__room-code strong {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 22px;
+  letter-spacing: 6px;
+  color: var(--text);
+}
+
+.setup-screen__input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 16px;
+  letter-spacing: 2px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+}
