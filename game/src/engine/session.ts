@@ -4,6 +4,8 @@ import { WIZARD_APPRENTICE } from "../data/characters";
 import { IDENTITY_VARIANTS, type IdentityVariantId } from "../data/identityVariants";
 import type { Route } from "../data/routes";
 import { conditionTiming } from "./types";
+import { createInitialFlowState } from "./flow";
+import type { FlowState } from "./flow";
 import type {
   ArchiveCardState,
   ArchiveConditionTiming,
@@ -186,6 +188,11 @@ export interface SessionState {
    * 등)를 위한 일회성 트리거 기록 -- 같은 임계값이 매 라운드 다시
    * 발동하지 않도록 id 문자열(예: "127-swap")로 멱등성을 보장한다. */
   letterThresholdDeckEffectsApplied: string[];
+  /** 진행(플로우) 상태 기계 -- "지금 누가 무엇을 해야 하는가"의 단일
+   * 출처. 순수 데이터(직렬화 가능)이며 engine/flow.ts의 recomputeFlow가
+   * 세션 상태로부터 다시 계산한다. UI는 이 큐의 머리만 보고 렌더하고,
+   * AI는 큐의 머리가 자기 차례일 때만 움직인다. */
+  flowState: FlowState;
 }
 
 /** See SessionState.lastResolvedChoice. */
@@ -283,6 +290,7 @@ export function startSession(playerConfigs: PlayerConfig[], initialRoute: Route 
     lastResolvedChoice: null,
     archiveHistory: Object.fromEntries(initialArchive.map((c) => [c.id, c])),
     letterThresholdDeckEffectsApplied: [],
+    flowState: createInitialFlowState(),
   });
 }
 

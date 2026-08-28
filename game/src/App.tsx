@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { ArchiveCardState, CardName, PendingDecision, PlayerConfig } from "./engine/types";
+import type { CardName, PendingDecision, PlayerConfig } from "./engine/types";
 import {
   chooseCardToPlay,
   chooseTarget,
@@ -16,13 +16,6 @@ import {
   chooseIdentityReplacement,
   chooseIdentityExtraTurn,
 } from "./engine/rules";
-import {
-  applyAiDecision,
-  chooseArchiveTokenAI,
-  chooseLetterTargetAI,
-  chooseIdentityAI,
-  chooseArchiveChoiceAI,
-} from "./engine/ai";
 import { computeRemainingCounts } from "./engine/remaining";
 import { UPGRADE_ABILITY_TEXT } from "./engine/upgrades";
 import {
@@ -34,10 +27,22 @@ import {
   resolveLetterChoice,
   chooseIdentity,
   resolveArchiveChoice,
-  ROUTE_SLOT,
   availableRank8LetterSlots,
 } from "./engine/session";
-import type { CharacterSlotId, LetterChoice, ResolvedChoiceInfo, Route, SessionState } from "./engine/session";
+import type { CharacterSlotId, LetterChoice, Route, SessionState } from "./engine/session";
+import {
+  ackFlowEvent,
+  enterRound,
+  flowHead,
+  isRoundStartLocked,
+  pendingAIEvent,
+  recomputeFlow,
+  routeForSelection,
+  setFlowOverlay,
+  setRoundStartSelection,
+} from "./engine/flow";
+import type { FlowEvent, FlowOverlay } from "./engine/flow";
+import { runAIStep, safely } from "./engine/flowDriver";
 import { LetterTokenChoiceModal } from "./ui/LetterTokenChoiceModal";
 import { Card } from "./ui/Card";
 import { PlayerArea } from "./ui/PlayerArea";
@@ -78,6 +83,10 @@ import "./App.css";
  * 충분하다. AI 자리는 SetupScreen이 "ai-1".."ai-3"로 동적으로 만든다. */
 const HUMAN_ID = "human";
 
+/** AI가 "생각하는" 것처럼 보이게 하는 지연 -- 플로우 큐의 머리가 AI
+ * 차례일 때 이 시간 뒤에 engine/flowDriver가 한 걸음 진행한다. */
+const AI_THINK_DELAY_MS = 700;
+
 const IDENTITY_USAGE_TEXT: Record<string, string> = {
   "033": "수동 능력: 차례 시작 시 비공개 카드와 손패 교환 선택 필요",
   "034": "수동 능력: 자신을 대상으로 한 효과 취소 선택 필요",
@@ -102,42 +111,6 @@ const CHARACTER_SLOTS: CharacterSlotId[] = [
   "귀족영애아나스타샤",
 ];
 
-function decisionKey(decision: PendingDecision): string {
-  if (decision.kind === "playCard") {
-    return `${decision.kind}:${decision.playerId}:${decision.options.map((c) => c.instanceId).join(",")}`;
-  }
-  if (decision.kind === "chooseTarget") {
-    return `${decision.kind}:${decision.playerId}:${decision.cardInstanceId}:${decision.eligiblePlayerIds.join(",")}`;
-  }
-  if (decision.kind === "guessCard") return `${decision.kind}:${decision.playerId}:${decision.cardInstanceId}:${decision.targetId}:${decision.guesses?.join(",") ?? ""}`;
-  if (decision.kind === "identityReplaceEffect") return `${decision.kind}:${decision.playerId}:${decision.cardInstanceId}:${decision.options.map((c) => c.instanceId).join(",")}`;
-  if (decision.kind === "identityCancel") return `${decision.kind}:${decision.playerId}:${decision.cardInstanceId}:${decision.targetId}`;
-  if (decision.kind === "reuseDiscard" || decision.kind === "discardFromHand") {
-    return `${decision.kind}:${decision.playerId}:${decision.cardInstanceId}:${decision.options.map((c) => c.instanceId).join(",")}`;
-  }
-  if (decision.kind === "witchAssign") {
-    return `${decision.kind}:${decision.playerId}:${decision.cardInstanceId}:${decision.pool.map((c) => c.instanceId).join(",")}`;
-  }
-  if (
-    decision.kind === "fortunePath" ||
-    decision.kind === "deckSwap" ||
-    decision.kind === "tacticianSwap" ||
-    decision.kind === "regentChoice"
-  ) {
-    return `${decision.kind}:${decision.playerId}:${decision.cardInstanceId}`;
-  }
-  return `${decision.kind}:${decision.playerId}`;
-}
-
-function safely<T>(fn: () => T): T | null {
-  try {
-    return fn();
-  } catch (err) {
-    console.error(err);
-    return null;
-  }
-}
-
 function decisionLabel(decision: PendingDecision): string {
   if (decision.kind === "playCard") return `카드 선택: ${decision.options.map((c) => `「${c.name}」`).join(" / ")}`;
   if (decision.kind === "chooseTarget") return `대상 선택: 「${decision.cardName}」`;
@@ -155,382 +128,128 @@ function decisionLabel(decision: PendingDecision): string {
   return "정체 능력: 추가 차례";
 }
 
-/** AI가 라운드 선(리더)일 때의 라운드 시작 선택: 공주/왕자 카드는 현재
- * 라우트를 유지하고, 스토리로 열린 추가 8번 카드(백작부인/귀족영애 등)는
- * 전부 덱에 넣는다 -- 이야기 진행 조건이 걸린 카드들이라 넣는 쪽이 이야기를
- * 앞으로 굴린다. */
-function chooseRoundStartCardsAI(optionalCards: CardName[]): CardName[] {
-  const routeSwapCards = new Set<CardName>(["공주", "왕자", "공주둘째", "공주셋째"]);
-  return optionalCards.filter((name) => !routeSwapCards.has(name));
+/** 진행 확인 탭에 보여줄 한 줄 설명 -- 플로우 큐의 이벤트를 그대로
+ * 사람이 읽을 수 있는 문장으로 옮긴다 (예전처럼 각 팝업별 조건을 다시
+ * 세는 게 아니라, 실제 큐를 그대로 비춘다). */
+function flowEventText(
+  session: SessionState,
+  event: FlowEvent,
+  displayNameFor: (playerId: string) => string
+): { title: string; detail: string } {
+  switch (event.kind) {
+    case "reveal":
+      return { title: "비공개 공개 팝업", detail: "내가 확인해야 하는 카드 정보가 떠 있습니다." };
+    case "guessEffect":
+      return { title: "추측 결과 팝업", detail: "경비병/신병 추측 결과를 확인해야 합니다." };
+    case "forcedDiscard":
+      return { title: "강제 버림 팝업", detail: "마술사 계열 효과로 버려진 카드를 확인해야 합니다." };
+    case "effectBlocked":
+      return { title: "효과 차단 알림", detail: "보호 등으로 효과가 막힌 내용을 확인해야 합니다." };
+    case "elimination":
+      return {
+        title: "탈락 팝업",
+        detail: `${displayNameFor(session.round.lastElimination?.playerId ?? "")} 탈락 결과를 확인해야 합니다.`,
+      };
+    case "choiceResult":
+      return { title: "이벤트 선택 결과", detail: "방금 선택된 시나리오 분기 결과를 확인해야 합니다." };
+    case "storyEvent":
+      return {
+        title: "이야기 이벤트",
+        detail: `${event.cardIds?.length ?? 0}개 이벤트 설명을 읽어야 다음 단계로 갑니다.`,
+      };
+    case "roundSummary":
+      return { title: "라운드 결과 확인", detail: "결과 확인 버튼을 눌러야 후속 이벤트와 선택이 진행됩니다." };
+    case "roundStartGate":
+      return { title: "라운드 시작 확인", detail: "시작 이벤트를 다 읽은 뒤 주차 진행 버튼을 눌러야 패가 공개됩니다." };
+    case "sessionEnd":
+      return { title: "세션 종료", detail: "엔딩 연출과 결과 화면을 확인합니다." };
+    case "letterChoice":
+      return {
+        title: "편지 토큰 선택",
+        detail: `${displayNameFor(event.actorId ?? "")}이(가) 편지 ${session.pendingLetterChoice?.amount ?? 1}개를 받을 대상을 골라야 합니다.`,
+      };
+    case "identityChoice":
+      return {
+        title: "정체 선택",
+        detail: `${displayNameFor(event.actorId ?? "")}이(가) 정체와 성별을 골라야 합니다.`,
+      };
+    case "archiveChoice":
+      return {
+        title: "시나리오 선택",
+        detail: `${displayNameFor(event.actorId ?? "")}이(가) 「${
+          ARCHIVE_CARD_SEEDS[session.pendingChoice?.cardId ?? ""]?.name ?? "이야기"
+        }」 선택지를 골라야 합니다.`,
+      };
+    case "archivePlacement":
+      return {
+        title: "이야기 보관소 토큰 배치",
+        detail: `${displayNameFor(event.actorId ?? "")}이(가) 성공/실패 토큰을 놓아야 합니다.`,
+      };
+    case "roundStartSetup":
+      return { title: "다음 주차 준비", detail: "공주/왕자 카드와 추가 8번 카드를 선택한 뒤 시작해야 합니다." };
+    case "decision":
+      return {
+        title: `${displayNameFor(event.actorId ?? "")} 턴`,
+        detail: session.round.pendingDecision ? decisionLabel(session.round.pendingDecision) : "카드 결정 대기 중",
+      };
+  }
 }
 
-/** 라운드 시작 게이트에서 고른 8번 카드가 곧 그 라운드의 라우트다 --
- * 「왕자」를 고르면 currentRoute도 왕자로 전환되어야 편지 배치 기본값과
- * 050 「역사 8」 판정이 덱 구성과 어긋나지 않는다. 공주(둘째/셋째)는
- * 별도 라우트가 아니므로 기존 라우트를 유지한다. */
-function routeForSelection(currentRoute: Route, selected: CardName[]): Route {
-  if (selected.includes("왕자")) return "왕자";
-  if (selected.includes("공주")) return "공주";
-  return currentRoute;
-}
+const OVERLAY_TEXT: Record<Exclude<FlowOverlay, null>, { title: string; detail: string }> = {
+  cardReference: { title: "카드 확인 창", detail: "카드 목록 창을 닫으면 진행됩니다." },
+  storyArchive: { title: "이야기 보관소 창", detail: "보관소 창을 닫으면 진행됩니다." },
+  flowStatus: { title: "진행 확인 탭 열림", detail: "이 탭을 닫으면 자동 진행이 다시 움직입니다." },
+};
 
 export default function App() {
   const [session, setSession] = useState<SessionState | null>(null);
   const [uiScreen, setUiScreen] = useState<"title" | "setup" | "records">("title");
-  const [showCardReference, setShowCardReference] = useState(false);
-  const [showStoryArchive, setShowStoryArchive] = useState(false);
-  const [showFlowStatus, setShowFlowStatus] = useState(false);
-  const [dismissedRevealId, setDismissedRevealId] = useState<string | null>(null);
-  const [dismissedEliminationId, setDismissedEliminationId] = useState<string | null>(null);
-  const [dismissedGuessEffectId, setDismissedGuessEffectId] = useState<string | null>(null);
-  const [dismissedForcedDiscardId, setDismissedForcedDiscardId] = useState<string | null>(null);
-  const [dismissedEffectBlockedId, setDismissedEffectBlockedId] = useState<string | null>(null);
-  const [endSummaryAcknowledged, setEndSummaryAcknowledged] = useState(false);
-  const [endingSceneDone, setEndingSceneDone] = useState(false);
-  const [pendingStoryEvent, setPendingStoryEvent] = useState<ArchiveCardState[] | null>(null);
-  const [pendingChoiceResult, setPendingChoiceResult] = useState<ResolvedChoiceInfo | null>(null);
-  const [pendingRoundStart, setPendingRoundStart] = useState<{ route: Route; chooserId: string; optionalCards: CardName[]; selectedOptionalCards: CardName[] } | null>(null);
-  const [roundStartLockedNumber, setRoundStartLockedNumber] = useState<number | null>(null);
-  const handledDecisionRef = useRef<string | null>(null);
-  const handledArchiveRef = useRef<SessionState["pendingArchivePlacement"]>(null);
-  const handledLetterChoiceRef = useRef<SessionState["pendingLetterChoice"]>(null);
-  const handledIdentityRef = useRef<SessionState["pendingIdentityChoice"]>(null);
-  const handledChoiceRef = useRef<SessionState["pendingChoice"]>(null);
-  const seenArchiveIdsRef = useRef<Set<string>>(new Set());
-  // Tracks the cardId (not object reference -- SessionState gets
-  // structuredClone'd on every later round end, which mints a fresh
-  // lastResolvedChoice object with the SAME data, so reference equality
-  // would make this popup reappear on every subsequent round end).
-  const shownChoiceResultCardIdRef = useRef<string | null>(null);
-  // 세션 하나당 기록보관실 저장은 정확히 한 번만 -- session.ended이 계속
-  // true인 상태에서 리렌더가 여러 번 일어나도 localStorage에 중복 누적되지
-  // 않도록 막는다.
+  // 세션 하나당 기록보관실 저장은 정확히 한 번만 -- 엔딩 연출이 끝난
+  // 뒤 리렌더가 여러 번 일어나도 localStorage에 중복 누적되지 않도록.
   const recordedEndingRef = useRef(false);
 
-  const round = session?.round ?? null;
-  const roundStartLocked = Boolean(session && roundStartLockedNumber === session.roundNumber);
-  const canShowRoundEffects = !roundStartLocked;
-
-  const pendingHumanReveal =
-    canShowRoundEffects &&
-    round?.lastReveal &&
-    (round.lastReveal.viewerPlayerId === HUMAN_ID || round.lastReveal.compare) &&
-    round.lastReveal.id !== dismissedRevealId
-      ? round.lastReveal
-      : null;
-  // Public (not viewer-specific) -- shown regardless of who caused the
-  // elimination, right after any private reveal the actor needed to see
-  // first (see EliminationModal's doc comment).
-  const pendingElimination =
-    canShowRoundEffects && round?.lastElimination && round.lastElimination.id !== dismissedEliminationId
-      ? round.lastElimination
-      : null;
-  // Public effect popups (both players see these, unlike pendingHumanReveal)
-  // -- 경비병/신병's guess flip, 마술사 계열의 forced discard, and a fizzled
-  // effect blocked by 승려 protection. All three can occur mid-round (the
-  // round doesn't necessarily end), unlike pendingElimination which in this
-  // 2P game always coincides with round.roundResult being set.
-  const pendingGuessEffect =
-    canShowRoundEffects && round?.lastGuessEffect && round.lastGuessEffect.id !== dismissedGuessEffectId
-      ? round.lastGuessEffect
-      : null;
-  const pendingForcedDiscard =
-    canShowRoundEffects && round?.lastForcedDiscard && round.lastForcedDiscard.id !== dismissedForcedDiscardId
-      ? round.lastForcedDiscard
-      : null;
-  const pendingEffectBlocked =
-    canShowRoundEffects && round?.lastEffectBlocked && round.lastEffectBlocked.id !== dismissedEffectBlockedId
-      ? round.lastEffectBlocked
-      : null;
-  const roundResultAwaitingAcknowledgement = Boolean(round?.roundResult && session?.lastRoundSummary && !endSummaryAcknowledged);
-  const flowBlocked =
-    Boolean(pendingHumanReveal) ||
-    Boolean(pendingGuessEffect) ||
-    Boolean(pendingForcedDiscard) ||
-    Boolean(pendingEffectBlocked) ||
-    Boolean(pendingElimination) ||
-    Boolean(pendingChoiceResult) ||
-    Boolean(pendingStoryEvent) ||
-    roundResultAwaitingAcknowledgement ||
-    Boolean(pendingRoundStart) ||
-    roundStartLocked ||
-    Boolean(showCardReference) ||
-    Boolean(showStoryArchive) ||
-    Boolean(showFlowStatus) ||
-    Boolean(session?.pendingLetterChoice?.playerId === HUMAN_ID) ||
-    Boolean(session?.pendingArchivePlacement?.eligiblePlayerId === HUMAN_ID) ||
-    Boolean(session?.pendingIdentityChoice?.eligiblePlayerId === HUMAN_ID) ||
-    Boolean(session?.pendingChoice?.eligiblePlayerId === HUMAN_ID);
-
-  // AI's normal in-round turn.
-  useEffect(() => {
-    if (!round || round.roundResult || !round.pendingDecision) {
-      handledDecisionRef.current = null;
-      return;
-    }
-    if (flowBlocked) {
-      handledDecisionRef.current = null;
-      return;
-    }
-    const decision = round.pendingDecision;
-    const actor = round.players.find((p) => p.id === decision.playerId);
-    if (!actor?.isAI) return;
-    const key = decisionKey(decision);
-    if (handledDecisionRef.current === key) return;
-    handledDecisionRef.current = key;
-
-    const timer = setTimeout(() => {
-      setSession((prev) => {
-        const currentDecision = prev?.round.pendingDecision;
-        if (!prev || !currentDecision || decisionKey(currentDecision) !== key) return prev;
-        const currentActor = prev.round.players.find((p) => p.id === currentDecision.playerId);
-        if (!currentActor?.isAI) return prev;
-        return (
-          safely(() =>
-            applyToRound(prev, (s) => applyAiDecision(s, currentDecision, { letterTokens: prev.letterTokens }))
-          ) ?? prev
-        );
-      });
-    }, 700);
-    return () => clearTimeout(timer);
-  }, [round, flowBlocked]);
-
-  // AI's round-win [편지] token placement, when the AI is the round winner.
-  useEffect(() => {
-    if (!session?.pendingLetterChoice) {
-      handledLetterChoiceRef.current = null;
-      return;
-    }
-    const pending = session.pendingLetterChoice;
-    // If a reveal/story popup shows up in the same tick this becomes
-    // pending, clear the "handled" marker instead of leaving it stuck --
-    // otherwise once those popups clear, the dependency-array re-run sees
-    // handledLetterChoiceRef already pointing at this exact `pending`
-    // object and skips rescheduling forever.
-    if (flowBlocked) {
-      handledLetterChoiceRef.current = null;
-      return;
-    }
-    const actor = session.playerConfigs.find((p) => p.id === pending.playerId);
-    if (!actor?.isAI) return;
-    if (handledLetterChoiceRef.current === pending) return;
-    handledLetterChoiceRef.current = pending;
-
-    const timer = setTimeout(() => {
-      setSession((prev) => {
-        if (!prev || prev.pendingLetterChoice !== pending) return prev;
-        const routeSlot = ROUTE_SLOT[prev.currentRoute];
-        const choice: LetterChoice = chooseLetterTargetAI(routeSlot, pending.atCap);
-        // 1차 선택이 거부되면 항상 유효한 기본 배치(공개된 첫 공주/왕자
-        // 슬롯) 또는 "이동하지 않음"으로 폴백 -- AI 차례가 소모되지 않으면
-        // 진행이 영구히 멈춘다 (교착 방지의 마지막 안전망).
-        const fallback: LetterChoice = pending.atCap
-          ? { type: "decline" }
-          : { type: "place", slot: availableRank8LetterSlots(prev)[0] ?? routeSlot };
-        return (
-          safely(() => resolveLetterChoice(prev, pending.playerId, choice)) ??
-          safely(() => resolveLetterChoice(prev, pending.playerId, fallback)) ??
-          prev
-        );
-      });
-    }, 700);
-    return () => clearTimeout(timer);
-  }, [
-    session,
-    flowBlocked,
-    pendingStoryEvent,
-  ]);
-
-  // AI's story-archive token placement, when it's the AI who was first
-  // eliminated this round.
-  useEffect(() => {
-    if (!session?.pendingArchivePlacement) {
-      handledArchiveRef.current = null;
-      return;
-    }
-    const placement = session.pendingArchivePlacement;
-    // Same "don't get stuck" fix as the letter-choice effect above: clear
-    // the marker rather than leaving it stale while blocked.
-    if (flowBlocked) {
-      handledArchiveRef.current = null;
-      return;
-    }
-    const actor = session.playerConfigs.find((p) => p.id === placement.eligiblePlayerId);
-    if (!actor?.isAI) return;
-    if (handledArchiveRef.current === placement) return;
-    handledArchiveRef.current = placement;
-
-    const timer = setTimeout(() => {
-      setSession((prev) => {
-        if (!prev || prev.pendingArchivePlacement !== placement) return prev;
-        const choice = chooseArchiveTokenAI(prev.storyArchive, prev.roundEndEligibleArchiveIds);
-        // 실패 시 반드시 "놓지 않기"로라도 차례를 소모한다 -- AI 액션이
-        // 엔진에서 거부됐는데 세션이 그대로면 이 effect가 다시 돌 계기가
-        // 없어 진행이 영구히 멈춘다 (교착 방지의 마지막 안전망).
-        return (
-          safely(() =>
-            choice
-              ? placeArchiveToken(prev, placement.eligiblePlayerId, choice.cardId, choice.token)
-              : skipArchivePlacement(prev, placement.eligiblePlayerId)
-          ) ??
-          safely(() => skipArchivePlacement(prev, placement.eligiblePlayerId)) ??
-          prev
-        );
-      });
-    }, 700);
-    return () => clearTimeout(timer);
-  }, [
-    session,
-    flowBlocked,
-    pendingStoryEvent,
-  ]);
-
-  // AI's 032 「정체」 card selection, when the AI was eliminated without one.
-  useEffect(() => {
-    if (!session?.pendingIdentityChoice) {
-      handledIdentityRef.current = null;
-      return;
-    }
-    const pending = session.pendingIdentityChoice;
-    if (flowBlocked) {
-      handledIdentityRef.current = null;
-      return;
-    }
-    const actor = session.playerConfigs.find((p) => p.id === pending.eligiblePlayerId);
-    if (!actor?.isAI) return;
-    if (handledIdentityRef.current === pending) return;
-    handledIdentityRef.current = pending;
-
-    const timer = setTimeout(() => {
-      setSession((prev) => {
-        if (!prev || prev.pendingIdentityChoice !== pending) return prev;
-        const identityId = chooseIdentityAI(pending.options);
-        return safely(() => chooseIdentity(prev, pending.eligiblePlayerId, identityId, "male")) ?? prev;
-      });
-    }, 700);
-    return () => clearTimeout(timer);
-  }, [
-    session,
-    flowBlocked,
-    pendingStoryEvent,
-  ]);
-
-  // AI's 실카드 "선택" 분기 결정, when the eligible player (round winner) is the AI.
-  useEffect(() => {
-    if (!session?.pendingChoice) {
-      handledChoiceRef.current = null;
-      return;
-    }
-    const pending = session.pendingChoice;
-    if (flowBlocked) {
-      handledChoiceRef.current = null;
-      return;
-    }
-    const actor = session.playerConfigs.find((p) => p.id === pending.eligiblePlayerId);
-    if (!actor?.isAI) return;
-    if (handledChoiceRef.current === pending) return;
-    handledChoiceRef.current = pending;
-
-    const timer = setTimeout(() => {
-      setSession((prev) => {
-        if (!prev || prev.pendingChoice !== pending) return prev;
-        const optionId = chooseArchiveChoiceAI(pending.options);
-        return safely(() => resolveArchiveChoice(prev, pending.eligiblePlayerId, optionId)) ?? prev;
-      });
-    }, 700);
-    return () => clearTimeout(timer);
-  }, [
-    session,
-    flowBlocked,
-    pendingStoryEvent,
-  ]);
-
-  // Show a readable popup (with full flavor text + conditions) whenever new
-  // cards are revealed. Use archiveHistory instead of only the live archive
-  // so auto-revealed cards that are immediately consumed/removed still get
-  // their story beat before the next card appears.
-  useEffect(() => {
-    if (!session) return;
-    const historyCards = Object.values(session.archiveHistory);
-    const currentIds = historyCards.map((c) => c.id);
-    const newly = historyCards.filter((c) => !seenArchiveIdsRef.current.has(c.id));
-    for (const id of currentIds) seenArchiveIdsRef.current.add(id);
-    if (newly.length === 0) return;
-    setPendingStoryEvent(newly);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [Object.keys(session?.archiveHistory ?? {}).join(",")]);
-
-  // Show which option was picked (and what the alternatives were) whenever
-  // a 실카드 "선택" 분기 resolves -- before the resulting reveals' own
-  // StoryEventModal pops up (see the render priority chain below).
-  useEffect(() => {
-    if (!session?.lastResolvedChoice) return;
-    if (shownChoiceResultCardIdRef.current === session.lastResolvedChoice.cardId) return;
-    shownChoiceResultCardIdRef.current = session.lastResolvedChoice.cardId;
-    setPendingChoiceResult(session.lastResolvedChoice);
-  }, [session?.lastResolvedChoice]);
-
-  // Queue the next-round setup only after every round-end event and
-  // required token/choice step has cleared. That keeps the 공주/왕자 card
-  // selection as the last screen before the next hand is dealt.
-  useEffect(() => {
-    if (
-      !session?.round.roundResult ||
-      session.ended ||
-      !endSummaryAcknowledged ||
-      pendingRoundStart ||
-      pendingHumanReveal ||
-      pendingGuessEffect ||
-      pendingForcedDiscard ||
-      pendingEffectBlocked ||
-      pendingElimination ||
-      pendingChoiceResult ||
-      pendingStoryEvent
-    ) {
-      return;
-    }
-    if (session.pendingLetterChoice || session.pendingArchivePlacement || session.pendingIdentityChoice || session.pendingChoice) {
-      return;
-    }
-    const optionalCards = session.optionalRoundDeckCardNames ?? [];
-    const chooserId = session.lastRoundSummary?.winnerId ?? session.playerConfigs[0]?.id ?? HUMAN_ID;
-    setPendingRoundStart({
-      route: session.currentRoute,
-      chooserId,
-      optionalCards,
-      selectedOptionalCards:
-        chooserId === HUMAN_ID
-          ? session.activeOptionalRoundDeckCardNames.filter((name) => optionalCards.includes(name))
-          : chooseRoundStartCardsAI(optionalCards),
+  /** 세션을 바꾸는 유일한 진입점: 엔진/플로우 호출 뒤 항상 큐를 다시
+   * 계산한다. 실패하면(예외) 이전 상태를 그대로 유지한다. */
+  function updateSession(fn: (prev: SessionState) => SessionState | null) {
+    setSession((prev) => {
+      if (!prev) return prev;
+      const next = safely(() => fn(prev)) ?? prev;
+      return next === prev ? prev : recomputeFlow(next, HUMAN_ID);
     });
-  }, [
-    endSummaryAcknowledged,
-    pendingRoundStart,
-    pendingHumanReveal,
-    pendingGuessEffect,
-    pendingForcedDiscard,
-    pendingEffectBlocked,
-    pendingElimination,
-    pendingChoiceResult,
-    pendingStoryEvent,
-    session,
-  ]);
+  }
 
-  // 기록보관실 저장은 이제 엔딩씬(EndingSequence)이 끝까지 재생된 뒤
-  // 그 결과(진엔딩 성공 여부 포함)를 갖고 정확히 한 번 호출한다 -- see
-  // handleEndingSequenceComplete below.
+  const round = session?.round ?? null;
+  const head = session ? flowHead(session) : null;
+  const aiEventId = session ? (pendingAIEvent(session)?.id ?? null) : null;
+
+  // 유일한 자동 진행 루프: 큐의 머리가 AI 차례일 때만 한 걸음 굴린다.
+  // (예전에는 결정 종류마다 별도의 effect + "이미 처리함" ref가 있었고,
+  // 그 조합이 이 저장소의 교착 버그 대부분의 원인이었다.)
+  useEffect(() => {
+    if (!aiEventId) return;
+    const timer = setTimeout(() => {
+      setSession((prev) => {
+        if (!prev) return prev;
+        const pending = pendingAIEvent(prev);
+        if (!pending || pending.id !== aiEventId) return prev;
+        return runAIStep(prev, HUMAN_ID);
+      });
+    }, AI_THINK_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [session, aiEventId]);
+
+  // 기록보관실 저장은 엔딩씬(EndingSequence)이 끝까지 재생된 뒤 그
+  // 결과(진엔딩 성공 여부 포함)를 갖고 정확히 한 번 호출한다.
   function handleEndingSequenceComplete(
     identityName: string | null,
     endingSlot: CharacterSlotId | null,
     wasTrueEnding: boolean
   ) {
-    if (recordedEndingRef.current) {
-      setEndingSceneDone(true);
-      return;
+    if (!recordedEndingRef.current) {
+      recordedEndingRef.current = true;
+      recordSessionEnding(identityName, endingSlot, wasTrueEnding);
     }
-    recordedEndingRef.current = true;
-    recordSessionEnding(identityName, endingSlot, wasTrueEnding);
-    setEndingSceneDone(true);
+    updateSession((prev) => ackFlowEvent(prev, HUMAN_ID));
   }
 
   // 효과음: 상태가 실제로 "새로" 바뀐 시점에만 울리도록 각 이벤트의 id에
@@ -566,128 +285,98 @@ export default function App() {
     getSoundEngine().playRoundWin();
   }, [session?.lastRoundSummary]);
 
+  const storyHeadFirstCardId = head?.kind === "storyEvent" ? (head.cardIds?.[0] ?? null) : null;
   useEffect(() => {
-    if (!pendingStoryEvent || pendingStoryEvent.length === 0) return;
+    if (!storyHeadFirstCardId) return;
     getSoundEngine().playStoryReveal();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingStoryEvent?.[0]?.id]);
+  }, [storyHeadFirstCardId]);
 
+  const sessionEnding = head?.kind === "sessionEnd";
   useEffect(() => {
-    if (session?.ended && endSummaryAcknowledged) getSoundEngine().playSessionEnd();
-  }, [session?.ended, endSummaryAcknowledged]);
+    if (sessionEnding) getSoundEngine().playSessionEnd();
+  }, [sessionEnding]);
 
   function startGame(players: PlayerConfig[]) {
-    handledDecisionRef.current = null;
-    handledArchiveRef.current = null;
-    handledLetterChoiceRef.current = null;
-    handledIdentityRef.current = null;
-    handledChoiceRef.current = null;
-    seenArchiveIdsRef.current = new Set();
-    shownChoiceResultCardIdRef.current = null;
     recordedEndingRef.current = false;
-    setDismissedRevealId(null);
-    setDismissedEliminationId(null);
-    setDismissedGuessEffectId(null);
-    setDismissedForcedDiscardId(null);
-    setDismissedEffectBlockedId(null);
-    setEndSummaryAcknowledged(false);
-    setEndingSceneDone(false);
-    setPendingStoryEvent(null);
-    setPendingChoiceResult(null);
-    setPendingRoundStart(null);
-    setRoundStartLockedNumber(1);
-    setSession(startSession(players));
+    setSession(recomputeFlow(startSession(players), HUMAN_ID));
+  }
+
+  function openOverlay(overlay: FlowOverlay) {
+    updateSession((prev) => setFlowOverlay(prev, overlay, HUMAN_ID));
+  }
+
+  /** 모든 팝업의 "확인"은 플로우 큐의 머리를 소비하는 단 하나의 전이다. */
+  function acknowledge(count = 1) {
+    updateSession((prev) => ackFlowEvent(prev, HUMAN_ID, count));
   }
 
   function handleSelectCard(instanceId: string) {
-    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseCardToPlay(s, instanceId))) ?? prev : prev));
+    updateSession((prev) => applyToRound(prev, (s) => chooseCardToPlay(s, instanceId)));
   }
   function handleChooseTarget(targetId: string) {
     getSoundEngine().playTargetLock();
-    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseTarget(s, targetId))) ?? prev : prev));
+    updateSession((prev) => applyToRound(prev, (s) => chooseTarget(s, targetId)));
   }
   function handleChooseGuess(name: Parameters<typeof chooseGuess>[1]) {
     getSoundEngine().playClick();
-    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseGuess(s, name))) ?? prev : prev));
+    updateSession((prev) => applyToRound(prev, (s) => chooseGuess(s, name)));
   }
   function handleIdentitySwap(use: boolean) {
-    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseIdentitySwap(s, use))) ?? prev : prev));
+    updateSession((prev) => applyToRound(prev, (s) => chooseIdentitySwap(s, use)));
   }
   function handleIdentityCancel(use: boolean) {
-    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseIdentityCancel(s, use))) ?? prev : prev));
+    updateSession((prev) => applyToRound(prev, (s) => chooseIdentityCancel(s, use)));
   }
   function handleIdentityReplacement(instanceId: string | null) {
-    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseIdentityReplacement(s, instanceId))) ?? prev : prev));
+    updateSession((prev) => applyToRound(prev, (s) => chooseIdentityReplacement(s, instanceId)));
   }
   function handleIdentityExtraTurn(use: boolean) {
-    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseIdentityExtraTurn(s, use))) ?? prev : prev));
+    updateSession((prev) => applyToRound(prev, (s) => chooseIdentityExtraTurn(s, use)));
   }
   function handleFortunePath(path: "peek" | "coWin") {
-    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseFortunePath(s, path))) ?? prev : prev));
+    updateSession((prev) => applyToRound(prev, (s) => chooseFortunePath(s, path)));
   }
   function handleDeckSwap(swap: boolean) {
-    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseDeckSwap(s, swap))) ?? prev : prev));
+    updateSession((prev) => applyToRound(prev, (s) => chooseDeckSwap(s, swap)));
   }
   function handleTacticianSwap(swap: boolean) {
-    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseTacticianSwap(s, swap))) ?? prev : prev));
+    updateSession((prev) => applyToRound(prev, (s) => chooseTacticianSwap(s, swap)));
   }
   function handleReuseCard(instanceId: string) {
-    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseReuseCard(s, instanceId))) ?? prev : prev));
+    updateSession((prev) => applyToRound(prev, (s) => chooseReuseCard(s, instanceId)));
   }
   function handleHandDiscard(instanceId: string) {
-    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseHandDiscard(s, instanceId))) ?? prev : prev));
+    updateSession((prev) => applyToRound(prev, (s) => chooseHandDiscard(s, instanceId)));
   }
   function handleRegentChoice(choice: "immune" | "eliminate") {
-    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseRegentChoice(s, choice))) ?? prev : prev));
+    updateSession((prev) => applyToRound(prev, (s) => chooseRegentChoice(s, choice)));
   }
   function handleWitchAssign(instanceId: string) {
-    setSession((prev) => (prev ? safely(() => applyToRound(prev, (s) => chooseWitchAssign(s, instanceId))) ?? prev : prev));
+    updateSession((prev) => applyToRound(prev, (s) => chooseWitchAssign(s, instanceId)));
   }
 
   function proceedToNextRound(route: Route, selectedOptionalCards: CardName[] = []) {
-    handledDecisionRef.current = null;
-    handledArchiveRef.current = null;
-    handledLetterChoiceRef.current = null;
-    handledIdentityRef.current = null;
-    handledChoiceRef.current = null;
-    setEndSummaryAcknowledged(false);
-    setRoundStartLockedNumber(session ? session.roundNumber + 1 : null);
-    setSession((prev) => (prev ? safely(() => beginNextRound(prev, route, selectedOptionalCards)) ?? prev : prev));
-    setPendingRoundStart(null);
+    updateSession((prev) => enterRound(beginNextRound(prev, route, selectedOptionalCards), HUMAN_ID));
   }
 
   function handlePlaceArchiveToken(cardId: string, token: "성공" | "실패") {
-    setSession((prev) => (prev ? safely(() => placeArchiveToken(prev, HUMAN_ID, cardId, token)) ?? prev : prev));
+    updateSession((prev) => placeArchiveToken(prev, HUMAN_ID, cardId, token));
   }
   function handleSkipArchivePlacement() {
-    setSession((prev) => (prev ? safely(() => skipArchivePlacement(prev, HUMAN_ID)) ?? prev : prev));
+    updateSession((prev) => skipArchivePlacement(prev, HUMAN_ID));
   }
 
   function handleLetterChoice(choice: LetterChoice) {
     if (choice.type === "place") getSoundEngine().playLetterGain();
-    setSession((prev) => (prev ? safely(() => resolveLetterChoice(prev, HUMAN_ID, choice)) ?? prev : prev));
+    updateSession((prev) => resolveLetterChoice(prev, HUMAN_ID, choice));
   }
 
   function handleChooseIdentity(identityId: string, variantId: IdentityVariantId) {
-    setSession((prev) => (prev ? safely(() => chooseIdentity(prev, HUMAN_ID, identityId, variantId)) ?? prev : prev));
+    updateSession((prev) => chooseIdentity(prev, HUMAN_ID, identityId, variantId));
   }
 
   function handleChooseArchiveOption(optionId: string) {
-    setSession((prev) => (prev ? safely(() => resolveArchiveChoice(prev, HUMAN_ID, optionId)) ?? prev : prev));
-  }
-
-  function handleStoryEventNext(count = 1) {
-    const isLastStoryCard = !pendingStoryEvent || pendingStoryEvent.length <= count;
-    setPendingStoryEvent((prev) => (prev && prev.length > count ? prev.slice(count) : null));
-    if (!isLastStoryCard) return;
-    setSession((prev) => {
-      if (!prev?.pendingChoice) return prev;
-      const pending = prev.pendingChoice;
-      const actor = prev.playerConfigs.find((p) => p.id === pending.eligiblePlayerId);
-      if (!actor?.isAI) return prev;
-      const optionId = chooseArchiveChoiceAI(pending.options);
-      return safely(() => resolveArchiveChoice(prev, pending.eligiblePlayerId, optionId)) ?? prev;
-    });
+    updateSession((prev) => resolveArchiveChoice(prev, HUMAN_ID, optionId));
   }
 
   if (!session || !round) {
@@ -732,6 +421,12 @@ export default function App() {
     );
   }
 
+  const flow = session.flowState;
+  const overlay = flow.overlay;
+  const headIs = (kind: FlowEvent["kind"]) => head?.kind === kind;
+  const headActorIsHuman = head?.actorId === HUMAN_ID;
+  const roundStartLocked = isRoundStartLocked(session);
+
   const human = round.players.find((p) => p.id === HUMAN_ID)!;
   const otherPlayers = round.players.filter((p) => p.id !== HUMAN_ID);
   const displayNameFor = (playerId: string) =>
@@ -749,23 +444,9 @@ export default function App() {
   const isHumanDecision = decision?.playerId === HUMAN_ID;
   const remaining = computeRemainingCounts(round);
 
-  const roundOver = Boolean(round.roundResult);
   const concealRoundStart = roundStartLocked;
-  const needsArchivePlacement = Boolean(session.pendingArchivePlacement);
-  const humanNeedsArchivePlacement =
-    needsArchivePlacement && session.pendingArchivePlacement!.eligiblePlayerId === HUMAN_ID;
-  const needsLetterChoice = Boolean(session.pendingLetterChoice);
-  const humanNeedsLetterChoice = needsLetterChoice && session.pendingLetterChoice!.playerId === HUMAN_ID;
-  const needsIdentityChoice = Boolean(session.pendingIdentityChoice);
-  const humanNeedsIdentityChoice =
-    needsIdentityChoice && session.pendingIdentityChoice!.eligiblePlayerId === HUMAN_ID;
-  const needsArchiveChoice = Boolean(session.pendingChoice);
-  const humanNeedsArchiveChoice = needsArchiveChoice && session.pendingChoice!.eligiblePlayerId === HUMAN_ID;
   // 카드별 강화 배지/설명은 "누구의 편지 진행도인지"에 따라 달라지므로
-  // 플레이어별로 따로 계산한다 -- 이전엔 사람 쪽 진행도(round.activeCardUpgrades)
-  // 하나만 계산해 AI의 카드에도 그대로 갖다 붙였는데, 두 플레이어의 편지
-  // 진행도가 다르면 AI 카드에 잘못된(사람 기준) 강화 정보가 뜨는 문제가
-  // 있었다.
+  // 플레이어별로 따로 계산한다.
   const upgradesByPlayer = round.activeCardUpgradesByPlayer ?? {};
   function upgradeBadgesFor(playerId: string): Partial<Record<CardName, string>> {
     return Object.fromEntries(
@@ -776,8 +457,7 @@ export default function App() {
     ) as Partial<Record<CardName, string>>;
   }
   // 배지가 "뭔가 바뀌었다"는 것 이상을 말해주도록, 실제로 무엇이 바뀌었는지
-  // 짧은 문장으로 함께 보여준다 (없으면 배지 자체가 안 뜨므로 fallback
-  // 불필요 -- see engine/upgrades.ts's UPGRADE_ABILITY_TEXT).
+  // 짧은 문장으로 함께 보여준다.
   function upgradeAbilityTextsFor(playerId: string): Partial<Record<CardName, string>> {
     return Object.fromEntries(
       Object.entries(upgradesByPlayer[playerId] ?? {}).flatMap(([name, tier]) => {
@@ -804,105 +484,48 @@ export default function App() {
     ...otherCardUpgradeAbilityTexts,
   };
   const humanLetterTokens = Object.fromEntries(
-    CHARACTER_SLOTS.map((slot) => [
-      slot,
-      session.letterTokens[slot]?.[HUMAN_ID] ?? 0,
-    ])
+    CHARACTER_SLOTS.map((slot) => [slot, session.letterTokens[slot]?.[HUMAN_ID] ?? 0])
   ) as Record<CharacterSlotId, number>;
-  const storyEventBlocking = Boolean(pendingStoryEvent);
-  const activeBlockers: FlowStatusItem[] = [
-    ...(showFlowStatus ? [{ title: "진행 확인 탭 열림", detail: "이 탭을 닫으면 자동 진행이 다시 움직입니다.", tone: "waiting" as const }] : []),
-    ...(pendingHumanReveal ? [{ title: "비공개 공개 팝업", detail: "내가 확인해야 하는 카드 정보가 떠 있습니다.", tone: "blocked" as const }] : []),
-    ...(pendingGuessEffect ? [{ title: "추측 결과 팝업", detail: "경비병/신병 추측 결과를 확인해야 합니다.", tone: "blocked" as const }] : []),
-    ...(pendingForcedDiscard ? [{ title: "강제 버림 팝업", detail: "마술사 계열 효과로 버려진 카드를 확인해야 합니다.", tone: "blocked" as const }] : []),
-    ...(pendingEffectBlocked ? [{ title: "효과 차단 알림", detail: "보호 등으로 효과가 막힌 내용을 확인해야 합니다.", tone: "blocked" as const }] : []),
-    ...(pendingElimination ? [{ title: "탈락 팝업", detail: `${displayNameFor(pendingElimination.playerId)} 탈락 결과를 확인해야 합니다.`, tone: "blocked" as const }] : []),
-    ...(pendingChoiceResult ? [{ title: "이벤트 선택 결과", detail: "방금 선택된 시나리오 분기 결과를 확인해야 합니다.", tone: "blocked" as const }] : []),
-    ...(pendingStoryEvent ? [{ title: "이야기 이벤트", detail: `${pendingStoryEvent.length}개 이벤트 설명을 읽어야 다음 단계로 갑니다.`, tone: "blocked" as const }] : []),
-    ...(roundResultAwaitingAcknowledgement && !storyEventBlocking ? [{ title: "라운드 결과 확인", detail: "결과 확인 버튼을 눌러야 후속 이벤트와 선택이 진행됩니다.", tone: "blocked" as const }] : []),
-    ...(roundStartLocked && !storyEventBlocking ? [{ title: "라운드 시작 확인", detail: "시작 이벤트를 다 읽은 뒤 주차 진행 버튼을 눌러야 패가 공개됩니다.", tone: "blocked" as const }] : []),
-    ...(pendingRoundStart && !storyEventBlocking ? [{ title: "다음 주차 준비", detail: "공주/왕자 카드와 추가 8번 카드를 선택한 뒤 시작해야 합니다.", tone: "blocked" as const }] : []),
-    ...(showCardReference ? [{ title: "카드 확인 창", detail: "카드 목록 창을 닫으면 진행됩니다.", tone: "waiting" as const }] : []),
-    ...(showStoryArchive ? [{ title: "이야기 보관소 창", detail: "보관소 창을 닫으면 진행됩니다.", tone: "waiting" as const }] : []),
-  ];
+
+  // 진행 확인 탭: 예전엔 팝업 조건을 다시 한 번 세어 만들었지만, 이제는
+  // 플로우 큐를 그대로 비춘다 -- 화면에 보이는 것과 어긋날 수가 없다.
   const aiTasks: FlowStatusItem[] = [];
   const playerTasks: FlowStatusItem[] = [];
-  if (decision) {
-    const actorName = displayNameFor(decision.playerId);
-    const item = {
-      title: `${actorName} 턴`,
-      detail: `${decisionLabel(decision)}${flowBlocked ? " - 먼저 막는 팝업/선택을 처리해야 합니다." : ""}`,
-      tone: flowBlocked ? "blocked" as const : "ready" as const,
+  const blockers: FlowStatusItem[] = [];
+  if (overlay) blockers.push({ ...OVERLAY_TEXT[overlay], tone: "waiting" });
+  flow.queue.forEach((event, index) => {
+    const text = flowEventText(session, event, displayNameFor);
+    const isHead = index === 0 && !overlay;
+    const actor = event.actorId ? session.playerConfigs.find((p) => p.id === event.actorId) : null;
+    const item: FlowStatusItem = {
+      ...text,
+      detail: isHead ? text.detail : `${text.detail} - 앞의 단계를 먼저 처리해야 합니다.`,
+      tone: isHead ? "ready" : "blocked",
     };
-    if (decision.playerId === HUMAN_ID) playerTasks.push(item);
-    else aiTasks.push(item);
-  }
-  if (session.pendingLetterChoice && !storyEventBlocking) {
-    const item = {
-      title: "편지 토큰 선택",
-      detail: `${displayNameFor(session.pendingLetterChoice.playerId)}이(가) 편지 ${session.pendingLetterChoice.amount}개를 받을 대상을 골라야 합니다.`,
-      tone: flowBlocked ? "blocked" as const : "ready" as const,
-    };
-    if (session.pendingLetterChoice.playerId === HUMAN_ID) playerTasks.push(item);
-    else aiTasks.push(item);
-  }
-  if (session.pendingArchivePlacement && !storyEventBlocking) {
-    const item = {
-      title: "이야기 보관소 토큰 배치",
-      detail: `${displayNameFor(session.pendingArchivePlacement.eligiblePlayerId)}이(가) 성공/실패 토큰을 놓아야 합니다.`,
-      tone: flowBlocked ? "blocked" as const : "ready" as const,
-    };
-    if (session.pendingArchivePlacement.eligiblePlayerId === HUMAN_ID) playerTasks.push(item);
-    else aiTasks.push(item);
-  }
-  if (session.pendingIdentityChoice && !storyEventBlocking) {
-    const item = {
-      title: "정체 선택",
-      detail: `${displayNameFor(session.pendingIdentityChoice.eligiblePlayerId)}이(가) 정체와 성별을 골라야 합니다.`,
-      tone: flowBlocked ? "blocked" as const : "ready" as const,
-    };
-    if (session.pendingIdentityChoice.eligiblePlayerId === HUMAN_ID) playerTasks.push(item);
-    else aiTasks.push(item);
-  }
-  if (session.pendingChoice && !storyEventBlocking) {
-    const item = {
-      title: "시나리오 선택",
-      detail: `${displayNameFor(session.pendingChoice.eligiblePlayerId)}이(가) 「${ARCHIVE_CARD_SEEDS[session.pendingChoice.cardId].name}」 선택지를 골라야 합니다.`,
-      tone: flowBlocked ? "blocked" as const : "ready" as const,
-    };
-    if (session.pendingChoice.eligiblePlayerId === HUMAN_ID) playerTasks.push(item);
-    else aiTasks.push(item);
-  }
-  if (roundOver && session.lastRoundSummary && !endSummaryAcknowledged && !storyEventBlocking) {
-    playerTasks.push({
-      title: "라운드 결과 확인",
-      detail: "결과 확인 버튼을 눌러 다음 이벤트/주차 준비로 넘어가야 합니다.",
+    if (actor?.isAI) aiTasks.push(item);
+    else playerTasks.push(item);
+    if (!actor?.isAI) blockers.push(item);
+  });
+  if (flow.stalledEventId) {
+    blockers.push({
+      title: "자동 진행 실패",
+      detail: "AI 처리가 폴백까지 실패해 멈춰 있습니다. 진행 확인 후 다시 시도하세요.",
       tone: "blocked",
     });
-  }
-  if (roundStartLocked && !storyEventBlocking) {
-    playerTasks.push({ title: "주차 시작 확인", detail: "주차 진행 버튼을 눌러 이번 라운드를 시작해야 합니다.", tone: "blocked" });
-  }
-  if (pendingRoundStart && !storyEventBlocking) {
-    playerTasks.push({ title: "다음 주차 시작", detail: "카드 선택을 확인하고 시작 버튼을 눌러야 합니다.", tone: "blocked" });
   }
   if (aiTasks.length === 0) {
     aiTasks.push({
       title: "AI 자동 처리 없음",
-      detail: flowBlocked ? "현재는 플레이어 확인이나 팝업이 먼저입니다." : "AI가 기다리는 결정은 없습니다.",
-      tone: flowBlocked ? "waiting" : "ready",
+      detail: flow.kind === "awaitingAIDecision" ? "AI 차례를 준비 중입니다." : "AI가 기다리는 결정은 없습니다.",
+      tone: "ready",
     });
   }
   if (playerTasks.length === 0) {
-    playerTasks.push({
-      title: "내가 할 일 없음",
-      detail: flowBlocked ? "팝업이나 확인창이 흐름을 잡고 있는지 막는 것 탭을 확인하세요." : "현재 필요한 내 선택은 없습니다.",
-      tone: flowBlocked ? "waiting" : "ready",
-    });
+    playerTasks.push({ title: "내가 할 일 없음", detail: "현재 필요한 내 선택은 없습니다.", tone: "ready" });
   }
   const blockerItems =
-    activeBlockers.length > 0
-      ? activeBlockers
+    blockers.length > 0
+      ? blockers
       : [{ title: "막는 요소 없음", detail: "자동 진행을 막는 팝업이나 선택창이 없습니다.", tone: "ready" as const }];
 
   return (
@@ -910,8 +533,8 @@ export default function App() {
       <SessionHeader
         session={session}
         humanId={HUMAN_ID}
-        onShowArchive={() => setShowStoryArchive(true)}
-        onShowFlowStatus={() => setShowFlowStatus(true)}
+        onShowArchive={() => openOverlay("storyArchive")}
+        onShowFlowStatus={() => openOverlay("flowStatus")}
       />
 
       {/* 스크롤이 필요하면 이 보드 영역 내부에서만 일어난다 -- 로그가
@@ -945,7 +568,7 @@ export default function App() {
               ))}
             </div>
           )}
-          <button type="button" className="removed-row__reference-btn" onClick={() => setShowCardReference(true)}>
+          <button type="button" className="removed-row__reference-btn" onClick={() => openOverlay("cardReference")}>
             카드 확인
           </button>
         </div>
@@ -958,22 +581,22 @@ export default function App() {
         </div>
       )}
 
-      {showCardReference && (
-        <CardReferenceModal session={session} onClose={() => setShowCardReference(false)} />
+      {overlay === "cardReference" && (
+        <CardReferenceModal session={session} onClose={() => openOverlay(null)} />
       )}
-      {showStoryArchive && (
+      {overlay === "storyArchive" && (
         <StoryArchiveModal
           archive={session.storyArchive}
           archiveHistory={session.archiveHistory}
           clockTokens={session.clockTokens}
           session={session}
           humanId={HUMAN_ID}
-          onClose={() => setShowStoryArchive(false)}
+          onClose={() => openOverlay(null)}
         />
       )}
       <EffectRevealModal
-        reveal={pendingHumanReveal}
-        onDismiss={() => setDismissedRevealId(pendingHumanReveal?.id ?? null)}
+        reveal={headIs("reveal") ? round.lastReveal : null}
+        onDismiss={() => acknowledge()}
       />
 
       <div className={`opponents-row opponents-row--count-${otherPlayers.length}`}>
@@ -1049,281 +672,161 @@ export default function App() {
       <GameLog entries={concealRoundStart ? [] : round.log} />
       </div>
 
-      {/* Priority when several session-level popups could be true at once:
-          pendingHumanReveal (in-round private info from the card that just
-          ended the round) must be read first. Next come the three PUBLIC
-          effect popups that narrate what a just-played card actually did
-          (pendingGuessEffect's card-flip, pendingForcedDiscard's discard
-          reveal) -- these explain
-          the mechanism before pendingElimination confirms its consequence.
-          Then pendingChoiceResult (which 선택 옵션 was just picked, and by
-          whom), then pendingStoryEvent (what got revealed as a result of
-          that pick or any other condition), then the winner's letter-token
-          choice, then archive placement, then the round-transition screens
-          -- ending with an explicit RoundStartGate breather before the next
-          round's hands are actually dealt. Each gate below explicitly
-          excludes the ones before it so at most one full-screen modal is
-          ever mounted at a time. */}
-      {!pendingHumanReveal && pendingGuessEffect && (
+      {/* 아래 전체화면 모달들은 전부 "플로우 큐의 머리가 나인가?" 하나만
+          본다 -- 예전처럼 앞선 팝업들을 하나씩 부정하는 긴 조건 사슬이
+          필요 없고, 정의상 동시에 두 개가 뜰 수 없다. 우선순위는
+          engine/flow.ts의 BUILD ORDER 한 곳에만 적혀 있다. */}
+      {headIs("guessEffect") && round.lastGuessEffect && (
         <GuessEffectModal
-          effect={pendingGuessEffect}
-          actingDisplayName={displayNameFor(pendingGuessEffect.actingPlayerId)}
-          targetDisplayName={displayNameFor(pendingGuessEffect.targetPlayerId)}
-          onDismiss={() => {
-            setDismissedGuessEffectId(pendingGuessEffect.id);
-            // A hit already conveys the resulting elimination -- suppress
-            // the otherwise-redundant generic EliminationModal for it.
-            if (pendingGuessEffect.hit && round.lastElimination) {
-              setDismissedEliminationId(round.lastElimination.id);
-            }
+          effect={round.lastGuessEffect}
+          actingDisplayName={displayNameFor(round.lastGuessEffect.actingPlayerId)}
+          targetDisplayName={displayNameFor(round.lastGuessEffect.targetPlayerId)}
+          onDismiss={() => acknowledge()}
+        />
+      )}
+
+      {headIs("forcedDiscard") && round.lastForcedDiscard && (
+        <ForcedDiscardModal
+          effect={round.lastForcedDiscard}
+          actingDisplayName={displayNameFor(round.lastForcedDiscard.actingPlayerId)}
+          targetDisplayName={displayNameFor(round.lastForcedDiscard.targetPlayerId)}
+          isSelf={round.lastForcedDiscard.actingPlayerId === round.lastForcedDiscard.targetPlayerId}
+          onDismiss={() => acknowledge()}
+        />
+      )}
+
+      {headIs("effectBlocked") && round.lastEffectBlocked && (
+        <EffectBlockedModal
+          effect={round.lastEffectBlocked}
+          actingDisplayName={displayNameFor(round.lastEffectBlocked.actingPlayerId)}
+          onDismiss={() => acknowledge()}
+        />
+      )}
+
+      {headIs("elimination") && round.lastElimination && (
+        <EliminationModal
+          playerDisplayName={displayNameFor(round.lastElimination.playerId)}
+          reason={round.lastElimination.reason}
+          onDismiss={() => acknowledge()}
+        />
+      )}
+
+      {headIs("choiceResult") && session.lastResolvedChoice && (
+        <ChoiceResultModal
+          info={session.lastResolvedChoice}
+          chooserName={displayNameFor(session.lastResolvedChoice.chosenBy)}
+          onDismiss={() => acknowledge()}
+        />
+      )}
+
+      {headIs("storyEvent") && (
+        <StoryEventModal
+          cards={(head?.cardIds ?? []).map((id) => session.archiveHistory[id]).filter(Boolean)}
+          clockTokens={session.clockTokens}
+          onNext={(count = 1) => acknowledge(count)}
+        />
+      )}
+
+      {headIs("roundStartGate") && (
+        <Modal title={`${session.roundNumber}주차 시작`} onClose={() => {}} dismissible={false}>
+          <div className="round-start-gate">
+            <p className="round-start-gate__prompt">
+              라운드 시작 이벤트를 모두 확인했습니다. 이제 패를 공개하고 진행을 시작합니다.
+            </p>
+            <button
+              type="button"
+              className="round-start-gate__start-btn"
+              onClick={() => {
+                getSoundEngine().playClick();
+                acknowledge();
+              }}
+            >
+              {session.roundNumber}주차 진행
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {headIs("letterChoice") && headActorIsHuman && session.pendingLetterChoice && (
+        <LetterTokenChoiceModal
+          amount={session.pendingLetterChoice.amount}
+          atCap={session.pendingLetterChoice.atCap}
+          tokens={humanLetterTokens}
+          availableSlots={availableRank8LetterSlots(session)}
+          reason={session.pendingLetterChoice.reason}
+          onChoose={handleLetterChoice}
+        />
+      )}
+
+      {headIs("identityChoice") && headActorIsHuman && session.pendingIdentityChoice && (
+        <IdentityChoiceModal options={session.pendingIdentityChoice.options} onChoose={handleChooseIdentity} />
+      )}
+
+      {headIs("archiveChoice") && headActorIsHuman && session.pendingChoice && (
+        <ArchiveChoiceModal
+          cardName={ARCHIVE_CARD_SEEDS[session.pendingChoice.cardId].name}
+          flavor={ARCHIVE_CARD_SEEDS[session.pendingChoice.cardId].flavor}
+          options={session.pendingChoice.options}
+          onChoose={handleChooseArchiveOption}
+        />
+      )}
+
+      {headIs("archivePlacement") && headActorIsHuman && (
+        <ArchiveTokenModal
+          archive={session.storyArchive}
+          eligibleArchiveIds={session.roundEndEligibleArchiveIds}
+          onPlace={handlePlaceArchiveToken}
+          onSkip={handleSkipArchivePlacement}
+        />
+      )}
+
+      {headIs("roundSummary") && session.lastRoundSummary && (
+        <RoundEndSummary
+          summary={session.lastRoundSummary}
+          players={session.playerConfigs}
+          ended={session.ended}
+          onContinue={() => {
+            getSoundEngine().playClick();
+            acknowledge();
           }}
         />
       )}
 
-      {!pendingHumanReveal && !pendingGuessEffect && pendingForcedDiscard && (
-        <ForcedDiscardModal
-          effect={pendingForcedDiscard}
-          actingDisplayName={displayNameFor(pendingForcedDiscard.actingPlayerId)}
-          targetDisplayName={displayNameFor(pendingForcedDiscard.targetPlayerId)}
-          isSelf={pendingForcedDiscard.actingPlayerId === pendingForcedDiscard.targetPlayerId}
-          onDismiss={() => setDismissedForcedDiscardId(pendingForcedDiscard.id)}
+      {headIs("roundStartSetup") && flow.roundStart && (
+        <RoundStartGate
+          upcomingRoundNumber={session.roundNumber + 1}
+          route={flow.roundStart.route}
+          chooserName={displayNameFor(flow.roundStart.chooserId)}
+          readOnly={flow.roundStart.chooserId !== HUMAN_ID}
+          optionalCards={flow.roundStart.optionalCards}
+          selectedOptionalCards={flow.roundStart.selectedOptionalCards}
+          onToggleOptionalCard={(cardName) =>
+            updateSession((prev) => {
+              const plan = prev.flowState.roundStart;
+              if (!plan) return prev;
+              const routeSwapCards = new Set<CardName>(["공주", "왕자", "공주둘째", "공주셋째"]);
+              const defaultRank8Card: CardName = plan.route === "왕자" ? "왕자" : "공주";
+              const selected = routeSwapCards.has(cardName)
+                ? cardName === defaultRank8Card
+                  ? plan.selectedOptionalCards.filter((name) => !routeSwapCards.has(name))
+                  : [...plan.selectedOptionalCards.filter((name) => !routeSwapCards.has(name)), cardName]
+                : plan.selectedOptionalCards.includes(cardName)
+                  ? plan.selectedOptionalCards.filter((name) => name !== cardName)
+                  : [...plan.selectedOptionalCards, cardName];
+              return setRoundStartSelection(prev, selected, HUMAN_ID);
+            })
+          }
+          onStart={() =>
+            proceedToNextRound(
+              routeForSelection(flow.roundStart!.route, flow.roundStart!.selectedOptionalCards),
+              flow.roundStart!.selectedOptionalCards
+            )
+          }
         />
       )}
 
-      {!pendingHumanReveal && !pendingGuessEffect && !pendingForcedDiscard && pendingEffectBlocked && (
-        <EffectBlockedModal
-          effect={pendingEffectBlocked}
-          actingDisplayName={displayNameFor(pendingEffectBlocked.actingPlayerId)}
-          onDismiss={() => setDismissedEffectBlockedId(pendingEffectBlocked.id)}
-        />
-      )}
-
-      {!pendingHumanReveal &&
-        !pendingGuessEffect &&
-        !pendingForcedDiscard &&
-        !pendingEffectBlocked &&
-        pendingElimination && (
-          <EliminationModal
-            playerDisplayName={displayNameFor(pendingElimination.playerId)}
-            reason={pendingElimination.reason}
-            onDismiss={() => setDismissedEliminationId(pendingElimination.id)}
-          />
-        )}
-
-      {!pendingHumanReveal &&
-        !pendingGuessEffect &&
-        !pendingForcedDiscard &&
-        !pendingEffectBlocked &&
-        !pendingElimination &&
-        pendingChoiceResult && (
-          <ChoiceResultModal
-            info={pendingChoiceResult}
-            chooserName={displayNameFor(pendingChoiceResult.chosenBy)}
-            onDismiss={() => setPendingChoiceResult(null)}
-          />
-        )}
-
-      {!pendingHumanReveal &&
-        !pendingGuessEffect &&
-        !pendingForcedDiscard &&
-        !pendingEffectBlocked &&
-        !pendingElimination &&
-        !pendingChoiceResult &&
-        pendingStoryEvent && (
-        // 라운드 종료 후에는 결과 요약을 먼저 확인시키지만(!roundOver ||
-        // acknowledged), 라운드 시작 잠금 중에는 시작 시점 공개 이벤트를
-        // 즉시 보여준다 -- 새 라운드가 배분 직후 패시브(왕/대신)로 곧바로
-        // 끝나는 경우, 이 분기가 없으면 스토리 이벤트(잠금 게이트를 막음)/
-        // 잠금 게이트(요약을 막음)/요약(스토리 이벤트를 기다림)이 서로를
-        // 기다리는 교착이 생긴다.
-        (!roundOver || endSummaryAcknowledged || roundStartLocked) && (
-          <StoryEventModal
-            cards={pendingStoryEvent}
-            clockTokens={session.clockTokens}
-            onNext={handleStoryEventNext}
-          />
-        ))}
-
-      {!pendingHumanReveal &&
-        !pendingGuessEffect &&
-        !pendingForcedDiscard &&
-        !pendingEffectBlocked &&
-        !pendingElimination &&
-        !pendingChoiceResult &&
-        !pendingStoryEvent &&
-        roundStartLocked && (
-          <Modal title={`${session.roundNumber}주차 시작`} onClose={() => {}} dismissible={false}>
-            <div className="round-start-gate">
-              <p className="round-start-gate__prompt">
-                라운드 시작 이벤트를 모두 확인했습니다. 이제 패를 공개하고 진행을 시작합니다.
-              </p>
-              <button
-                type="button"
-                className="round-start-gate__start-btn"
-                onClick={() => {
-                  getSoundEngine().playClick();
-                  setRoundStartLockedNumber(null);
-                }}
-              >
-                {session.roundNumber}주차 진행
-              </button>
-            </div>
-          </Modal>
-        )}
-
-      {!pendingHumanReveal &&
-        !pendingGuessEffect &&
-        !pendingForcedDiscard &&
-        !pendingEffectBlocked &&
-        !pendingElimination &&
-        !pendingChoiceResult &&
-        !pendingStoryEvent &&
-        !roundStartLocked &&
-        humanNeedsLetterChoice && (
-          <LetterTokenChoiceModal
-            amount={session.pendingLetterChoice!.amount}
-            atCap={session.pendingLetterChoice!.atCap}
-            tokens={humanLetterTokens}
-            availableSlots={availableRank8LetterSlots(session)}
-            reason={session.pendingLetterChoice!.reason}
-            onChoose={handleLetterChoice}
-          />
-        )}
-
-      {!pendingHumanReveal &&
-        !pendingGuessEffect &&
-        !pendingForcedDiscard &&
-        !pendingEffectBlocked &&
-        !pendingElimination &&
-        !pendingChoiceResult &&
-        !pendingStoryEvent &&
-        !roundStartLocked &&
-        !humanNeedsLetterChoice &&
-        humanNeedsIdentityChoice && (
-          <IdentityChoiceModal options={session.pendingIdentityChoice!.options} onChoose={handleChooseIdentity} />
-        )}
-
-      {!pendingHumanReveal &&
-        !pendingGuessEffect &&
-        !pendingForcedDiscard &&
-        !pendingEffectBlocked &&
-        !pendingElimination &&
-        !pendingChoiceResult &&
-        !pendingStoryEvent &&
-        !roundStartLocked &&
-        !humanNeedsLetterChoice &&
-        !humanNeedsIdentityChoice &&
-        humanNeedsArchiveChoice && (
-          <ArchiveChoiceModal
-            cardName={ARCHIVE_CARD_SEEDS[session.pendingChoice!.cardId].name}
-            flavor={ARCHIVE_CARD_SEEDS[session.pendingChoice!.cardId].flavor}
-            options={session.pendingChoice!.options}
-            onChoose={handleChooseArchiveOption}
-          />
-        )}
-
-      {!pendingHumanReveal &&
-        !pendingGuessEffect &&
-        !pendingForcedDiscard &&
-        !pendingEffectBlocked &&
-        !pendingElimination &&
-        !pendingChoiceResult &&
-        !pendingStoryEvent &&
-        !roundStartLocked &&
-        !humanNeedsLetterChoice &&
-        !humanNeedsIdentityChoice &&
-        !humanNeedsArchiveChoice &&
-        humanNeedsArchivePlacement && (
-          <ArchiveTokenModal
-            archive={session.storyArchive}
-            eligibleArchiveIds={session.roundEndEligibleArchiveIds}
-            onPlace={handlePlaceArchiveToken}
-            onSkip={handleSkipArchivePlacement}
-          />
-        )}
-
-      {!pendingHumanReveal &&
-        !pendingGuessEffect &&
-        !pendingForcedDiscard &&
-        !pendingEffectBlocked &&
-        !pendingElimination &&
-        !pendingChoiceResult &&
-        !roundStartLocked &&
-        roundOver &&
-        session.lastRoundSummary &&
-        !endSummaryAcknowledged && (
-          <RoundEndSummary
-            summary={session.lastRoundSummary}
-            players={session.playerConfigs}
-            ended={session.ended}
-            onContinue={() => {
-              getSoundEngine().playClick();
-              setEndSummaryAcknowledged(true);
-              if (session.ended) {
-                return;
-              }
-            }}
-          />
-        )}
-
-      {!pendingHumanReveal &&
-        !pendingGuessEffect &&
-        !pendingForcedDiscard &&
-        !pendingEffectBlocked &&
-        !pendingElimination &&
-        !pendingChoiceResult &&
-        !pendingStoryEvent &&
-        !roundStartLocked &&
-        !needsLetterChoice &&
-        !needsIdentityChoice &&
-        !needsArchiveChoice &&
-        !needsArchivePlacement &&
-        roundOver &&
-        !session.ended &&
-        pendingRoundStart && (
-          <RoundStartGate
-            upcomingRoundNumber={session.roundNumber + 1}
-            route={pendingRoundStart.route}
-            chooserName={displayNameFor(pendingRoundStart.chooserId)}
-            readOnly={pendingRoundStart.chooserId !== HUMAN_ID}
-            optionalCards={pendingRoundStart.optionalCards}
-            selectedOptionalCards={pendingRoundStart.selectedOptionalCards}
-            onToggleOptionalCard={(cardName) =>
-              setPendingRoundStart((prev) => {
-                if (!prev) return prev;
-                const routeSwapCards = new Set<CardName>(["공주", "왕자", "공주둘째", "공주셋째"]);
-                const defaultRank8Card: CardName = prev.route === "왕자" ? "왕자" : "공주";
-                const selected = routeSwapCards.has(cardName)
-                  ? cardName === defaultRank8Card
-                    ? prev.selectedOptionalCards.filter((name) => !routeSwapCards.has(name))
-                    : [...prev.selectedOptionalCards.filter((name) => !routeSwapCards.has(name)), cardName]
-                  : prev.selectedOptionalCards.includes(cardName)
-                    ? prev.selectedOptionalCards.filter((name) => name !== cardName)
-                    : [...prev.selectedOptionalCards, cardName];
-                return { ...prev, selectedOptionalCards: selected };
-              })
-            }
-            onStart={() =>
-              proceedToNextRound(
-                routeForSelection(pendingRoundStart.route, pendingRoundStart.selectedOptionalCards),
-                pendingRoundStart.selectedOptionalCards
-              )
-            }
-          />
-        )}
-
-      {!pendingHumanReveal &&
-        !pendingGuessEffect &&
-        !pendingForcedDiscard &&
-        !pendingEffectBlocked &&
-        !pendingElimination &&
-        !pendingChoiceResult &&
-        !pendingStoryEvent &&
-        !roundStartLocked &&
-        roundOver &&
-        session.ended &&
-        endSummaryAcknowledged &&
-        (endingSceneDone ? (
+      {headIs("sessionEnd") &&
+        (flow.acks.endingSceneDone ? (
           <SessionEndScreen
             session={session}
             players={session.playerConfigs}
@@ -1336,17 +839,17 @@ export default function App() {
           <EndingSequence session={session} humanId={HUMAN_ID} onComplete={handleEndingSequenceComplete} />
         ))}
 
-      <button type="button" className="flow-status-fab" onClick={() => setShowFlowStatus(true)}>
+      <button type="button" className="flow-status-fab" onClick={() => openOverlay("flowStatus")}>
         진행 확인
       </button>
       <SoundControls />
 
-      {showFlowStatus && (
+      {overlay === "flowStatus" && (
         <FlowStatusModal
           aiTasks={aiTasks}
           playerTasks={playerTasks}
           blockers={blockerItems}
-          onClose={() => setShowFlowStatus(false)}
+          onClose={() => openOverlay(null)}
         />
       )}
     </div>
