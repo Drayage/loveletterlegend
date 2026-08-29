@@ -29,8 +29,15 @@ export interface FirebaseConfig {
   appId?: string;
 }
 
-/** TODO: 실제 키가 발급되면 여기(또는 VITE_FIREBASE_CONFIG)에 채운다. */
-export const FIREBASE_CONFIG: FirebaseConfig = {};
+export const FIREBASE_CONFIG: FirebaseConfig = {
+  apiKey: "AIzaSyByKyy7PYBIMi2K1jxH6KmzfWbE2_SsB5A",
+  authDomain: "deadline-38cdb.firebaseapp.com",
+  databaseURL: "https://deadline-38cdb-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "deadline-38cdb",
+  storageBucket: "deadline-38cdb.firebasestorage.app",
+  messagingSenderId: "768255871086",
+  appId: "1:768255871086:web:ad7713b5a3b8e01f9cbe7f",
+};
 
 /** 7개 게임이 공유하는 RTDB의 이 게임 전용 루트 경로. 다른 게임과 절대
  * 겹치지 않도록 규칙(rules)도 이 경로 기준으로 작성한다. */
