@@ -29,6 +29,29 @@ import type { SessionState } from "../engine/session";
 import type { PlayerIntent } from "./intents";
 import { ROOM_ROOT_PATH, isFirebaseConfigured, resolveFirebaseConfig } from "./firebaseConfig";
 
+// Firebase RTDB는 빈 배열([])을 쓰면 그 키를 통째로 지운다 -- 읽을 때는
+// undefined로 돌아온다. flowState.queue(대기 중일 때 거의 항상 []),
+// round.deck/faceUpRemovedCards(라운드 끝나갈 무렵), player.discardPile
+// (라운드 시작 직후), round.log 등은 실제 플레이 중 흔히 빈 배열이 되는
+// 필드들이라, 게스트가 받는 view를 그대로 쓰면 App.tsx/PlayerArea.tsx의
+// 무가드 .length/.map/[0] 호출과 flow.ts의 `queue[0]`이 게스트 화면에서만
+// 터진다(호스트는 자기 엔진의 in-memory 상태를 그대로 쓰므로 이 라운드
+// 트립을 안 거친다). onState 콜백에 넘기기 전에 복원해 둔다.
+function hydrateSessionView(view: SessionState): SessionState {
+  if (view.flowState) view.flowState.queue = view.flowState.queue ?? [];
+  if (view.round) {
+    view.round.deck = view.round.deck ?? [];
+    view.round.faceUpRemovedCards = view.round.faceUpRemovedCards ?? [];
+    view.round.log = view.round.log ?? [];
+    for (const player of view.round.players ?? []) {
+      player.hand = player.hand ?? [];
+      player.discardPile = player.discardPile ?? [];
+    }
+  }
+  view.storyArchive = view.storyArchive ?? [];
+  return view;
+}
+
 export type SeatType = "human" | "ai" | "online";
 
 export interface RoomSeat {
@@ -273,7 +296,7 @@ export async function subscribeRoom(
       const envelope = snap.val() as RoomStateEnvelope | null;
       if (!envelope || !viewPlayerId) return;
       const view = envelope.views?.[viewPlayerId];
-      if (view) handlers.onState!(view, envelope.seq);
+      if (view) handlers.onState!(hydrateSessionView(view), envelope.seq);
     });
     unsubscribers.push(() => off(stateRef, "value", cb));
   }
